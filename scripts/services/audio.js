@@ -82,5 +82,8 @@ const AudioManager = {
       button.textContent = label;
       button.setAttribute('aria-pressed', String(this.musicEnabled));
     });
+    document.querySelectorAll('.music-recommendation').forEach(message => {
+      message.hidden = this.musicEnabled;
+    });
   }
 };

@@ -1670,17 +1670,27 @@ const PlayAnimationController = {
         && ['interception','fumble'].includes(event.kind);
       if(event.kind === 'fumble' && !userLostPossession) AudioManager.play('catch');
       triggerTurnoverFlash();
+      if(event.kind !== 'downs'){
+        this._triggerCameraShake('heavy');
+        triggerTackleImpact(ballState.x, ballState.y, 'turnover');
+      }
       showEventBanner(t('game.banners.turnover'), 'turnover');
       AudioManager.play(userLostPossession ? 'booing' : 'turnover');
     }
-    if(name === 'fumble') this._triggerCameraShake('heavy');
+    if(name === 'fumble'){
+      this._triggerCameraShake('light');
+      triggerTackleImpact(ballState.x, ballState.y, 'turnover');
+    }
     if(name === 'tackle'){
       AudioManager.play('tackle');
       if(!['interception','fumble'].includes(setup.outcome)){
         this._triggerCameraShake(setup.outcome === 'sack' || setup.yards <= 0 ? 'heavy' : 'light');
       }
       const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
-      if(carrierActor) triggerTackleImpact(carrierActor.x, carrierActor.y);
+      if(carrierActor){
+        triggerTackleImpact(carrierActor.x, carrierActor.y, setup.outcome === 'sack' ? 'sack' : 'standard');
+      }
+      if(setup.outcome === 'sack') triggerSackImpact();
 
       // Le porteur tombe : c'est SEULEMENT maintenant que la ligne de scrimmage,
       // la ligne à gagner et le ballon posé rejoignent leur position finale —
@@ -1695,7 +1705,11 @@ const PlayAnimationController = {
       ballEl.classList.remove('pop'); void ballEl.offsetWidth; ballEl.classList.add('pop');
       scrimEl.classList.remove('pop'); void scrimEl.offsetWidth; scrimEl.classList.add('pop');
     }
-    if(name === 'breakaway') this._triggerCameraShake('breakaway');
+    if(name === 'breakaway'){
+      this._triggerCameraShake('breakaway');
+      const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
+      if(carrierActor) triggerBreakawayEffect(carrierActor.element, setup.offenseDir);
+    }
     if(name === 'whistle'){
       AudioManager.play('whistle');
       if(setup.feedback && setup.feedback.kind === 'play'){
@@ -1712,6 +1726,7 @@ const PlayAnimationController = {
         const {success, advType, scorer} = setup.feedback;
         if(advType === 'touchdown'){
           triggerScoreCelebration(scorer);
+          triggerTouchdownImpact(scorer);
           showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
           celebrate('touchdown', scorer);
           AudioManager.play('cheering');

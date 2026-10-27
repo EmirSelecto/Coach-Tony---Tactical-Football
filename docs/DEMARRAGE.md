@@ -76,6 +76,12 @@ avec une vitesse continue, plutôt que de ralentir à chaque point. Les délais 
 départ restent déterministes et varient selon le joueur ; ils ne changent ni les
 résultats ni la durée logique du match.
 
+Les moments forts ont des effets visuels renforcés et ciblés : impact au point
+du sack, flash et onde de choc au turnover, traînées brèves derrière le porteur
+lors d'une échappée, et lumière concentrée sur la zone d'en-but au touchdown.
+Ces effets restent décoratifs et sont atténués si le système demande une
+réduction des animations.
+
 En mode debug animation, les assignments sont séparés entre attaque et défense.
 Les défenseurs en marquage individuel conservent leur receveur désigné comme
 cible tout au long de sa route ; les défenseurs de zone restent identifiés

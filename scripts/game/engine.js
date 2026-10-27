@@ -1405,8 +1405,10 @@ function celebrate(kind, side, xYards){
   };
   if(kind === 'touchdown'){
     const n = reduce ? 30 : 120;
+    const ezX = (fx(side === 'player' ? 105 : -5) / 100) * W;
     for(let i=0;i<n;i++){
-      const el = spawn('confetti', Math.random()*W, -12, pick());
+      const x = clamp(ezX + (Math.random()-0.5)*W*0.18, 0, W);
+      const el = spawn('confetti', x, -12, pick());
       const drift = (Math.random()*2-1)*80;
       const anim = el.animate([
         {transform:'translate(0,0) rotate(0deg)', opacity:1},
@@ -1414,7 +1416,6 @@ function celebrate(kind, side, xYards){
       ], {duration: 1800 + Math.random()*1600, easing:'linear', delay: Math.random()*900});
       anim.onfinish = () => el.remove();
     }
-    const ezX = (fx(side === 'player' ? 105 : -5) / 100) * W;
     if(!reduce){
       [0, 380, 760].forEach((delay, k) => setTimeout(() => burst(ezX + (k-1)*W*0.03, H*(0.3 + 0.2*k), 28, 90, true), delay));
       footballs(3, ezX, H*0.6);
@@ -1428,15 +1429,30 @@ function celebrate(kind, side, xYards){
     burst(gx, H*0.5, reduce ? 10 : 30, 80, true);
   }
 }
-function triggerBigPlayPulse(){
+function restartFieldOuterAnimation(className){
   const el = document.getElementById('fieldOuter');
-  if(!el) return;
-  el.classList.remove('big-play-pulse'); void el.offsetWidth; el.classList.add('big-play-pulse');
+  if(!el) return null;
+  el.classList.remove('big-play-pulse','sack-impact','turnover-flash','touchdown-impact');
+  void el.offsetWidth;
+  el.classList.add(className);
+  return el;
+}
+function triggerBigPlayPulse(){
+  restartFieldOuterAnimation('big-play-pulse');
+}
+function triggerSackImpact(){
+  restartFieldOuterAnimation('sack-impact');
+}
+function triggerTouchdownImpact(side){
+  const field = document.getElementById('field');
+  const outer = restartFieldOuterAnimation('touchdown-impact');
+  if(!field || !outer) return;
+  field.style.setProperty('--touchdown-x', side === 'player' ? '100%' : '0%');
+  field.classList.remove('touchdown-glow'); void field.offsetWidth; field.classList.add('touchdown-glow');
 }
 function triggerTurnoverFlash(){
-  const el = document.getElementById('fieldOuter');
+  const el = restartFieldOuterAnimation('turnover-flash');
   if(!el) return;
-  el.classList.remove('turnover-flash'); void el.offsetWidth; el.classList.add('turnover-flash');
 }
 function flashFirstDownMarker(){
   const marker = document.getElementById('firstDownMarker');
@@ -1448,17 +1464,25 @@ function flashPositiveResult(){
   if(!rb) return;
   rb.classList.remove('flash-positive'); void rb.offsetWidth; rb.classList.add('flash-positive');
 }
-// Léger impact visuel au point de tacle final (appelé par l'animation, jamais
-// par le moteur de résultat — purement décoratif).
-function triggerTackleImpact(xPct, yPct){
+// Impact visuel au point de tacle ou de perte du ballon ; ne modifie pas le résultat.
+function triggerTackleImpact(xPct, yPct, kind = 'standard'){
   const field = document.getElementById('field');
   if(!field) return;
   const impact = document.createElement('div');
-  impact.className = 'tackle-impact temp-player';
+  impact.className = 'tackle-impact temp-player ' + kind;
   impact.style.left = fx(xPct) + '%';
   impact.style.top = yPct + '%';
   field.appendChild(impact);
-  setTimeout(() => impact.remove(), 450);
+  setTimeout(() => impact.remove(), kind === 'sack' ? 650 : kind === 'turnover' ? 600 : 450);
+}
+function triggerBreakawayEffect(element, offenseDir){
+  if(!element) return;
+  element.dataset.direction = offenseDir >= 0 ? 'right' : 'left';
+  element.classList.remove('breakaway'); void element.offsetWidth; element.classList.add('breakaway');
+  setTimeout(() => {
+    element.classList.remove('breakaway');
+    delete element.dataset.direction;
+  }, 800);
 }
 
 // Point d'entrée unique : classifie l'événement puis déclenche le feedback
@@ -1478,6 +1502,7 @@ function applyEventFeedback(offenseSide, context, tactical){
     if(advType === 'safety'){
       showEventBanner(t('game.banners.safety'), 'score');
     } else {
+      triggerTouchdownImpact(scoringSide);
       showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
       if(result && result.outcome === 'interception') setTimeout(() => showEventBanner(t('game.banners.pickSix'), 'bigPlay'), 500);
       celebrate('touchdown', scoringSide);
