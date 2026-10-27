@@ -1,0 +1,22 @@
+{
+  "status": {
+    "unavailable": "sauvegarde auto indisponible ici (code de sauvegarde disponible)",
+    "none": "aucune partie sauvegardée",
+    "savedAt": "partie sauvegardée à {time}",
+    "full": "sauvegarde impossible (stockage plein)"
+  },
+  "summary": "{period} — {minutes}:{seconds} à jouer · sauvegardée le {date} à {time}",
+  "storageAvailable": "La partie est sauvegardée automatiquement dans ce navigateur après chaque action.",
+  "storageUnavailable": "Le stockage du navigateur est bloqué ici : la sauvegarde automatique ne survivra pas à un rechargement. Copiez ce code pour reprendre plus tard.",
+  "exportTitle": "Code de sauvegarde",
+  "exportHint": "(à copier) :",
+  "empty": "Aucune partie en cours à sauvegarder.",
+  "importTitle": "Charger un code",
+  "importPlaceholder": "Collez un code de sauvegarde ici",
+  "copied": "Code sélectionné et copié.",
+  "invalidCode": "Code invalide.",
+  "copy": "Copier le code",
+  "load": "Charger ce code",
+  "close": "Fermer",
+  "menuTitle": "Sauvegarde"
+}

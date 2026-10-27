@@ -1,0 +1,45 @@
+{
+  "touchdown": [
+    "Et c'est le TOUCHDOWN ! Le stade est debout !",
+    "Personne ne pouvait l'arrêter, TOUCHDOWN !",
+    "Quelle séquence... SIX POINTS au tableau !",
+    "Il fallait le voir pour le croire : TOUCHDOWN !"
+  ],
+  "pickSix": [
+    "INTERCEPTÉ... ET RAMENÉ JUSQU'AU BOUT ! Quel cauchemar pour l'attaque !",
+    "Le quarterback va s'en vouloir longtemps : pick-six !",
+    "La défense vient de marquer elle-même ! Renversement total !"
+  ],
+  "bigGain": [
+    "Quelle explosion offensive, la défense est prise de vitesse !",
+    "Ça déchire la défense sur une grande portion du terrain !",
+    "Énorme gain ! Le momentum bascule complètement !"
+  ],
+  "bigLoss": [
+    "Quel sack monumental, la ligne offensive craque !",
+    "Il n'a jamais eu le temps de réagir, plaqué net derrière la ligne !"
+  ],
+  "interception": [
+    "Interceptée ! Le ballon change de mains dans la douleur !",
+    "Mauvaise lecture, et la défense s'en empare !"
+  ],
+  "fumble": [
+    "Le ballon tombe au sol... et c'est récupéré par l'autre équipe !",
+    "Fumble ! Chaos total sur le terrain !"
+  ],
+  "fieldGoalGood": [
+    "Le ballon passe entre les poteaux, trois points de plus !",
+    "Précis et sans trembler, le botteur ne rate rien !"
+  ],
+  "fieldGoalMiss": [
+    "Ça part à côté ! Occasion manquée pour l'attaque !",
+    "Le poteau dit non ! Quelle déception !"
+  ],
+  "safety": [
+    "Plaqué dans sa propre zone d'en-but : sécurité inattendue !"
+  ],
+  "turnoverOnDowns": [
+    "L'attaque échoue sur la ligne de mêlée, le ballon change de mains !",
+    "Quatrième tentative manquée, tournant du match !"
+  ]
+}

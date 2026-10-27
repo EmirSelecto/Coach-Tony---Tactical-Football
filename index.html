@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-text="ui.static.documentTitle">Coach Tony - Tactical Football</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">Coach Tony <span>- Tactical Football</span></div>
+      <h1><span id="headerTeamPlayer">Comètes</span> <span data-text="ui.static.versus" style="color:var(--ink-dim);font-weight:400;">vs</span> <span id="headerTeamAI">Loups de Fer</span></h1>
+    </div>
+    <div class="tag"><span data-text="ui.static.headerSubtitle">Mémoire IA &amp; prévisibilité</span> · <span id="versionTag"></span> · <span id="saveStatus" class="save-status"></span></div>
+  </header>
+
+  <div class="scoreboard">
+    <div class="team-score player">
+      <div class="name" id="scoreNamePlayer" data-text="ui.static.playerTeam" data-text-values='{"team":"Comètes"}'>Comètes (vous)</div>
+      <div class="val" id="scorePlayer">0</div>
+      <div class="timeouts" id="toPlayer" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+    </div>
+    <div class="clockbox">
+      <div class="quarter" id="quarterLabel" data-text="ui.static.quarterFirst">1er quart-temps</div>
+      <div class="time" id="clockLabel">05:00</div>
+      <div class="clock-state" id="clockState"></div>
+    </div>
+    <div class="team-score ai">
+      <div class="name" id="scoreNameAI" data-text="ui.static.aiTeam" data-text-values='{"team":"Loups de Fer"}'>Loups de Fer (IA)</div>
+      <div class="val" id="scoreAI">0</div>
+      <div class="timeouts" id="toAI" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+    </div>
+  </div>
+
+  <div class="situation">
+    <div><span class="poss-tag" id="possTag">—</span> <b id="downDistance">1st &amp; 10</b> — ballon à <b id="ballSpotLabel">--</b></div>
+    <div id="situationExtra" style="color:var(--ink-dim);"></div>
+  </div>
+  <div class="situation" id="playPhaseBar" style="margin-top:-8px;">
+    <div><span data-text="ui.static.phasePrefix">Phase :</span> <b id="playPhaseLabel">À vous de choisir</b></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="font-size:0.8rem;color:var(--ink-dim);"><span data-text="ui.static.speedLabel">Vitesse</span>
+        <select id="animSpeedSelect" style="background:var(--bg-panel-raised);color:var(--ink);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">
+          <option value="1">x1</option>
+          <option value="1.5">x1.5</option>
+          <option value="2">x2</option>
+        </select>
+      </label>
+      <label style="font-size:0.8rem;color:var(--ink-dim);display:flex;align-items:center;gap:4px;" data-title="ui.static.tacticalCardsTitle" title="Affiche les forces (+) et faiblesses (−) sous chaque appel">
+        <input type="checkbox" id="cardsToggle" checked> <span data-text="ui.static.tacticalCards">Fiches tactiques</span>
+      </label>
+      <label style="font-size:0.8rem;color:var(--ink-dim);display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" id="audioEnabledToggle"> <span data-text="ui.static.sound">Son</span>
+      </label>
+      <input type="range" id="audioVolumeSlider" min="0" max="1" step="0.05" style="width:70px;" data-title="ui.static.volume" title="Volume">
+      <button class="action-btn secondary" id="skipAnimBtn" data-text="ui.static.skipAnimation" style="padding:4px 10px;font-size:0.78rem;">Passer l'animation</button>
+    </div>
+  </div>
+
+  <div class="field-outer" id="fieldOuter">
+    <div class="field" id="field">
+      <div class="endzone left" id="endzoneLeft">COMÈTES</div>
+      <div class="endzone right" id="endzoneRight">LOUPS</div>
+      <div class="field-markings" id="fieldMarkings"></div>
+      <div class="marker" id="firstDownMarker"></div>
+      <div class="los-line" id="scrimmageLine"></div>
+      <div class="ball" id="ballMarker"></div>
+      <div class="celebration-layer" id="celebrationLayer"></div>
+      <div class="event-banner-layer" id="eventBannerLayer"></div>
+    </div>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <div class="headline" data-text="ui.static.openingHeadline">Coup d'envoi</div>
+    <div class="explain" data-text="ui.static.openingExplain">Choisissez votre premier appel offensif pour lancer la partie.</div>
+    <div class="commentary" id="resultCommentary"></div>
+  </div>
+
+  <div class="panel" id="controlsPanel">
+    <h2 id="controlsTitle"><span data-text="ui.static.offensiveCall">Appel offensif</span> <span class="who" id="controlsWho">Comètes</span></h2>
+    <div id="controlsBody"></div>
+  </div>
+
+  <div class="panel">
+    <h2 data-text="ui.static.tendenciesTitle">Tendances tactiques</h2>
+    <div class="stat-line"><span class="k" data-text="ui.static.playerOffenseTendency">Votre attaque (tout le match)</span><span class="v" id="tendRunPass">—</span></div>
+    <div class="stat-line"><span class="k" data-text="ui.static.aiOffenseTendency">Attaque IA (tout le match)</span><span class="v" id="tendAIRunPass">—</span></div>
+    <div class="meter"><div id="tendMeter" style="width:50%;"></div></div>
+    <div class="stat-line"><span class="k" data-text="ui.static.predictabilityScore">Score de prévisibilité</span><span class="v" id="tendScore">0 / 100</span></div>
+    <div class="stat-line"><span class="k" data-text="ui.static.opponentRead">Lecture récente de l'adversaire</span><span class="v" id="tendRead">—</span></div>
+    <div style="font-size:0.85rem;color:var(--ink);margin:8px 0;" id="tendExplain"></div>
+    <div class="play-group">
+      <div class="label" id="historyLabel" data-text="ui.static.playHistory" data-text-values='{"team":"Comètes"}'>8 derniers appels offensifs (Comètes)</div>
+      <div class="history-row" id="historyChips"></div>
+    </div>
+
+    <div class="toprow">
+      <label class="switch"><input type="checkbox" id="debugToggle"> <span data-text="ui.static.debugDetails">Mode debug (détails IA)</span></label>
+      <label class="switch"><input type="checkbox" id="animDebugToggle"> <span data-text="ui.static.debugAnimation">Mode debug (animation)</span></label>
+      <button class="action-btn secondary" id="runTestsBtn" data-text="ui.static.runBalanceTests">Lancer les tests d'équilibrage</button>
+      <button class="action-btn secondary" id="saveMenuBtn" data-text="ui.static.save">Sauvegarde</button>
+      <button class="action-btn secondary" id="resetBtn" data-text="ui.static.newGame">Nouveau match</button>
+    </div>
+    <details class="debug" id="animDebugPanel">
+      <summary data-text="ui.static.animationDetails">Détails de l'animation en cours</summary>
+      <pre class="debuglog" id="animDebugLog">—</pre>
+    </details>
+    <details class="debug" id="debugPanel">
+      <summary data-text="ui.static.calculationDetails">Détails du dernier calcul IA</summary>
+      <pre class="debuglog" id="debugLog">—</pre>
+    </details>
+    <details class="debug">
+      <summary data-text="ui.static.matchJournal">Journal de match (coin toss, kickoffs, mi-temps)</summary>
+      <pre class="debuglog" id="matchLogEl">—</pre>
+    </details>
+    <details class="debug">
+      <summary data-text="ui.static.testJournal">Journal des tests d'équilibrage</summary>
+      <pre class="debuglog" id="testLog" data-text="ui.static.testJournalHint">Cliquez sur « Lancer les tests d'équilibrage » pour vérifier le système.</pre>
+    </details>
+  </div>
+</div>
+
+<div class="final-overlay hidden" id="pregameOverlay">
+  <div class="final-card" style="max-width:640px;max-height:92vh;overflow:auto;">
+    <h2 data-text="ui.static.pregameTitle">Présentation du match</h2>
+    <div id="pregameBody" style="margin:14px 0;color:var(--ink);font-size:0.9rem;"></div>
+    <div class="action-row" style="justify-content:center;">
+      <button class="action-btn secondary" id="teamPickerToggle" data-text="ui.static.chooseTeams" onclick="toggleTeamPicker()">Choisir les équipes</button>
+      <button class="action-btn" id="pregameStartBtn" data-text="ui.static.startCoinToss">Lancer le coin toss</button>
+    </div>
+    <div id="teamPicker" class="hidden" style="margin-top:12px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+        <label style="font-size:0.8rem;color:var(--ink-dim);"><span data-text="ui.static.sortTeams">Trier par</span>
+          <select id="teamSortSelect" onchange="renderTeamPicker()" style="margin-left:4px;">
+            <option value="overall" data-text="ui.static.sortOverall">Note globale</option><option value="offense" data-text="ui.static.sortOffense">Attaque</option>
+            <option value="defense" data-text="ui.static.sortDefense">Défense</option><option value="name" data-text="ui.static.sortName">Nom</option>
+          </select></label>
+        <button class="action-btn secondary" data-text="ui.static.randomTeams" style="padding:4px 10px;font-size:0.78rem;" onclick="randomizeTeams()">Tirage aléatoire</button>
+      </div>
+      <div id="teamPickerList" class="team-picker-list"></div>
+      <div data-text="ui.static.teamPickerHint" style="font-size:0.75rem;color:var(--ink-dim);margin-top:6px;">« Vous » choisit votre équipe, « IA » celle de l'adversaire. Choisir la même équipe des deux côtés échange les rôles.</div>
+    </div>
+  </div>
+</div>
+
+<div class="final-overlay hidden" id="choiceOverlay">
+  <div class="final-card" style="max-width:560px;">
+    <h2 id="choiceTitle" data-text="ui.static.choiceDefaultTitle">Choix</h2>
+    <div id="choiceBody" style="margin:12px 0 14px;color:var(--ink);font-size:0.9rem;line-height:1.45;"></div>
+    <div class="action-row" id="choiceActions" style="justify-content:center;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<div class="final-overlay hidden" id="tossOverlay">
+  <div class="final-card" id="tossCard" style="max-width:460px;">
+    <h2 id="tossTitle" data-text="ui.static.coinTossTitle">Coin Toss</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
+      <div style="text-align:center;flex:1;">
+        <div style="width:14px;height:14px;border-radius:50%;background:var(--player-accent);margin:0 auto 6px;"></div>
+        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);" id="tossTeamPlayerName" data-text="ui.static.playerTeamName">Comètes</div>
+      </div>
+      <div id="coinEl" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-dim));display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;color:#2a1c08;font-weight:700;font-size:1.1rem;flex-shrink:0;">?</div>
+      <div style="text-align:center;flex:1;">
+        <div style="width:14px;height:14px;border-radius:50%;background:var(--ai-accent);margin:0 auto 6px;"></div>
+        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);" id="tossTeamAIName" data-text="ui.static.aiTeamName">Loups de Fer</div>
+      </div>
+    </div>
+    <div id="tossBody" style="color:var(--ink);font-size:0.92rem;margin-bottom:14px;min-height:1.4em;"></div>
+    <div class="action-row" id="tossActions" style="justify-content:center;"></div>
+  </div>
+</div>
+
+<div class="drive-summary hidden" id="driveSummaryPanel">
+  <div id="driveSummaryBody"></div>
+  <span class="close-x" id="driveSummaryClose">✕</span>
+</div>
+
+<div class="final-overlay hidden" id="finalOverlay">
+  <div class="final-card">
+    <h2 id="finalTitle" data-text="ui.static.finalTitle">Fin du match</h2>
+    <div class="score" id="finalScore">0 – 0</div>
+    <button class="action-btn" id="finalReset" data-text="ui.static.replay">Rejouer</button>
+  </div>
+</div>
+
+
+  <script src="scripts/loader.js"></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+{
+  "groups": {
+    "runs": "Jeux au sol",
+    "passes": "Jeux de passe",
+    "defense": "Appels défensifs"
+  },
+  "directions": {
+    "left": "à gauche",
+    "middle": "au centre",
+    "right": "à droite",
+    "mixed": "variable",
+    "outside": "sur les bords",
+    "short": "courte"
+  },
+  "depths": {
+    "short": "courte",
+    "medium": "moyenne",
+    "deep": "profonde",
+    "mixed": "variable"
+  },
+  "offenseNames": {
+    "Inside Zone": "Inside Zone",
+    "Power Run": "Power Run",
+    "Dive": "Dive",
+    "QB Sneak": "QB Sneak",
+    "Outside Zone": "Outside Zone",
+    "Sweep": "Sweep",
+    "Toss": "Toss",
+    "Counter Run": "Counter Run",
+    "QB Keeper": "QB Keeper",
+    "Read Option": "Read Option",
+    "Quick Slant": "Quick Slant",
+    "Screen Pass": "Screen Pass",
+    "Hitch / Curl": "Hitch / Curl",
+    "Out Route": "Out Route",
+    "Crossing Route": "Crossing Route",
+    "Mesh Concept": "Mesh Concept",
+    "Flood Concept": "Flood Concept",
+    "Play Action": "Play Action",
+    "Deep Post": "Deep Post",
+    "Four Verticals": "Four Verticals"
+  },
+  "defenseNames": {
+    "Eight-Man Box": "Eight-Man Box",
+    "Bear Front": "Bear Front",
+    "Inside Run Blitz": "Inside Run Blitz",
+    "Edge Contain": "Edge Contain",
+    "Outside Run Stop": "Outside Run Stop",
+    "Press Coverage": "Press Coverage",
+    "Cover 1": "Cover 1",
+    "Nickel Blitz": "Nickel Blitz",
+    "Cover 3": "Cover 3",
+    "Cover 4": "Cover 4",
+    "Dime Defense": "Dime Defense",
+    "Prevent Defense": "Prevent Defense",
+    "Goal-Line Defense": "Goal-Line Defense",
+    "Base 4-3": "Base 4-3",
+    "Base 3-4": "Base 3-4"
+  },
+  "defenseProfiles": {
+    "Eight-Man Box": {"strong": "courses intérieures", "weak": "play action, passes profondes"},
+    "Bear Front": {"strong": "courses intérieures, short yardage", "weak": "courses extérieures, passes rapides"},
+    "Inside Run Blitz": {"strong": "courses intérieures (pertes de terrain)", "weak": "screen, toss, counter"},
+    "Edge Contain": {"strong": "sweep, read option, QB keeper", "weak": "courses intérieures"},
+    "Outside Run Stop": {"strong": "sweep, toss, outside zone", "weak": "counter, courses intérieures"},
+    "Press Coverage": {"strong": "slant, hitch, out", "weak": "mesh, crossing, passes profondes"},
+    "Cover 1": {"strong": "passes courtes et moyennes", "weak": "mesh, crossing, QB keeper"},
+    "Nickel Blitz": {"strong": "passes longues à développer (sacks)", "weak": "screen, slant, mesh"},
+    "Cover 3": {"strong": "passes profondes", "weak": "flood, four verticals, hitch"},
+    "Cover 4": {"strong": "passes profondes, four verticals", "weak": "courses, hitch, out"},
+    "Dime Defense": {"strong": "toutes les passes", "weak": "courses"},
+    "Prevent Defense": {"strong": "gros gains, passes profondes", "weak": "passes courtes, courses"},
+    "Goal-Line Defense": {"strong": "courses près de la zone d’en-but", "weak": "play action, très exposée hors red zone"},
+    "Base 4-3": {"strong": "polyvalente, aucune faille majeure", "weak": "ne domine aucun duel"},
+    "Base 3-4": {"strong": "counter, read option (discipline)", "weak": "ne domine aucun duel"}
+  },
+  "defenseTags": {
+    "box": "boîte chargée",
+    "lightBox": "boîte allégée",
+    "edge": "contain extérieur",
+    "runBlitz": "blitz anti-course",
+    "blitz": "blitz",
+    "man": "individuelle",
+    "press": "press",
+    "zone": "zone",
+    "cover3": "Cover 3",
+    "cover4": "Cover 4",
+    "deepShell": "couverture profonde",
+    "nickelDime": "Dime",
+    "prevent": "Prevent",
+    "base": "défense de base",
+    "disciplined": "3-4 disciplinée",
+    "goalLine": "goal-line"
+  },
+  "card": {
+    "strong": "+ {items}",
+    "weak": "− {items}",
+    "shortYardage": "short yardage",
+    "longDistance": "longue distance",
+    "interceptionRisk": "risque d’INT",
+    "sackRisk": "risque de sack"
+  }
+}

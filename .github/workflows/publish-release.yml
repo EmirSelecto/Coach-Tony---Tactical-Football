@@ -1,0 +1,41 @@
+name: Publish numbered release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pushed version
+        uses: actions/checkout@v4
+
+      - name: Create numbered release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.sha }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          base_version="$(sed -nE "s/^[[:space:]]*const GAME_VERSION = '([0-9]+\.[0-9]+\.[0-9]+)';/\1/p" scripts/game/rules.js)"
+          if [ -z "$base_version" ]; then
+            echo "Could not read GAME_VERSION from scripts/game/rules.js" >&2
+            exit 1
+          fi
+
+          tag="v${base_version}-build.${BUILD_NUMBER}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; skipping duplicate publication."
+            exit 0
+          fi
+
+          archive="Coach-Tony-${tag}.zip"
+          git archive --format=zip --output="$archive" "$COMMIT_SHA"
+          gh release create "$tag" "$archive" \
+            --title "Coach Tony ${tag}" \
+            --generate-notes \
+            --target "$COMMIT_SHA"
