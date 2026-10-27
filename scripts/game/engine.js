@@ -615,9 +615,7 @@ function renderTossModal(){
       r.onclick = () => handleTossWinnerDecision('player', 'receive');
       const k = document.createElement('button'); k.className = 'action-btn secondary'; k.textContent = t('game.coinToss.kickAndStartDefense');
       k.onclick = () => handleTossWinnerDecision('player', 'kick');
-      const d = document.createElement('button'); d.className = 'action-btn secondary'; d.textContent = t('game.coinToss.deferAndReceiveSecondHalf');
-      d.onclick = () => handleTossWinnerDecision('player', 'defer');
-      actions.appendChild(r); actions.appendChild(k); actions.appendChild(d);
+      actions.appendChild(r); actions.appendChild(k);
     } else {
       body.innerHTML += `<br><br>${t('game.coinToss.aiThinking', {team:teamLabel('ai')})}`;
     }
