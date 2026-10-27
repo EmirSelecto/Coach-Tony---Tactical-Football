@@ -181,7 +181,13 @@ function finishConversion(team, choice, offPlay, defPlay){
   if(res.kind === 'pat'){
     // Snap sur la ligne des 15 yards : coup de pied d'environ 33 yards.
     setResult(t('game.conversion.title'), t('game.conversion.patAttempt', {team:teamNameOf(team)}), '');
-    runKickPlayAnimation({type:'fieldGoal', preSnapSpot: goalX - dir*15, offenseSide: team, made: res.success}, done);
+    runKickPlayAnimation({
+      type:'fieldGoal',
+      preSnapSpot:goalX - dir*15,
+      offenseSide:team,
+      made:res.success,
+      suppressFieldGoalFeedback:true
+    }, done);
     return;
   }
   // Conversion à 2 points : l'action est jouée depuis les 2 yards.

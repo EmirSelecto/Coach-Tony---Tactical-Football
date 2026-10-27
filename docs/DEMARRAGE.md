@@ -41,12 +41,35 @@ libellés visibles correspondants se modifient dans `playbook.json`.
 Les textes statiques de la page sont associés à leurs entrées de `ui.json` par
 les attributs `data-text` et `data-title` dans `index.html`.
 
+## Musique et sons
+
+Le bouton « Activer la musique », disponible au coin toss et pendant le match,
+joue d’abord `assets/sounds/20secs.mp3`, puis répète `assets/sounds/loop.mp3`.
+Les effets `assets/sounds/booing.mp3` et `assets/sounds/cheering.mp3` sont
+utilisés respectivement quand l’équipe du joueur perd le ballon sur interception
+ou fumble, et lors d’un big play ou d’un touchdown. Les fichiers audio doivent
+rester dans ce dossier avec ces noms exacts.
+
 Les libellés du journal de calcul de l’IA et du journal des tests d’équilibrage
 restent dans `scripts/ui/interface.js` : ce sont des sorties de diagnostic
 technique plutôt que du contenu éditorial du jeu.
 
 Le bouton **Lancer les tests d’équilibrage** exécute les vérifications intégrées
 au jeu depuis le navigateur.
+
+## Chronologie des animations
+
+Le moteur calcule d’abord l’issue du play (gain, passe incomplète, interception,
+fumble, etc.). Le contrôleur d’animation construit ensuite une chronologie
+normalisée de 0 à 100 % à partir de cette issue. Elle déclenche les événements
+visuels et sonores dans l’ordre prévu : snap, remise ou passe, réception ou
+incomplétude, turnover, plaquage et coup de sifflet. Les fumbles distinguent la
+perte du ballon de sa récupération ; les field goals et punts utilisent aussi
+les événements snap, kick et sifflet.
+
+Cette chronologie ne recalcule ni ne modifie le résultat sportif. Le panneau
+**Mode debug (animation)** affiche les événements prévus, leur progression et
+ceux déjà déclenchés.
 
 ## Publication automatique sur GitHub
 

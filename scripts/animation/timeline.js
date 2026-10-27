@@ -21,6 +21,54 @@ const PLAY_TIMELINES = {
   deepPass:          {snap:0.08, dropback:0.20, routesDevelop:0.34, throw:0.52, catch:0.74, tackle:0.90, whistle:1.0},
   sack:              {snap:0.08, dropback:0.22, pressure:0.42, tackle:0.60, whistle:1.0}
 };
+
+function createPlayTimelineEvents(setup, cfg){
+  const {kf, outcome, offPlay, carrierId, qbId, family, animVariant} = setup;
+  const events = [];
+  let order = 0;
+  const add = (type, time, detail = {}) => events.push({type, time, order:order++, ...detail});
+
+  add('snap', kf.snap);
+  if(animVariant === 'playAction' && kf.dropback !== undefined && kf.routesDevelop !== undefined){
+    add('handoff', (kf.dropback + kf.routesDevelop) / 2, {kind:'playActionFake'});
+    add('fakeHandoffReturn', kf.routesDevelop);
+  } else if(offPlay.type === 'run' && carrierId !== qbId && family !== 'sack'){
+    add('handoff', kf.handoff, {kind:offPlay.name === 'Toss' ? 'toss' : 'handoff'});
+  }
+  if(family === 'sack' && kf.pressure !== undefined) add('pressure', kf.pressure);
+
+  if(offPlay.type === 'pass' && family !== 'sack') add('throw', kf.throw);
+  if(outcome === 'incomplete'){
+    add('incomplete', kf.catch);
+  } else if(outcome === 'interception'){
+    add('interception', kf.catch);
+    add('turnover', kf.catch, {kind:'interception'});
+  } else {
+    if(offPlay.type === 'pass' && family !== 'sack') add('catch', kf.catch);
+    if(outcome === 'fumble'){
+      add('fumble', setup.turnoverFrac);
+      add('turnover', setup.fumbleRecoverTime, {kind:'fumble'});
+    }
+  }
+
+  if(setup.breakaway){
+    add('breakaway', offPlay.type === 'pass' ? kf.catch : (kf.laneCommit || 0.45));
+  }
+  if(outcome !== 'incomplete') add('tackle', kf.tackle || kf.whistle);
+  if(cfg.advType === 'turnoverOnDowns'){
+    add('turnover', kf.whistle, {kind:'downs'});
+  }
+  add('whistle', kf.whistle);
+
+  return events.sort((a,b) => a.time - b.time || a.order - b.order);
+}
+
+function timelineEventTime(setup, type, kind, fallback){
+  const event = (setup.timelineEvents || []).find(item =>
+    item.type === type && (kind === undefined || item.kind === kind));
+  return event ? event.time : fallback;
+}
+
 BALANCE.animation.familyBaseMs = {
   insideRun:1650, outsideRun:1850, quickPass:1750, intermediatePass:2050, deepPass:2450, sack:1250
 };
@@ -1067,7 +1115,11 @@ function buildPlaySetup(cfg){
   const turnoverFrac = offPlay.type === 'pass'
     ? Math.min(0.97, (kf.catch || 0.6) + 0.08)
     : Math.min(0.9, (kf.laneCommit || 0.4) + 0.05);
-  const fumbleRecoverTime = Math.min(0.98, turnoverFrac + 0.12);
+  const tackleTime = kf.tackle || kf.whistle;
+  const fumbleRecoverTime = Math.min(
+    0.98,
+    Math.min(turnoverFrac + 0.12, Math.max(turnoverFrac + 0.04, tackleTime - 0.04))
+  );
   const fumbleSpot = {
     x:clamp((spotBeforeFumble === undefined || spotBeforeFumble === null ? preSnapSpot : spotBeforeFumble) + offenseDir * 0.8, 0, 100),
     y:clamp(throwLane + ((fumbleRecoverer && Number(fumbleRecoverer.id.slice(1)) % 2) ? 1.4 : -1.4), 2, 98)
@@ -1187,7 +1239,7 @@ function buildPlaySetup(cfg){
   const actorsById = {};
   actors.forEach(a => actorsById[a.id] = a);
 
-  return {
+  const setup = {
     actors, actorsById, kf, family, outcome, finalX, lane, throwLane, offenseSide, animVariant,
     yards:cfg.yards || 0, breakaway:!!cfg.breakaway,
     duels,
@@ -1205,6 +1257,10 @@ function buildPlaySetup(cfg){
     visualMarkerX: (cfg.visualMarkerX !== undefined) ? cfg.visualMarkerX : finalX,
     blockPairIds: new Map([...blockPairs.entries()].map(([k, v]) => [k, v.id]))
   };
+  setup.feedback = cfg.feedback || null;
+  setup.advType = cfg.advType || null;
+  setup.timelineEvents = createPlayTimelineEvents(setup, cfg);
+  return setup;
 }
 
 // Évite qu'un acteur offensif et un acteur défensif non engagés dans un
@@ -1252,6 +1308,7 @@ const PlayAnimationController = {
   _startTs: null,
   _finished: true,
   _firedEvents: null,
+  _nextTimelineEventIndex: 0,
   _onComplete: null,
   _lastHaloCarrierId: null,
   _lastCarrierId: null,
@@ -1264,6 +1321,7 @@ const PlayAnimationController = {
     this._raf = null;
     this._finished = true;
     this._setup = null;
+    this._nextTimelineEventIndex = 0;
     this._lastHaloCarrierId = null;
     this._lastCarrierId = null;
     this._possessionLog = null;
@@ -1277,6 +1335,7 @@ const PlayAnimationController = {
     const token = this._token;
     this._finished = false;
     this._firedEvents = new Set();
+    this._nextTimelineEventIndex = 0;
     this._finishCallCount = 0;
     animDebugWarnings = [];
     this._lastHaloCarrierId = null;
@@ -1302,6 +1361,21 @@ const PlayAnimationController = {
       'chaque acteur doit avoir une trajectoire complète, finie et chronologique');
     animDebugAssert(setup.actors.every(actor => !actor.assignment.targetId || !!setup.actorsById[actor.assignment.targetId]),
       'une responsabilité référence un joueur cible absent');
+    animDebugAssert(setup.timelineEvents.length > 0
+      && setup.timelineEvents[setup.timelineEvents.length - 1].type === 'whistle'
+      && setup.timelineEvents.every((event, index, events) => Number.isFinite(event.time)
+        && event.time >= 0 && event.time <= 1
+        && (index === 0 || event.time >= events[index - 1].time)),
+      'les événements du play doivent être complets et chronologiques');
+    if(setup.outcome === 'incomplete'){
+      animDebugAssert(setup.timelineEvents.some(event => event.type === 'incomplete')
+        && !setup.timelineEvents.some(event => event.type === 'tackle'),
+      'une passe incomplète doit produire un événement incomplet sans plaquage');
+    }
+    if(setup.outcome === 'interception' || setup.outcome === 'fumble'){
+      animDebugAssert(setup.timelineEvents.some(event => event.type === 'turnover'),
+        'un changement de possession doit produire un événement de turnover');
+    }
     animDebugAssert(!!setup.actorsById[setup.carrierId], "le porteur choisi n'existe pas parmi les 22 acteurs");
     if(setup.outcome === 'interception'){
       const role = setup.actorsById[setup.interceptorId] && setup.actorsById[setup.interceptorId].role;
@@ -1332,7 +1406,7 @@ const PlayAnimationController = {
       let t = clamp01(elapsed / setup.totalMs);
       if(game.skipAnimRequested) t = 1;
       this._applyFrame(setup, t);
-      this._fireEvents(setup, t);
+      this._fireEvents(t);
       renderAnimDebugPanel(setup, t);
       if(t >= 1){
         this._finishPlay(setup);
@@ -1353,7 +1427,18 @@ const PlayAnimationController = {
     if(t >= setup.kf.snap) enforceMinimumSeparation(setup);
 
     const kf = setup.kf;
-    if(t < kf.snap){
+    const snapTime = timelineEventTime(setup, 'snap', undefined, kf.snap);
+    const handoffTime = timelineEventTime(setup, 'handoff', undefined, kf.handoff);
+    const throwTime = timelineEventTime(setup, 'throw', undefined, kf.throw);
+    const fakeHandoffTime = timelineEventTime(setup, 'handoff', 'playActionFake',
+      kf.dropback !== undefined && kf.routesDevelop !== undefined ? (kf.dropback + kf.routesDevelop) / 2 : undefined);
+    const fakeHandoffReturnTime = timelineEventTime(setup, 'fakeHandoffReturn', undefined, kf.routesDevelop);
+    const catchEvent = setup.outcome === 'incomplete' ? 'incomplete'
+      : setup.outcome === 'interception' ? 'interception' : 'catch';
+    const catchTime = timelineEventTime(setup, catchEvent, undefined, kf.catch);
+    const fumbleTime = timelineEventTime(setup, 'fumble', undefined, setup.turnoverFrac);
+    const fumbleRecoveryTime = timelineEventTime(setup, 'turnover', 'fumble', setup.fumbleRecoverTime);
+    if(t < snapTime){
       const center = setup.actorsById[setup.centerId];
       if(center){ ballState.mode = 'preSnap'; ballState.carrierId = setup.centerId; ballState.x = center.x; ballState.y = center.y; }
     } else if(t < setup.snapEnd){
@@ -1364,22 +1449,24 @@ const PlayAnimationController = {
         ballState.x = lerp(center.x, qb.x, localT);
         ballState.y = lerp(center.y, qb.y, localT);
       }
-    } else if(setup.animVariant === 'playAction' && kf.dropback && kf.routesDevelop
-      && t >= kf.dropback && t < kf.routesDevelop){
+    } else if(setup.animVariant === 'playAction' && kf.dropback !== undefined && fakeHandoffReturnTime !== undefined
+      && t >= kf.dropback && t < fakeHandoffReturnTime){
       const qb = setup.actorsById[setup.qbId];
       const receiver = setup.actorsById[setup.playActionFakeId];
-      const localT = clamp01((t - kf.dropback) / Math.max(0.0001, kf.routesDevelop - kf.dropback));
-      const transferT = localT < 0.5 ? smoothProgress(localT * 2) : smoothProgress((localT - 0.5) * 2);
-      const from = localT < 0.5 ? qb : receiver;
-      const to = localT < 0.5 ? receiver : qb;
+      const receivingBack = t < fakeHandoffTime;
+      const transferStart = receivingBack ? kf.dropback : fakeHandoffTime;
+      const transferEnd = receivingBack ? fakeHandoffTime : fakeHandoffReturnTime;
+      const transferT = smoothProgress((t - transferStart) / Math.max(0.0001, transferEnd - transferStart));
+      const from = receivingBack ? qb : receiver;
+      const to = receivingBack ? receiver : qb;
       ballState.mode = 'playAction'; ballState.carrierId = null;
       if(from && to){
         ballState.x = lerp(from.x, to.x, transferT);
         ballState.y = lerp(from.y, to.y, transferT);
         ballState.arcOffset = -1.2 * Math.sin(Math.PI * transferT);
       }
-    } else if(setup.offPlay.type === 'pass' && setup.family !== 'sack' && t >= kf.throw && t < kf.catch){
-      const localT = smoothProgress((t - kf.throw) / Math.max(0.0001, kf.catch - kf.throw));
+    } else if(setup.offPlay.type === 'pass' && setup.family !== 'sack' && t >= throwTime && t < catchTime){
+      const localT = smoothProgress((t - throwTime) / Math.max(0.0001, catchTime - throwTime));
       ballState.mode = 'inflight'; ballState.carrierId = null;
       const qb = setup.actorsById[setup.qbId];
       ballState.x = lerp(qb.x, setup.throwX, localT);
@@ -1387,22 +1474,22 @@ const PlayAnimationController = {
       ballState.arcOffset = -5 * Math.sin(Math.PI * localT);
     } else if(setup.offPlay.type === 'run' && setup.carrierId !== setup.qbId
       && setup.animVariant !== 'playAction'
-      && t >= Math.max(kf.snap, kf.handoff - (setup.offPlay.name === 'Toss' ? 0.10 : 0.07))
-      && t < kf.handoff){
+      && t >= Math.max(snapTime, handoffTime - (setup.offPlay.name === 'Toss' ? 0.10 : 0.07))
+      && t < handoffTime){
       const qb = setup.actorsById[setup.qbId], receiver = setup.actorsById[setup.carrierId];
       const isToss = setup.offPlay.name === 'Toss';
-      const transferStart = Math.max(kf.snap, kf.handoff - (isToss ? 0.10 : 0.07));
-      const localT = smoothProgress((t - transferStart) / Math.max(0.0001, kf.handoff - transferStart));
+      const transferStart = Math.max(snapTime, handoffTime - (isToss ? 0.10 : 0.07));
+      const localT = smoothProgress((t - transferStart) / Math.max(0.0001, handoffTime - transferStart));
       ballState.mode = isToss ? 'toss' : 'handoff'; ballState.carrierId = null;
       if(qb && receiver){
         ballState.x = lerp(qb.x, receiver.x, localT);
         ballState.y = lerp(qb.y, receiver.y, localT);
         ballState.arcOffset = isToss ? -1.8 * Math.sin(Math.PI * localT) : -0.5 * Math.sin(Math.PI * localT);
       }
-    } else if(setup.outcome === 'fumble' && t >= setup.turnoverFrac && t < setup.fumbleRecoverTime){
+    } else if(setup.outcome === 'fumble' && t >= fumbleTime && t < fumbleRecoveryTime){
       const carrier = setup.actorsById[setup.carrierId];
-      const localT = smoothProgress((t - setup.turnoverFrac)
-        / Math.max(0.0001, setup.fumbleRecoverTime - setup.turnoverFrac));
+      const localT = smoothProgress((t - fumbleTime)
+        / Math.max(0.0001, fumbleRecoveryTime - fumbleTime));
       ballState.mode = 'loose'; ballState.carrierId = null;
       if(carrier){
         ballState.x = lerp(carrier.x, setup.fumbleSpot.x, localT);
@@ -1411,20 +1498,20 @@ const PlayAnimationController = {
         ballState.x = setup.fumbleSpot.x; ballState.y = setup.fumbleSpot.y;
       }
       ballState.arcOffset = -2.2 * Math.sin(Math.PI * localT);
-    } else if(setup.outcome === 'incomplete' && t >= kf.catch){
+    } else if(setup.outcome === 'incomplete' && t >= catchTime){
       ballState.mode = 'loose'; ballState.carrierId = null;
       ballState.x = setup.throwX; ballState.y = setup.throwLane;
-      const dropProgress = smoothProgress((t - kf.catch) / 0.06);
+      const dropProgress = smoothProgress((t - catchTime) / 0.06);
       ballState.arcOffset = -1.3 * Math.sin(Math.PI * dropProgress);
     } else {
       ballState.mode = 'carried';
       let carrierId = setup.qbId;
       if(setup.offPlay.type === 'run' && setup.carrierId !== setup.qbId
-        && setup.animVariant !== 'playAction' && t >= kf.handoff) carrierId = setup.carrierId;
-      if(setup.offPlay.type === 'pass' && setup.family !== 'sack' && t >= kf.catch
+        && setup.animVariant !== 'playAction' && t >= handoffTime) carrierId = setup.carrierId;
+      if(setup.offPlay.type === 'pass' && setup.family !== 'sack' && t >= catchTime
         && setup.outcome !== 'incomplete') carrierId = setup.carrierId;
-      if(setup.outcome === 'interception' && t >= kf.catch) carrierId = setup.interceptorId;
-      if(setup.outcome === 'fumble' && t >= setup.turnoverFrac + 0.04) carrierId = setup.fumbleRecovererId;
+      if(setup.outcome === 'interception' && t >= catchTime) carrierId = setup.interceptorId;
+      if(setup.outcome === 'fumble' && t >= fumbleRecoveryTime) carrierId = setup.fumbleRecovererId;
       ballState.carrierId = carrierId;
       const carrierActor = setup.actorsById[carrierId];
       if(carrierActor){ ballState.x = carrierActor.x; ballState.y = carrierActor.y; }
@@ -1473,45 +1560,38 @@ const PlayAnimationController = {
     }
   },
 
-  _fireEvents(setup, t){
-    const kf = setup.kf;
-    const fire = (name, cond) => {
-      if(cond && !this._firedEvents.has(name)){
-        this._firedEvents.add(name);
-        this._onTimelineEvent(name, setup);
-      }
-    };
-    fire('snap', t >= kf.snap);
-    if(setup.offPlay.type === 'pass' && setup.family !== 'sack') fire('throw', t >= kf.throw);
-    else if(setup.family !== 'sack') fire('handoff', t >= (kf.handoff || 0));
-    if(setup.outcome === 'interception') fire('interception', t >= kf.catch);
-    else if(setup.outcome === 'fumble'){
-      if(setup.offPlay.type === 'pass' && setup.family !== 'sack') fire('catch', t >= kf.catch);
-      fire('fumble', t >= setup.turnoverFrac);
-    } else if(setup.offPlay.type === 'pass' && setup.family !== 'sack'
-      && setup.outcome !== 'incomplete') fire('catch', t >= kf.catch);
-    const breakawayTime = setup.offPlay.type === 'pass' ? kf.catch : (kf.laneCommit || 0.45);
-    fire('breakaway', setup.breakaway && t >= breakawayTime);
-    if(setup.outcome !== 'incomplete') fire('tackle', t >= (kf.tackle || kf.whistle));
-    fire('whistle', t >= 1);
+  _fireEvents(t){
+    const setup = this._setup;
+    const events = setup && setup.timelineEvents;
+    if(!events) return;
+    while(this._nextTimelineEventIndex < events.length && events[this._nextTimelineEventIndex].time <= t){
+      const event = events[this._nextTimelineEventIndex++];
+      const eventId = event.kind ? `${event.type}:${event.kind}` : event.type;
+      this._firedEvents.add(eventId);
+      this._onTimelineEvent(event, setup);
+    }
   },
 
-  _onTimelineEvent(name, setup){
+  _onTimelineEvent(event, setup){
+    const {type:name} = event;
     if(name === 'snap') AudioManager.play('snap');
     if(name === 'throw') AudioManager.play('pass');
-    if(name === 'catch') AudioManager.play('catch');
-    if(name === 'interception' || name === 'fumble'){
-      // Bannière de turnover déclenchée à l'instant de la récupération visuelle,
-      // pas en attendant la fin complète de l'animation (retour compris).
-      AudioManager.play('catch');
+    if(name === 'kick' && setup.type === 'fieldGoal'){
+      AudioManager.play(setup.made ? 'fieldGoal' : 'tackle');
+    }
+    if(name === 'catch' || name === 'interception') AudioManager.play('catch');
+    if(name === 'turnover'){
+      const userLostPossession = setup.offenseSide === 'player'
+        && ['interception','fumble'].includes(event.kind);
+      if(event.kind === 'fumble' && !userLostPossession) AudioManager.play('catch');
       triggerTurnoverFlash();
       showEventBanner(t('game.banners.turnover'), 'turnover');
-      AudioManager.play('turnover');
-      if(name === 'fumble') this._triggerCameraShake('heavy');
+      AudioManager.play(userLostPossession ? 'booing' : 'turnover');
     }
+    if(name === 'fumble') this._triggerCameraShake('heavy');
     if(name === 'tackle'){
       AudioManager.play('tackle');
-      if(!['interception','fumble','incomplete'].includes(setup.outcome)){
+      if(!['interception','fumble'].includes(setup.outcome)){
         this._triggerCameraShake(setup.outcome === 'sack' || setup.yards <= 0 ? 'heavy' : 'light');
       }
       const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
@@ -1531,6 +1611,37 @@ const PlayAnimationController = {
       scrimEl.classList.remove('pop'); void scrimEl.offsetWidth; scrimEl.classList.add('pop');
     }
     if(name === 'breakaway') this._triggerCameraShake('breakaway');
+    if(name === 'whistle'){
+      AudioManager.play('whistle');
+      if(setup.feedback && setup.feedback.kind === 'play'){
+        const {offenseSide, context, tactical} = setup.feedback;
+        applyEventFeedback(offenseSide, context, tactical);
+      }
+      if(setup.type === 'fieldGoal' && setup.made && !setup.suppressFieldGoalFeedback){
+        triggerScoreCelebration(setup.offenseSide);
+        showEventBanner(t('game.banners.fieldGoal'), 'score');
+        celebrate('fieldGoal', setup.offenseSide);
+        AudioManager.play('crowd');
+      }
+      if(setup.feedback && setup.feedback.kind === 'fakeFieldGoal'){
+        const {success, advType, scorer} = setup.feedback;
+        if(advType === 'touchdown'){
+          triggerScoreCelebration(scorer);
+          showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
+          celebrate('touchdown', scorer);
+          AudioManager.play('cheering');
+          AudioManager.play('crowd');
+        } else if(success){
+          showEventBanner(t('game.banners.fakeFieldGoal'), 'bigPlay');
+          AudioManager.play('cheering');
+          if(advType === 'firstdown'){
+            flashFirstDownMarker();
+            showEventBanner(t('game.banners.firstDown'), 'firstdown');
+            AudioManager.play('firstDown');
+          }
+        }
+      }
+    }
   },
 
   _finishPlay(setup){
@@ -1604,6 +1715,14 @@ function runKickPlayAnimation(cfg, onComplete){
   const token = ctrl._token;
   ctrl._finished = false;
   ctrl._onComplete = onComplete || null;
+  ctrl._setup = cfg;
+  ctrl._firedEvents = new Set();
+  ctrl._nextTimelineEventIndex = 0;
+  ctrl._setup.timelineEvents = [
+    {type:'snap', time:KICK_TIMELINE.snap},
+    {type:'kick', time:KICK_TIMELINE.kick},
+    {type:'whistle', time:KICK_TIMELINE.whistle}
+  ];
   ctrl._lastHaloCarrierId = null;
   game.skipAnimRequested = false;
   setPlayPhase(t(cfg.type === 'fieldGoal' ? 'animation.phaseLabels.fieldGoalFormation' : 'animation.phaseLabels.puntFormation'));
@@ -1632,8 +1751,6 @@ function runKickPlayAnimation(cfg, onComplete){
   const kf = KICK_TIMELINE;
   const baseMs = cfg.type === 'fieldGoal' ? 1500 : 1750;
   const totalMs = Math.max(500, Math.round(baseMs * BALANCE.animation.globalSlowdown / (game.animSpeed || 1)));
-  const firedEvents = new Set();
-
   let startTs = null;
   const finishKick = () => {
     if(ctrl._finished) return;
@@ -1672,11 +1789,7 @@ function runKickPlayAnimation(cfg, onComplete){
     }
     renderBall();
 
-    if(!firedEvents.has('snap') && t >= kf.snap){ firedEvents.add('snap'); AudioManager.play('snap'); }
-    if(!firedEvents.has('kick') && t >= kf.kick){
-      firedEvents.add('kick');
-      if(cfg.type === 'fieldGoal') AudioManager.play(cfg.made ? 'fieldGoal' : 'tackle');
-    }
+    ctrl._fireEvents(t);
 
     if(t >= 1){ finishKick(); return; }
     ctrl._raf = requestAnimationFrame(step);
@@ -1706,7 +1819,11 @@ function renderAnimDebugPanel(setup, elapsed){
   if(!game.animDebugEnabled) return;
   const el = document.getElementById('animDebugLog');
   if(!el) return;
-  const events = [...PlayAnimationController._firedEvents].join(', ') || t('animation.debug.none');
+  const events = setup.timelineEvents.map(event => {
+    const eventId = event.kind ? `${event.type}:${event.kind}` : event.type;
+    const fired = PlayAnimationController._firedEvents.has(eventId) ? ' ✓' : '';
+    return `${eventId}@${(event.time*100).toFixed(0)}%${fired}`;
+  }).join(', ') || t('animation.debug.none');
   const warnLines = animDebugWarnings.length
     ? animDebugWarnings.map(w => '⚠ ' + w).join('\n')
     : t('animation.debug.noWarnings');
@@ -1910,11 +2027,17 @@ function applyPlayOutcome(offPlay, defPlay, result, isPlayerOffense, predictabil
     || ['touchdown','safety','turnoverOnDowns','turnover'].includes(advType) || lateOOB;
   if(lateOOB) explain += outcomeText('lateOutOfBoundsSuffix');
   const clockEvents = endSnapClock(playDurationSeconds(), stopClock);
+  animCfg.advType = advType;
+  animCfg.feedback = {
+    kind:'play',
+    offenseSide,
+    context:preContext,
+    tactical:{offPlay, defPlay, predictability, repetitionPenalty, surpriseBonus, result, advType}
+  };
 
   if(!game.gameOver) setResult(headline, explain, commentary);
   render();
   runPlayAnimation(animCfg, () => {
-    applyEventFeedback(offenseSide, preContext, {offPlay, defPlay, predictability, repetitionPenalty, surpriseBonus, result, advType});
     if(driveEndReason) showDriveSummaryPanel(game.lastFinishedDrive, driveEndReason);
     handleClockEvents(clockEvents);
     afterPlayResolved();
@@ -2111,12 +2234,6 @@ function attemptFieldGoal(){
   runKickPlayAnimation({type:'fieldGoal', preSnapSpot, offenseSide: kicker, made}, () => {
     syncFieldVisualsNow();
     handleClockEvents(clockEvents);
-    if(made){
-      triggerScoreCelebration(kicker);
-      showEventBanner(t('game.banners.fieldGoal'), 'score');
-      celebrate('fieldGoal', kicker);
-      AudioManager.play('crowd');
-    }
     showDriveSummaryPanel(game.lastFinishedDrive, 'fieldgoal');
     afterPlayResolved();
   });
@@ -2212,25 +2329,13 @@ function attemptFakeFieldGoal(){
     runPlayAnimation(
       {offPlay: fakePlay, defPlay: {name:'Défense', type:'balanced'}, preSnapSpot, offenseSide: game.possession,
        outcome: adv.type === 'touchdown' ? 'touchdown' : 'gain', finalX: adv.finalX, yards,
+       advType:adv.type,
+       feedback:{kind:'fakeFieldGoal', success, advType:adv.type, scorer:fakeScorer},
        visualBallX: fakeVisualBallX, visualMarkerX: fakeVisualMarkerX},
       () => {
         handleClockEvents(clockEvents);
-        if(adv.type === 'touchdown'){
-          triggerScoreCelebration(fakeScorer);
-          showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
-          celebrate('touchdown', fakeScorer);
-          AudioManager.play('touchdown'); AudioManager.play('crowd');
-          showDriveSummaryPanel(game.lastFinishedDrive, 'touchdown');
-        } else if(adv.type === 'turnoverOnDowns'){
-          triggerTurnoverFlash();
-          showEventBanner(t('game.banners.turnover'), 'turnover');
-          AudioManager.play('turnover'); AudioManager.play('whistle');
-          showDriveSummaryPanel(game.lastFinishedDrive, 'turnoverOnDowns');
-        } else if(success){
-          showEventBanner(t('game.banners.fakeFieldGoal'), 'bigPlay');
-          AudioManager.play('bigPlay');
-          if(adv.type === 'firstdown'){ flashFirstDownMarker(); showEventBanner(t('game.banners.firstDown'), 'firstdown'); AudioManager.play('firstDown'); }
-        }
+        if(adv.type === 'touchdown') showDriveSummaryPanel(game.lastFinishedDrive, 'touchdown');
+        else if(adv.type === 'turnoverOnDowns') showDriveSummaryPanel(game.lastFinishedDrive, 'turnoverOnDowns');
         afterPlayResolved();
       }
     );

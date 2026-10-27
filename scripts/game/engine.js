@@ -821,6 +821,7 @@ function newGame(){
   document.getElementById('versionTag').textContent = 'v' + GAME_VERSION;
   AudioManager.enabled = Storage.get('audioEnabled', BALANCE.audio.defaultEnabled);
   AudioManager.volume = Storage.get('audioVolume', BALANCE.audio.defaultVolume);
+  AudioManager.setMusicEnabled(false);
   document.getElementById('audioEnabledToggle').checked = AudioManager.enabled;
   document.getElementById('audioVolumeSlider').value = String(AudioManager.volume);
   render();
@@ -1468,7 +1469,6 @@ function applyEventFeedback(offenseSide, context, tactical){
   // Passe ratée : le ballon revient sur la ligne de scrimmage -> annonce « NO CATCH ».
   if(result && result.outcome === 'incomplete'){
     showEventBanner(t('game.banners.noCatch'), 'nocatch');
-    AudioManager.play('whistle');
   }
 
   if(eventLevel === 'score'){
@@ -1482,26 +1482,15 @@ function applyEventFeedback(offenseSide, context, tactical){
       if(result && result.outcome === 'interception') setTimeout(() => showEventBanner(t('game.banners.pickSix'), 'bigPlay'), 500);
       celebrate('touchdown', scoringSide);
     }
-    AudioManager.play(advType === 'safety' ? 'whistle' : 'touchdown');
+    AudioManager.play(advType === 'safety' ? 'whistle' : 'cheering');
     AudioManager.play('crowd');
-  } else if(eventLevel === 'turnover'){
-    // Pour interception/fumble, le flash + la bannière + le son sont déjà partis
-    // à l'instant de la récupération visuelle (voir _onTimelineEvent). Un
-    // turnover sur les downs n'a pas de tel instant : on le déclenche ici.
-    if(advType === 'turnoverOnDowns'){
-      triggerTurnoverFlash();
-      showEventBanner(t('game.banners.turnover'), 'turnover');
-      AudioManager.play('turnover');
-    }
-    AudioManager.play('whistle');
   } else if(eventLevel === 'clutch'){
     showEventBanner(t('game.banners.clutch'), 'clutch');
-    AudioManager.play('whistle');
   } else if(eventLevel === 'bigPlay'){
     triggerBigPlayPulse();
     showEventBanner(t('game.banners.bigPlay'), 'bigPlay');
     celebrate('bigPlay', offenseSide, game.visualBallX);
-    AudioManager.play('bigPlay');
+    AudioManager.play('cheering');
   } else if(eventLevel === 'positive'){
     if(advType === 'firstdown'){
       flashFirstDownMarker();
@@ -1517,9 +1506,7 @@ function applyEventFeedback(offenseSide, context, tactical){
     offPlay, defPlay, predictability, repetitionPenalty, surpriseBonus, result,
     isClutch: eventLevel === 'clutch', isFirstDown: advType === 'firstdown'
   });
-  if(tacticalMsg){
-    setTimeout(() => showEventBanner(tacticalMsg, 'tactical', BALANCE.eventBanner.tacticalDurationMs), 260);
-  }
+  if(tacticalMsg) showEventBanner(tacticalMsg, 'tactical', BALANCE.eventBanner.tacticalDurationMs);
 }
 
 // ---- 7. Audio optionnel (désactivé par défaut, aucun asset requis) ----

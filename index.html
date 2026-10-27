@@ -55,9 +55,10 @@
         <input type="checkbox" id="cardsToggle" checked> <span data-text="ui.static.tacticalCards">Fiches tactiques</span>
       </label>
       <label style="font-size:0.8rem;color:var(--ink-dim);display:flex;align-items:center;gap:4px;">
-        <input type="checkbox" id="audioEnabledToggle"> <span data-text="ui.static.sound">Son</span>
+        <input type="checkbox" id="audioEnabledToggle"> <span data-text="ui.static.sound">Effets sonores</span>
       </label>
       <input type="range" id="audioVolumeSlider" min="0" max="1" step="0.05" style="width:70px;" data-title="ui.static.volume" title="Volume">
+      <button class="action-btn music-toggle" id="musicToggle" type="button" aria-pressed="false" data-text="ui.static.musicEnable">Activer la musique</button>
       <button class="action-btn secondary" id="skipAnimBtn" data-text="ui.static.skipAnimation" style="padding:4px 10px;font-size:0.78rem;">Passer l'animation</button>
     </div>
   </div>
@@ -172,6 +173,7 @@
     </div>
     <div id="tossBody" style="color:var(--ink);font-size:0.92rem;margin-bottom:14px;min-height:1.4em;"></div>
     <div class="action-row" id="tossActions" style="justify-content:center;"></div>
+    <button class="action-btn music-toggle music-toggle-prominent" id="musicToggleToss" type="button" aria-pressed="false" data-text="ui.static.musicEnable">Activer la musique</button>
   </div>
 </div>
 

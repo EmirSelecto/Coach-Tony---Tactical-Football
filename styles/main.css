@@ -416,6 +416,22 @@
     background: transparent; color: var(--ink); border:1px solid var(--border);
     font-family:'Work Sans',sans-serif; font-weight:500;
   }
+  button.music-toggle{
+    min-height:44px;
+    background:var(--success);
+    color:#07140b;
+  }
+  button.music-toggle[aria-pressed="true"]{ background:var(--gold); }
+  button.music-toggle:focus-visible{ outline:3px solid var(--chalk); outline-offset:3px; }
+  button.music-toggle-prominent{
+    display:block;
+    width:min(100%, 320px);
+    min-height:58px;
+    margin:18px auto 0;
+    padding:14px 22px;
+    font-size:1.2rem;
+    box-shadow:0 0 18px rgba(95,174,107,0.28);
+  }
 
   /* Result / tendencies */
   .result-box{

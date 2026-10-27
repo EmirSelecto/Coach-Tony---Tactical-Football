@@ -43,8 +43,13 @@ document.getElementById('audioEnabledToggle').addEventListener('change', (e)=>{
 });
 document.getElementById('audioVolumeSlider').addEventListener('input', (e)=>{
   const v = parseFloat(e.target.value);
-  AudioManager.volume = v;
+  AudioManager.setVolume(v);
   Storage.set('audioVolume', v);
+});
+['musicToggle', 'musicToggleToss'].forEach(id => {
+  document.getElementById(id).addEventListener('click', ()=>{
+    AudioManager.setMusicEnabled(!AudioManager.musicEnabled);
+  });
 });
 document.getElementById('cardsToggle').addEventListener('change', (e)=>{
   document.getElementById('controlsPanel').classList.toggle('cards-hidden', !e.target.checked);
