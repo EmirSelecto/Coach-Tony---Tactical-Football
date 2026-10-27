@@ -164,6 +164,17 @@ function matchManCoverage(defenders, receivers){
   return matches;
 }
 
+function selectManCoverageDefenders(defenders, offPlay, defPlay, receiverCount){
+  const selected = defenders.filter(actor => actor.role === 'CB' || actor.role === 'S');
+  if(selected.length >= receiverCount) return selected;
+
+  const blitzers = selectBlitzers(defPlay, offPlay, defenders);
+  defenders.filter(actor => actor.role === 'LB' && !blitzers.has(actor.id))
+    .slice(0, receiverCount - selected.length)
+    .forEach(actor => selected.push(actor));
+  return selected;
+}
+
 function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
   const field = document.getElementById('field');
   if(!field) return;
@@ -187,7 +198,8 @@ function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
     const defenseFormation = genDefenseFormation(defCategory);
     if(offPlay.type === 'pass' && coverageSchemeFor(defPlay) === 'man'){
       const receivers = offList.filter(actor => actor.role === 'WR' || actor.role === 'TE');
-      const defenders = defenseFormation.filter(actor => actor.role === 'CB' || actor.role === 'S');
+      defenseFormation.forEach((actor, index) => { actor.id = 'D' + index; });
+      const defenders = selectManCoverageDefenders(defenseFormation, offPlay, defPlay, receivers.length);
       matchManCoverage(defenders, receivers).forEach((receiver, defender) => {
         defender.y = receiver.y;
       });

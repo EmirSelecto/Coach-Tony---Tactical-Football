@@ -71,6 +71,16 @@ Cette chronologie ne recalcule ni ne modifie le résultat sportif. Le panneau
 **Mode debug (animation)** affiche les événements prévus, leur progression et
 ceux déjà déclenchés.
 
+Les joueurs suivent des courbes cubiques qui traversent leurs points de passage
+avec une vitesse continue, plutôt que de ralentir à chaque point. Les délais de
+départ restent déterministes et varient selon le joueur ; ils ne changent ni les
+résultats ni la durée logique du match.
+
+En mode debug animation, les assignments sont séparés entre attaque et défense.
+Les défenseurs en marquage individuel conservent leur receveur désigné comme
+cible tout au long de sa route ; les défenseurs de zone restent identifiés
+comme responsables de leur zone et ne sont pas confondus avec un suivi individuel.
+
 ## Publication automatique sur GitHub
 
 Le workflow `.github/workflows/publish-release.yml` crée une release GitHub

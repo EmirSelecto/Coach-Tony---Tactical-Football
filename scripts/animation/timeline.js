@@ -81,14 +81,67 @@ function smoothProgress(t){
   const progress = clamp01(t);
   return progress * progress * (3 - 2 * progress);
 }
+function pathSegmentSlope(a, b, key){
+  const span = b.t - a.t;
+  return span > 0 ? (b[key] - a[key]) / span : 0;
+}
+function pathTangent(path, index, key){
+  const last = path.length - 1;
+  if(last === 1) return pathSegmentSlope(path[0], path[1], key);
+
+  if(index === 0 || index === last){
+    const first = index === 0 ? 0 : last - 1;
+    const second = index === 0 ? 1 : last;
+    const span = path[second].t - path[first].t;
+    const nextSpan = path[index === 0 ? 2 : last - 1].t - path[index === 0 ? 1 : last - 2].t;
+    const slope = pathSegmentSlope(path[first], path[second], key);
+    const nextSlope = pathSegmentSlope(path[index === 0 ? 1 : last - 2], path[index === 0 ? 2 : last - 1], key);
+    if(span <= 0 || nextSpan <= 0) return 0;
+    let tangent = ((2 * span + nextSpan) * slope - span * nextSlope) / (span + nextSpan);
+    if(Math.sign(tangent) !== Math.sign(slope)) return 0;
+    if(Math.sign(slope) !== Math.sign(nextSlope) && Math.abs(tangent) > Math.abs(3 * slope)){
+      tangent = 3 * slope;
+    }
+    return tangent;
+  }
+
+  const previous = path[index - 1], current = path[index], nextPoint = path[index + 1];
+  const previousSpan = current.t - previous.t, nextSpan = nextPoint.t - current.t;
+  if(previousSpan <= 0 || nextSpan <= 0) return 0;
+  const previousSlope = pathSegmentSlope(previous, current, key);
+  const nextSlope = pathSegmentSlope(current, nextPoint, key);
+  if(previousSlope === 0 || nextSlope === 0 || Math.sign(previousSlope) !== Math.sign(nextSlope)) return 0;
+
+  const previousWeight = 2 * nextSpan + previousSpan;
+  const nextWeight = nextSpan + 2 * previousSpan;
+  return (previousWeight + nextWeight)
+    / (previousWeight / previousSlope + nextWeight / nextSlope);
+}
+function interpolatePathValue(path, index, t, key){
+  const a = path[index - 1], b = path[index];
+  const span = b.t - a.t;
+  if(span <= 0) return b[key];
+
+  const u = clamp01((t - a.t) / span);
+  const u2 = u * u, u3 = u2 * u;
+  const startWeight = 2 * u3 - 3 * u2 + 1;
+  const startTangentWeight = u3 - 2 * u2 + u;
+  const endWeight = -2 * u3 + 3 * u2;
+  const endTangentWeight = u3 - u2;
+  return startWeight * a[key]
+    + startTangentWeight * span * pathTangent(path, index - 1, key)
+    + endWeight * b[key]
+    + endTangentWeight * span * pathTangent(path, index, key);
+}
 function evalPath(path, t){
+  if(path.length === 0) throw new Error('Une trajectoire d’animation ne peut pas être vide.');
   if(t <= path[0].t) return {x:path[0].x, y:path[0].y};
   for(let i=1;i<path.length;i++){
     if(t <= path[i].t){
-      const a = path[i-1], b = path[i];
-      const span = Math.max(0.0001, b.t - a.t);
-      const localT = smoothProgress((t - a.t) / span);
-      return {x: lerp(a.x,b.x,localT), y: lerp(a.y,b.y,localT)};
+      return {
+        x:interpolatePathValue(path, i, t, 'x'),
+        y:interpolatePathValue(path, i, t, 'y')
+      };
     }
   }
   const last = path[path.length-1];
@@ -768,10 +821,11 @@ function buildDefenseActorPath(actor, ctx){
     && ctx.coverageTargets.get(actor.id);
   if(assignment && (assignment.pathType === 'manCoverage' || assignment.pathType === 'deepCoverage'
     || assignment.pathType === 'zoneCoverage' || tacklerCoverageTarget)){
-    const targetId = tacklerCoverageTarget || assignment.targetId;
+    const targetId = assignment.pathType === 'manCoverage'
+      ? assignment.targetId : tacklerCoverageTarget || assignment.targetId;
     const targetPath = ctx.offensePaths && ctx.offensePaths.get(targetId);
     if(targetPath){
-      const coverageAssignment = tacklerCoverageTarget
+      const coverageAssignment = tacklerCoverageTarget && assignment.pathType !== 'manCoverage'
         ? {...assignment, targetId, pathType:ctx.coverageScheme === 'man' ? 'manCoverage' : 'zoneCoverage'}
         : assignment;
       return applyTacklePursuit(buildCoveragePath(actor, coverageAssignment, targetPath, ctx));
@@ -925,6 +979,11 @@ function actorAssignment(actor, ctx){
       task = actor.id === ctx.tacklerId ? 'blitzAndTackle' : 'blitzAndPressure';
       pathType = 'linebackerBlitz';
       targetId = offPlay.type === 'run' ? ctx.carrierId : ctx.qbId;
+    } else if(actor.id === ctx.tacklerId && offPlay.type === 'pass' && ctx.coverageScheme === 'man'
+      && ctx.coverageTargets.has(actor.id)){
+      task = 'manCoverAndTackle';
+      pathType = 'manCoverage';
+      targetId = ctx.coverageTargets.get(actor.id);
     } else if(actor.id === ctx.tacklerId){
       task = family === 'sack' ? 'rushAndSack' : 'pursueAndTackle';
       pathType = family === 'sack' ? 'quarterbackRush' : 'tacklePursuit';
@@ -939,7 +998,8 @@ function actorAssignment(actor, ctx){
       task = duel ? 'rushOrEngage' : 'rushTheBackfield';
       pathType = duel ? duel.battleType : 'gapRush';
       targetId = duel ? duel.blockerId : (family === 'sack' ? ctx.qbId : ctx.carrierId);
-    } else if(actor.role === 'LB'){
+    } else if(actor.role === 'LB' && !(offPlay.type === 'pass' && ctx.coverageScheme === 'man'
+      && ctx.coverageTargets.has(actor.id))){
       task = family === 'sack' ? 'blitzOrRead' : 'readAndFill';
       pathType = family === 'sack' ? 'linebackerBlitz' : 'runPassRead';
       targetId = family === 'sack' ? ctx.qbId : ctx.carrierId;
@@ -964,7 +1024,7 @@ function actorAssignment(actor, ctx){
     actorId: actor.id,
     task,
     targetId,
-    startDelay: actor.id === ctx.carrierId ? 0.02 : 0.025 + delayStep * 0.014,
+    startDelay: actor.id === ctx.carrierId ? 0.025 : 0.035 + delayStep * 0.018,
     movementProfile,
     pathType
   };
@@ -1084,7 +1144,8 @@ function buildPlaySetup(cfg){
   const coverageTargets = new Map();
   const availableReceivers = [...coverageReceivers];
   if(coverageScheme === 'man'){
-    matchManCoverage(coverageDefenders, coverageReceivers)
+    const assignedDefenders = selectManCoverageDefenders(defenseSrc, offPlay, defPlay, coverageReceivers.length);
+    matchManCoverage(assignedDefenders, coverageReceivers)
       .forEach((receiver, defender) => coverageTargets.set(defender.id, receiver.id));
   } else {
     coverageDefenders.forEach(defender => {
@@ -1101,7 +1162,7 @@ function buildPlaySetup(cfg){
     : pickTackler(defenseSrc, family, lane, defPlay, finalX);
   if(offPlay.type === 'pass' && coverageScheme === 'man' && family !== 'sack'
     && tackler && !['interception','fumble','incomplete'].includes(outcome)){
-    const assignedDefender = coverageDefenders.find(defender => coverageTargets.get(defender.id) === carrier.id);
+    const assignedDefender = defenseSrc.find(defender => coverageTargets.get(defender.id) === carrier.id);
     if(assignedDefender) tackler = assignedDefender;
   }
   const interceptor = outcome === 'interception'
@@ -1175,33 +1236,34 @@ function buildPlaySetup(cfg){
   const totalMs = Math.max(300, Math.round((baseMs + yardsMs) * BALANCE.animation.globalSlowdown / (game.animSpeed || 1)));
   const actors = [];
   ctx.offensePaths = new Map();
+  const applyStartDelay = actor => {
+    actor.assignment = ctx.actorAssignments.get(actor.id);
+    const startIndex = actor.path.findIndex(point => point.t >= kf.snap);
+    const nextPoint = actor.path[startIndex + 1];
+    if(startIndex >= 0 && nextPoint){
+      const start = actor.path[startIndex];
+      const requestedDelay = actor.assignment.startDelay * 1000 / totalMs;
+      const movementWindow = Math.max(0, nextPoint.t - start.t);
+      const appliedDelay = Math.min(requestedDelay, movementWindow * 0.65);
+      actor.assignment.startDelay = appliedDelay * totalMs / 1000;
+      const holdUntil = start.t + appliedDelay;
+      if(holdUntil > start.t){
+        actor.path.splice(startIndex + 1, 0, {t:holdUntil, x:start.x, y:start.y});
+      }
+    }
+  };
   offenseSrc.forEach(a => {
     const path = buildOffenseActorPath(a, ctx);
     ctx.offensePaths.set(a.id, path);
     actors.push({id:a.id, team:a.team, role:a.role, x:a.x, y:a.y, startX:a.x, startY:a.y,
-      targetX:path[path.length-1].x, targetY:path[path.length-1].y, state:'preSnap', element:a.el, path});
-  });
-  defenseSrc.forEach(a => {
-    const path = buildDefenseActorPath(a, ctx);
-    actors.push({id:a.id, team:a.team, role:a.role, x:a.x, y:a.y, startX:a.x, startY:a.y,
-      targetX:path[path.length-1].x, targetY:path[path.length-1].y, state:'preSnap', element:a.el, path});
+      targetX:path[path.length-1].x, targetY:path[path.length-1].y, state:'preSnap', element:a.el, path,
+      assignment:ctx.actorAssignments.get(a.id)});
   });
   actors.forEach(actor => {
-    actor.assignment = ctx.actorAssignments.get(actor.id);
-    const delay = actor.assignment.startDelay * 1000 / totalMs;
-    if(delay > 0){
-      const startIndex = actor.path.findIndex(point => point.t >= kf.snap);
-      const nextPoint = actor.path[startIndex + 1];
-      if(startIndex >= 0 && nextPoint){
-        const start = actor.path[startIndex];
-        const holdUntil = Math.min(start.t + delay, nextPoint.t - 0.0001);
-        if(holdUntil > start.t){
-          actor.path.splice(startIndex + 1, 0, {t:holdUntil, x:start.x, y:start.y});
-        }
-      }
-    }
-    if(actor.team === 'offense' && actor.role !== 'OL' && actor.role !== 'FB'
-      && actor.id !== ctx.carrierId && actor.id !== ctx.qbId && actor.id !== ctx.tacklerId){
+    if(actor.team !== 'offense') return;
+    applyStartDelay(actor);
+    if(actor.role !== 'OL' && actor.role !== 'FB' && actor.id !== ctx.carrierId
+      && actor.id !== ctx.qbId && actor.id !== ctx.tacklerId){
       const routePointIndex = actor.path.findIndex(point => point.t >= (kf.routesDevelop || kf.laneCommit || 0.4));
       const routePoint = routePointIndex >= 0 ? actor.path[routePointIndex] : null;
       if(routePoint && routePoint.t < (kf.tackle || 0.85)){
@@ -1217,6 +1279,16 @@ function buildPlaySetup(cfg){
         });
       }
     }
+  });
+  defenseSrc.forEach(a => {
+    const path = buildDefenseActorPath(a, ctx);
+    actors.push({id:a.id, team:a.team, role:a.role, x:a.x, y:a.y, startX:a.x, startY:a.y,
+      targetX:path[path.length-1].x, targetY:path[path.length-1].y, state:'preSnap', element:a.el, path,
+      assignment:ctx.actorAssignments.get(a.id)});
+  });
+  actors.forEach(actor => {
+    if(actor.team !== 'defense') return;
+    applyStartDelay(actor);
     if(actor.team === 'defense' && ['DL','LB'].includes(actor.role)
       && !duelByActor.has(actor.id) && actor.id !== ctx.tacklerId){
       let variationIndex = actor.path.findIndex(point => point.t > kf.snap && point.t < (kf.tackle || 0.85));
@@ -1240,7 +1312,8 @@ function buildPlaySetup(cfg){
   actors.forEach(a => actorsById[a.id] = a);
 
   const setup = {
-    actors, actorsById, kf, family, outcome, finalX, lane, throwLane, offenseSide, animVariant,
+    actors, actorsById, kf, family, outcome, finalX, lane, throwLane, offenseSide, offenseDir,
+    preSnapSpot, defPlay, coverageScheme, coverageTargets, animVariant,
     yards:cfg.yards || 0, breakaway:!!cfg.breakaway,
     duels,
     carrierId: carrier.id, qbId: qbActor.id, playActionFakeId: ctx.playActionFakeId,
@@ -1361,6 +1434,18 @@ const PlayAnimationController = {
       'chaque acteur doit avoir une trajectoire complète, finie et chronologique');
     animDebugAssert(setup.actors.every(actor => !actor.assignment.targetId || !!setup.actorsById[actor.assignment.targetId]),
       'une responsabilité référence un joueur cible absent');
+    const manAssignments = setup.actors.filter(actor => actor.assignment.pathType === 'manCoverage');
+    animDebugAssert(manAssignments.every(actor => {
+      const receiver = setup.actorsById[actor.assignment.targetId];
+      return receiver && (receiver.role === 'WR' || receiver.role === 'TE')
+        && setup.actors.some(candidate => candidate.id === receiver.id && candidate.team === 'offense');
+    }), 'un marquage individuel doit conserver un receveur offensif assigné');
+    animDebugAssert(new Set(manAssignments.map(actor => actor.assignment.targetId)).size === manAssignments.length,
+      'un receveur ne doit pas être assigné simultanément à plusieurs défenseurs individuels');
+    animDebugAssert([...setup.coverageTargets.values()].every(receiverId => {
+      const receiver = setup.actorsById[receiverId];
+      return receiver && receiver.team === 'offense' && (receiver.role === 'WR' || receiver.role === 'TE');
+    }), 'une couverture doit cibler un receveur offensif existant');
     animDebugAssert(setup.timelineEvents.length > 0
       && setup.timelineEvents[setup.timelineEvents.length - 1].type === 'whistle'
       && setup.timelineEvents.every((event, index, events) => Number.isFinite(event.time)
@@ -1819,6 +1904,62 @@ function renderAnimDebugPanel(setup, elapsed){
   if(!game.animDebugEnabled) return;
   const el = document.getElementById('animDebugLog');
   if(!el) return;
+  const actorLabel = actorId => {
+    const actor = setup.actorsById[actorId];
+    return actor ? `${actor.role} ${actorId}` : t('animation.debug.none');
+  };
+  const responsibility = actor => {
+    const assignment = actor.assignment;
+    const target = actorLabel(assignment.targetId);
+    if(actor.team === 'offense'){
+      if(actor.id === setup.carrierId && setup.offPlay.type === 'pass'){
+        return t('animation.debug.responsibility.receiverTarget');
+      }
+      if(actor.id === setup.carrierId) return t('animation.debug.responsibility.ballCarrier');
+      if(actor.id === setup.qbId){
+        return t(setup.offPlay.type === 'pass'
+          ? 'animation.debug.responsibility.quarterbackPass'
+          : 'animation.debug.responsibility.quarterbackHandoff');
+      }
+      if(assignment.pathType === 'receiverRoute'){
+        return t('animation.debug.responsibility.receiverRoute', {play:playLabel(setup.offPlay.name)});
+      }
+      if(assignment.targetId && ['engageBlock','pullAndBlock','doubleTeamBlock','leadBlock','protectOrRelease','skillBlock'].includes(assignment.task)){
+        return t('animation.debug.responsibility.block', {target});
+      }
+      if(assignment.task === 'playActionFakeHandoff'){
+        return t('animation.debug.responsibility.playActionFake');
+      }
+      return t('animation.debug.responsibility.offenseSupport', {task:assignment.task});
+    }
+    if(assignment.pathType === 'manCoverage' && assignment.targetId){
+      return t(actor.id === setup.tacklerId
+        ? 'animation.debug.responsibility.manCoverageTackle'
+        : 'animation.debug.responsibility.manCoverage', {target});
+    }
+    if(assignment.pathType === 'zoneCoverage' || assignment.pathType === 'deepCoverage'){
+      return t('animation.debug.responsibility.zoneCoverage', {target});
+    }
+    if(assignment.task === 'interceptAndReturn'){
+      return t('animation.debug.responsibility.interception', {target});
+    }
+    if(assignment.task === 'recoverAndReturn'){
+      return t('animation.debug.responsibility.fumbleRecovery');
+    }
+    if(assignment.task === 'blitzAndTackle' || assignment.task === 'blitzAndPressure'){
+      return t('animation.debug.responsibility.blitz', {target});
+    }
+    if(assignment.task === 'pursueAndTackle' || assignment.task === 'rushAndSack'){
+      return t('animation.debug.responsibility.tackle', {target});
+    }
+    if(assignment.targetId && ['engageBlock','pullAndBlock','doubleTeamBlock','shedBlockAndPursue'].includes(assignment.task)){
+      return t('animation.debug.responsibility.blockOrShed', {target});
+    }
+    if(assignment.targetId){
+      return t('animation.debug.responsibility.pursuit', {target});
+    }
+    return t('animation.debug.responsibility.defenseSupport', {task:assignment.task});
+  };
   const events = setup.timelineEvents.map(event => {
     const eventId = event.kind ? `${event.type}:${event.kind}` : event.type;
     const fired = PlayAnimationController._firedEvents.has(eventId) ? ' ✓' : '';
@@ -1827,17 +1968,21 @@ function renderAnimDebugPanel(setup, elapsed){
   const warnLines = animDebugWarnings.length
     ? animDebugWarnings.map(w => '⚠ ' + w).join('\n')
     : t('animation.debug.noWarnings');
-  const assignments = setup.actors.map(actor =>
-    t('animation.debug.actorAssignment', {
-      id:actor.id,
-      role:actor.role,
-      task:actor.assignment.task,
-      target:actor.assignment.targetId || t('animation.debug.none'),
-      path:actor.assignment.pathType,
-      profile:actor.assignment.movementProfile,
-      delay:(actor.assignment.startDelay*1000).toFixed(0)
-    })
-  ).join('\n');
+  const assignments = ['offense','defense'].map(team => {
+    const actors = setup.actors.filter(actor => actor.team === team);
+    const rows = actors.map(actor =>
+      t('animation.debug.actorAssignment', {
+        id:actor.id,
+        role:actor.role,
+        task:responsibility(actor),
+        target:actor.assignment.targetId ? actorLabel(actor.assignment.targetId) : t('animation.debug.none'),
+        path:actor.assignment.pathType,
+        profile:actor.assignment.movementProfile,
+        delay:(actor.assignment.startDelay*1000).toFixed(0)
+      })
+    ).join('\n');
+    return `${t(`animation.debug.${team}`)}:\n${rows}`;
+  }).join('\n\n');
   const duels = setup.duels.map(duel => {
     const state = elapsed < duel.engageTime ? t('animation.debug.approaching')
       : elapsed < duel.resolveTime ? t('animation.debug.engaged') : t('animation.debug.resolved');
