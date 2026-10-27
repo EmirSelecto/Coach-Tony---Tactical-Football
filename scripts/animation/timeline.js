@@ -1291,11 +1291,12 @@ function buildPlaySetup(cfg){
     applyStartDelay(actor);
     if(actor.team === 'defense' && ['DL','LB'].includes(actor.role)
       && !duelByActor.has(actor.id) && actor.id !== ctx.tacklerId){
-      let variationIndex = actor.path.findIndex(point => point.t > kf.snap && point.t < (kf.tackle || 0.85));
-      if(variationIndex > 0){
-        const point = actor.path[variationIndex], previous = actor.path[variationIndex - 1];
-        if(point.x === previous.x && point.y === previous.y) variationIndex++;
-      }
+      const variationIndex = actor.path.findIndex((point, index, path) => {
+        const previous = path[index - 1], next = path[index + 1];
+        return previous && next && point.t > kf.snap && point.t < (kf.tackle || 0.85)
+          && point.t - previous.t >= 0.05 && next.t - point.t >= 0.05
+          && (point.x !== previous.x || point.y !== previous.y);
+      });
       const variationPoint = actor.path[variationIndex];
       if(variationPoint){
         const seed = (Number(actor.id.slice(1)) * 19 + offPlay.name.length * 7

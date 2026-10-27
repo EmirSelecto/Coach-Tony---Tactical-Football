@@ -75,6 +75,10 @@ Les joueurs suivent des courbes cubiques qui traversent leurs points de passage
 avec une vitesse continue, plutôt que de ralentir à chaque point. Les délais de
 départ restent déterministes et varient selon le joueur ; ils ne changent ni les
 résultats ni la durée logique du match.
+Les variations défensives ne sont ajoutées que sur des segments assez longs pour
+éviter les accélérations brusques, et les joueurs concernés s'immobilisent au
+point du plaquage lorsque l'action se termine par un gain, un touchdown ou un
+sack.
 
 Les moments forts ont des effets visuels renforcés et ciblés : impact au point
 du sack, flash et onde de choc au turnover, traînées brèves derrière le porteur
