@@ -1675,7 +1675,12 @@ const PlayAnimationController = {
         this._triggerCameraShake('heavy');
         triggerTackleImpact(ballState.x, ballState.y, 'turnover');
       }
-      showEventBanner(t('game.banners.turnover'), 'turnover');
+      showEventBanner(
+        event.kind === 'fumble' ? t('game.banners.fumble') : t('game.banners.turnover'),
+        'turnover',
+        undefined,
+        event.kind === 'fumble' ? t('game.banners.fumbleTurnoverSubtitle') : undefined
+      );
       AudioManager.play(userLostPossession ? 'booing' : 'turnover');
     }
     if(name === 'fumble'){

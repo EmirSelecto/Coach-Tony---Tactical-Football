@@ -142,6 +142,8 @@
     "safety": "SAFETY",
     "touchdown": "TOUCHDOWN",
     "pickSix": "PICK SIX",
+    "fumble": "FUMBLE",
+    "fumbleTurnoverSubtitle": "Turn Over On Downs",
     "turnover": "TURNOVER ON DOWNS",
     "clutch": "CLUTCH",
     "bigPlay": "BIG PLAY",

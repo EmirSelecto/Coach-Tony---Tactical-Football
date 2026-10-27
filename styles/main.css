@@ -369,6 +369,8 @@
   }
   .event-banner.bigPlay{ border-color: var(--gold); color: var(--gold); }
   .event-banner.turnover{ border-color: var(--danger); color: #ff8a8a; }
+  .event-banner.has-subtitle{ display:flex; flex-direction:column; gap:2px; white-space:normal; }
+  .event-banner-subtitle{ font-size:0.62em; font-weight:500; letter-spacing:0.03em; opacity:0.9; text-transform:none; }
   .event-banner.nocatch{ border-color: var(--danger); background: rgba(190,32,32,0.88); color:#fff; font-size:1.5rem; letter-spacing:0.12em; }
   .event-banner.score{ border-color: var(--success); color: #8fe39c; font-size:1.35rem; }
   .event-banner.clutch{ border-color: #d9b23f; color:#f2d27a; box-shadow:0 0 18px rgba(217,178,63,0.35); }

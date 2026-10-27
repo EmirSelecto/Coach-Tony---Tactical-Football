@@ -1341,13 +1341,24 @@ function pickTacticalMessage(ctx){
 }
 
 // ---- 2/3/5. Feedback visuel (bannières, pulsations, flash, marqueur) ----
-function showEventBanner(text, variant, durationMs){
+function showEventBanner(text, variant, durationMs, subtitle){
   const layer = document.getElementById('eventBannerLayer');
   if(!layer) return;
   const ms = durationMs || BALANCE.eventBanner.durationMs;
   const el = document.createElement('div');
   el.className = 'event-banner ' + variant;
-  el.textContent = text;
+  if(subtitle){
+    el.classList.add('has-subtitle');
+    const title = document.createElement('span');
+    title.className = 'event-banner-title';
+    title.textContent = text;
+    const detail = document.createElement('span');
+    detail.className = 'event-banner-subtitle';
+    detail.textContent = subtitle;
+    el.append(title, detail);
+  } else {
+    el.textContent = text;
+  }
   el.style.setProperty('--banner-ms', ms + 'ms');
   layer.appendChild(el);
   setTimeout(() => el.remove(), ms + 150);
