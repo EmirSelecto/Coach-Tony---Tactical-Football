@@ -177,14 +177,33 @@ function selectPlayFamily(offPlay, outcome){
 
 function computeBlockPairs(offenseActors, defenseActors, family){
   const pairs = new Map();
-  const ol = offenseActors.filter(a => a.role === 'OL');
-  const dl = defenseActors.filter(a => a.role === 'DL');
-  ol.forEach(o => {
-    let best = null, bd = Infinity;
-    dl.forEach(d => { const dist = Math.abs(d.y-o.y); if(dist < bd){ bd = dist; best = d; } });
-    if(best){
-      pairs.set(o.id, best);
-      if(!pairs.has(best.id)) pairs.set(best.id, o);
+  const ol = offenseActors.filter(a => a.role === 'OL').sort((a,b) => a.y-b.y);
+  const dl = defenseActors.filter(a => a.role === 'DL').sort((a,b) => a.y-b.y);
+  const remainingOffense = new Set(ol);
+  const remainingDefense = new Set(dl);
+  const candidates = ol.flatMap(blocker => dl.map(defender => ({
+    blocker, defender, distance:Math.abs(defender.y-blocker.y)
+  }))).sort((a,b) => a.distance-b.distance);
+  candidates.forEach(({blocker, defender}) => {
+    if(!remainingOffense.has(blocker) || !remainingDefense.has(defender)) return;
+    pairs.set(blocker.id, defender);
+    pairs.set(defender.id, blocker);
+    remainingOffense.delete(blocker);
+    remainingDefense.delete(defender);
+  });
+  const blockerCounts = new Map(dl.map(defender => [
+    defender.id,
+    ol.filter(blocker => pairs.get(blocker.id) === defender).length
+  ]));
+  remainingOffense.forEach(blocker => {
+    const defender = dl.length
+      ? [...dl].sort((a,b) => blockerCounts.get(a.id)-blockerCounts.get(b.id)
+        || Math.abs(a.y-blocker.y)-Math.abs(b.y-blocker.y))[0]
+      : null;
+    if(defender){
+      pairs.set(blocker.id, defender);
+      if(!pairs.has(defender.id)) pairs.set(defender.id, blocker);
+      blockerCounts.set(defender.id, blockerCounts.get(defender.id)+1);
     }
   });
   if(family === 'outsideRun'){
@@ -218,8 +237,8 @@ function pickDefenseReactorNear(defenseActors, targetLane, targetX){
 }
 
 // Bloqueurs qui accompagnent le porteur (screen : trois receveurs du côté
-// choisi ; Sweep : fullback, guards et receveurs). Chacun est
-// apparié au défenseur le plus proche, qui vient s'engager sur lui.
+// choisi ; courses extérieures : un tight end ou fullback). Les linemen gardent
+// leur assignment de ligne au lieu de converger vers le porteur.
 function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const offense = new Map(), defense = new Map();
   if(variant !== 'screen' && variant !== 'outsideLead') return {offense, defense};
@@ -231,14 +250,10 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
       && (lane > 50 ? a.y > 50 : a.y < 50)).sort(byLane).slice(0, 3);
   } else if(offPlay && offPlay.name === 'Sweep'){
     const fb = offenseSrc.find(a => a.role === 'FB' && !excludeIds.has(a.id));
-    const guards = offenseSrc.filter(a => a.role === 'OL' && (a.y === 42 || a.y === 58) && !excludeIds.has(a.id))
-      .sort((a,b) => Math.abs(a.y-50) - Math.abs(b.y-50));
-    const receivers = offenseSrc.filter(a => (a.role === 'WR' || a.role === 'TE') && !excludeIds.has(a.id));
-    chosen = [...(fb ? [fb] : []), ...guards, ...receivers];
+    chosen = fb ? [fb] : [];
   } else {
     const te = offenseSrc.filter(a => (a.role === 'TE' || a.role === 'FB') && !excludeIds.has(a.id)).sort(byLane).slice(0, 1);
-    const ol = offenseSrc.filter(a => a.role === 'OL' && !excludeIds.has(a.id)).sort(byLane).slice(0, 1);
-    chosen = [...te, ...ol];
+    chosen = te;
   }
   const midT = variant === 'screen' ? kf.throw : kf.laneCommit;
   const endT = kf.tackle;
@@ -248,7 +263,7 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const offs = variant === 'screen' ? [-8, 0, 8] : [-9, 9, -17, 17, -25, 25, -33];
   const usedDef = new Set();
   chosen.forEach((a, k) => {
-    // Un lineman qui part en escorte ne bloque plus le DL d'en face.
+    // L'escorte prend la place du blocage direct éventuellement assigné.
     const partner = blockPairs.get(a.id);
     if(partner){ blockPairs.delete(a.id); blockPairs.delete(partner.id); }
     const y = clamp(lane + offs[k], 4, 96);
@@ -696,9 +711,7 @@ function buildOffenseActorPath(actor, ctx){
   if(actor.role === 'OL' || actor.role === 'FB'){
     const duel = ctx.duelByActor && ctx.duelByActor.get(actor.id);
     if(duel){
-      const blockerEnd = duel.battleType === 'pullBlock'
-        ? {...duel.blockerEnd, y:clamp(50 + Math.sign(ctx.lane - 50) * 9, 2, 98)}
-        : duel.blockerEnd;
+      const blockerEnd = duel.blockerEnd;
       return [
         {t:0,x:actor.x,y:actor.y},
         {t:kf.snap,x:actor.x,y:actor.y},
@@ -1258,9 +1271,10 @@ function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards
       : yards > 0 ? 'offense' : 'balanced';
     const isDoubleTeam = blockersPerDefender.get(opponent.id) > 1;
     const isGuard = blocker.role === 'OL' && (blocker.y === 42 || blocker.y === 58);
+    const pullsTowardLane = lane > 50 ? blocker.y > 50 : blocker.y < 50;
     const battleType = passPlay
       ? (outcome === 'sack' ? (Math.abs(opponent.y - 50) > 12 ? 'edgeRush' : 'bullRush') : 'passBlock')
-      : offPlay.name === 'Sweep' && isGuard ? 'pullBlock'
+      : offPlay.name === 'Sweep' && isGuard && pullsTowardLane ? 'pullBlock'
       : family === 'outsideRun' ? 'reachBlock'
       : family === 'insideRun' && isDoubleTeam ? 'doubleTeam'
       : 'driveBlock';
@@ -1271,7 +1285,9 @@ function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards
     const blockerEnd = isPassBlock
       ? {x:clamp(blocker.x - offenseDir * 0.8, 0, 100), y:clamp(lerp(blocker.y, 50, 0.16), 2, 98)}
       : {x:clamp(blocker.x + offenseDir * (advantage === 'offense' ? 0.9 : advantage === 'defense' ? -0.8 : 0.15), 0, 100),
-        y:clamp(blockerContactY + lateralSign * (battleType === 'doubleTeam' ? 0.7 : 0.25), 2, 98)};
+        y:clamp(blockerContactY + (battleType === 'pullBlock'
+          ? Math.sign(lane - blocker.y) * 4
+          : lateralSign * (battleType === 'doubleTeam' ? 0.7 : 0.25)), 2, 98)};
     const defenderEnd = isPassBlock
       ? {x:clamp(opponent.x - offenseDir * (advantage === 'defense' ? 1.7 : 0.65), 0, 100),
         y:clamp(defenderContactY + lateralSign * 0.35, 2, 98)}
