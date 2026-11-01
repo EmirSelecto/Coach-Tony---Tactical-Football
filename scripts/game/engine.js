@@ -892,6 +892,7 @@ function renderTeamPicker(){
 function renderPregameBody(){
   const teams = game.teams;
   const body = document.getElementById('pregameBody');
+  const aiUsesContrastUniform = useContrastUniform(teams);
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:14px;">
       <div style="text-align:center;flex:1;">
@@ -904,6 +905,7 @@ function renderPregameBody(){
         <div style="width:16px;height:16px;border-radius:50%;background:${teams.ai.color};margin:0 auto 8px;"></div>
         <div style="font-family:'Oswald',sans-serif;color:var(--chalk);font-size:1.05rem;">${teams.ai.name}</div>
         <div style="font-size:0.75rem;color:var(--ink-dim);margin-top:2px;">(${TEXTS.ui.teamPicker.ai})</div>
+        ${aiUsesContrastUniform ? `<div class="uniform-note">${t('ui.teamPicker.contrastUniform')}</div>` : ''}
         <div style="margin-top:8px;font-size:0.82rem;">${t('ui.teamPicker.ratings', {offense:teams.ai.ratings.offense, defense:teams.ai.ratings.defense, overall:teams.ai.ratings.overall})}</div>
       </div>
     </div>`;

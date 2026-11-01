@@ -1844,8 +1844,8 @@ function runKickPlayAnimation(cfg, onComplete){
 
   const field = document.getElementById('field');
   const offenseDir = cfg.offenseSide === 'player' ? 1 : -1;
-  const kickerEl = makeDot('offense mini qb', 'K');
-  const holderEl = makeDot('offense mini', cfg.type === 'fieldGoal' ? 'H' : '');
+  const kickerEl = makeDot('offense mini qb', 'K', cfg.offenseSide);
+  const holderEl = makeDot('offense mini', cfg.type === 'fieldGoal' ? 'H' : '', cfg.offenseSide);
   field.appendChild(kickerEl); field.appendChild(holderEl);
   placeEl(kickerEl, clamp(cfg.preSnapSpot - offenseDir*3, 0, 100), 50);
   placeEl(holderEl, clamp(cfg.preSnapSpot - offenseDir*1, 0, 100), 50);

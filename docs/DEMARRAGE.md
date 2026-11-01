@@ -44,6 +44,10 @@ La direction artistique de l’interface s’inspire d’une retransmission spor
 fond bleu-vert profond, terrain vert, or pour les moments clés et couleurs
 d’équipe pour distinguer les camps. Les tokens de couleur, d’espacement,
 d’arrondi et d’ombre sont définis dans `styles/main.css`.
+Les couleurs primaires restent visibles dans le HUD et les zones d’en-but.
+Quand les couleurs des deux équipes sont trop proches, l’équipe IA reçoit
+automatiquement une tenue blanche à liseré de sa couleur, afin de garder une
+identité visuelle distincte sans changer les couleurs de la franchise.
 
 Les classes `.icon-button`, `.overlay-panel`, `.choice-category` et
 `.commentator-bubble` servent de base aux prochaines étapes de l’interface.

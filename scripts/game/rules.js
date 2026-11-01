@@ -215,6 +215,7 @@ const TEAM_COLORS = [
   '#4f8fd1','#c94f6f','#6fd18f','#d1c14f','#8f4fd1','#4fd1a1','#d14f8f','#4fa1d1',
   '#a1d14f','#d1704f','#4fd1c1','#c14fd1','#8fd14f','#4f61d1','#d1a14f','#61d14f'
 ];
+const TEAM_COLOR_COLLISION_THRESHOLD = 36;
 function generateTeamRatings(){
   // Ratings simples 60-95, documentés ici pour être ajustés facilement.
   const offense = randInt(BALANCE.ratings.min, BALANCE.ratings.max);
@@ -249,9 +250,20 @@ function generateMatchTeams(){
   while(i2 === i1) i2 = randInt(0, TEAM_DB.length - 1);
   return { player: makeTeam(i1), ai: makeTeam(i2) };
 }
+function teamColorDistance(colorA, colorB){
+  const rgb = color => color.match(/[a-f\d]{2}/gi).map(channel => parseInt(channel, 16));
+  const a = rgb(colorA), b = rgb(colorB);
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+function useContrastUniform(teams){
+  return teamColorDistance(teams.player.color, teams.ai.color) < TEAM_COLOR_COLLISION_THRESHOLD;
+}
 function applyTeamColorsToCSS(teams){
+  const aiUsesContrastUniform = useContrastUniform(teams);
   document.documentElement.style.setProperty('--player-accent', teams.player.color);
   document.documentElement.style.setProperty('--ai-accent', teams.ai.color);
+  document.documentElement.dataset.aiUniform = aiUsesContrastUniform ? 'white' : 'primary';
+  return aiUsesContrastUniform;
 }
 
 /* ---------------------------- Stockage local (paramètres) ----------------- */

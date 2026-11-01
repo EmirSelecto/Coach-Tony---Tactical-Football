@@ -9,9 +9,12 @@ function placeEl(el, leftPct, topPct){
   el.style.top = topPct + '%';
   void el.offsetWidth; // force reflow avant la prochaine transition
 }
-function makeDot(cls, label){
+function makeDot(cls, label, teamSide){
   const el = document.createElement('div');
-  el.className = 'player-dot temp-player ' + cls;
+  el.className = 'player-dot temp-player team-' + teamSide + ' ' + cls;
+  if(teamSide === 'ai' && document.documentElement.dataset.aiUniform === 'white'){
+    el.classList.add('alternate-uniform');
+  }
   if(label) el.textContent = label;
   return el;
 }
@@ -180,11 +183,12 @@ function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
   if(!field) return;
   clearTempPlayers();
   const offenseDir = offenseSide === 'player' ? 1 : -1;
+  const defenseSide = offenseSide === 'player' ? 'ai' : 'player';
 
   const offCategory = OFFENSE_FORMATION_CATEGORY[offPlay.name] || 'iform';
   const offList = [];
   genOffenseFormation(offCategory, offPlay.direction).forEach(p => {
-    const dot = makeDot('offense mini' + (p.qb ? ' qb' : ''), p.qb ? 'QB' : '');
+    const dot = makeDot('offense mini' + (p.qb ? ' qb' : ''), p.qb ? 'QB' : '', offenseSide);
     field.appendChild(dot);
     const formX = clamp(preSnapSpot + p.dx*offenseDir, -9, 109);
     placeEl(dot, formX, p.y);
@@ -205,7 +209,7 @@ function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
       });
     }
     defenseFormation.forEach(p => {
-      const dot = makeDot('defense mini', '');
+      const dot = makeDot('defense mini', '', defenseSide);
       field.appendChild(dot);
       const formX = clamp(preSnapSpot + p.dx*offenseDir, -9, 109);
       placeEl(dot, formX, p.y);

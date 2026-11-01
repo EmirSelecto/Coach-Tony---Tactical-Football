@@ -274,8 +274,13 @@
     font-size:0.55rem; font-family:'Oswald',sans-serif; color:#0b120e; font-weight:600;
     border: 2px solid rgba(0,0,0,0.35);
   }
-  .player-dot.offense{ background: var(--player-accent); }
-  .player-dot.defense{ background: var(--ai-accent); }
+  .player-dot.team-player{ background: var(--player-accent); }
+  .player-dot.team-ai{ background: var(--ai-accent); }
+  .player-dot.alternate-uniform{
+    background:#f5f7f5;
+    border:3px solid var(--ai-accent);
+    color:#111a20;
+  }
   .player-dot.carrier{ box-shadow: 0 0 0 3px rgba(226,166,64,0.55), 0 2px 4px rgba(0,0,0,0.45); }
   .player-dot.breakaway{ z-index:9; animation:breakawayCarrier 760ms ease-out; }
   .player-dot.breakaway::before,.player-dot.breakaway::after{
@@ -490,6 +495,17 @@
   .mini-btn:hover{ border-color: var(--gold-dim); }
   .mini-btn.on{ background: var(--player-accent); color:#0b120e; border-color: transparent; font-weight:600; }
   .mini-btn.ai.on{ background: var(--ai-accent); }
+  .uniform-note{
+    width:fit-content;
+    max-width:100%;
+    margin:4px auto 0;
+    padding:2px 7px;
+    color:var(--ai-accent);
+    border:1px solid currentColor;
+    border-radius:var(--radius-pill);
+    font-size:0.66rem;
+    line-height:1.35;
+  }
 
   /* Controls */
   .panel{
