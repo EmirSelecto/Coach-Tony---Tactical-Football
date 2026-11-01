@@ -1515,15 +1515,14 @@ function applyEventFeedback(offenseSide, context, tactical){
       if(result && result.outcome === 'interception') setTimeout(() => showEventBanner(t('game.banners.pickSix'), 'bigPlay'), 500);
       celebrate('touchdown', scoringSide);
     }
-    AudioManager.play(advType === 'safety' ? 'whistle' : 'cheering');
-    AudioManager.play('crowd');
+    AudioManager.play(advType === 'safety' ? 'whistle' : 'touchdown');
   } else if(eventLevel === 'clutch'){
     showEventBanner(t('game.banners.clutch'), 'clutch');
   } else if(eventLevel === 'bigPlay'){
     triggerBigPlayPulse();
     showEventBanner(t('game.banners.bigPlay'), 'bigPlay');
     celebrate('bigPlay', offenseSide, game.visualBallX);
-    AudioManager.play('cheering');
+    AudioManager.play('bigPlay');
   } else if(eventLevel === 'positive'){
     if(advType === 'firstdown'){
       flashFirstDownMarker();

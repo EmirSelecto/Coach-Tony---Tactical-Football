@@ -1670,7 +1670,7 @@ const PlayAnimationController = {
     if(name === 'snap') AudioManager.play('snap');
     if(name === 'throw') AudioManager.play('pass');
     if(name === 'kick' && setup.type === 'fieldGoal'){
-      AudioManager.play(setup.made ? 'fieldGoal' : 'tackle');
+      AudioManager.play(setup.made ? 'fieldGoalGood' : 'fieldGoalNoGood');
     }
     if(name === 'catch' || name === 'interception') AudioManager.play('catch');
     if(name === 'turnover'){
@@ -1733,7 +1733,6 @@ const PlayAnimationController = {
         triggerScoreCelebration(setup.offenseSide);
         showEventBanner(t('game.banners.fieldGoal'), 'score');
         celebrate('fieldGoal', setup.offenseSide);
-        AudioManager.play('crowd');
       }
       if(setup.feedback && setup.feedback.kind === 'fakeFieldGoal'){
         const {success, advType, scorer} = setup.feedback;
@@ -1742,11 +1741,10 @@ const PlayAnimationController = {
           triggerTouchdownImpact(scorer);
           showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
           celebrate('touchdown', scorer);
-          AudioManager.play('cheering');
-          AudioManager.play('crowd');
+          AudioManager.play('touchdown');
         } else if(success){
           showEventBanner(t('game.banners.fakeFieldGoal'), 'bigPlay');
-          AudioManager.play('cheering');
+          AudioManager.play('bigPlay');
           if(advType === 'firstdown'){
             flashFirstDownMarker();
             showEventBanner(t('game.banners.firstDown'), 'firstdown');

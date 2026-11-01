@@ -70,6 +70,11 @@ sections de sièges plus lisibles.
 Sur mobile, les marqueurs des joueurs sont réduits pour limiter les
 chevauchements ; les commandes de chrono et de tempo sont accessibles depuis
 un bouton repliable pour préserver la place des choix tactiques.
+En paysage sur un écran mobile, l’interface passe automatiquement en mode
+broadcast compact : HUD en haut, terrain à ses proportions naturelles,
+commandes tactiques latérales et commandes de chrono dépliables. Les boutons
+tactiles conservent une zone de frappe adaptée ; les panneaux restent
+défilables si leur contenu dépasse la hauteur disponible.
 Les catégories tactiques et leurs sous-menus sont navigables au clavier ; le
 focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lors de
 la fermeture des panneaux. Le choix du tempo est annoncé comme un état
@@ -85,12 +90,14 @@ les attributs `data-text` et `data-title` dans `index.html`.
 
 Le bouton « Activer la musique », disponible au coin toss et pendant le match,
 joue d’abord `assets/sounds/20secs.mp3`, puis répète `assets/sounds/loop.mp3`.
-Les réactions `assets/sounds/booing.mp3` et `assets/sounds/cheering.mp3` sont
-utilisées respectivement quand l’équipe du joueur perd le ballon sur interception
-ou fumble, et lors d’un big play ou d’un touchdown. Les sons brefs de snap,
-passe, réception, plaquage, sifflet et premier down sont générés par Web Audio ;
-ils ne nécessitent pas de fichiers supplémentaires. Les fichiers audio fournis
-doivent rester dans ce dossier avec leurs noms exacts.
+Les voix de big play choisissent aléatoirement `Marvellous.mp3`,
+`Incredible.mp3` ou `WAP.mp3` ; un touchdown déclenche `TD.mp3`. Un field goal
+réussi ou manqué joue respectivement `Good.mp3` ou `NoGood.mp3`. La réaction
+`booing.mp3` reste utilisée quand l’équipe du joueur perd le ballon sur
+interception ou fumble. Les sons brefs de snap, passe, réception, plaquage,
+sifflet et premier down sont générés par Web Audio ; ils ne nécessitent pas de
+fichiers supplémentaires. Les fichiers audio fournis doivent rester dans ce
+dossier avec leurs noms exacts.
 
 Les libellés du journal de calcul de l’IA et du journal des tests d’équilibrage
 restent dans `scripts/ui/interface.js` : ce sont des sorties de diagnostic

@@ -1073,12 +1073,12 @@
       min-width:0;
       padding:7px 9px;
     }
-    .team-score .name{ font-size:0.72rem; }
+    .team-score .name{ display:block; max-width:100%; overflow:hidden; font-size:0.72rem; text-overflow:ellipsis; white-space:nowrap; }
     .team-score .val{ font-size:1.65rem; }
     .clockbox{ padding:0 6px; }
     .clockbox .time{ font-size:1.2rem; }
     .hud-tools{ top:8px; right:10px; gap:5px; }
-    .hud-tools .icon-button{ width:38px; height:38px; border-radius:9px; }
+    .hud-tools .icon-button{ width:44px; height:44px; border-radius:9px; }
     .hud-tools .icon-button svg{ width:19px; height:19px; }
     .situation{
       top:146px;
@@ -1132,7 +1132,9 @@
     }
     .controls-panel .clock-controls .clock-info{ display:none; }
     .controls-panel .action-row{ gap:6px; }
-    .controls-panel .action-btn{ padding:7px 9px; font-size:0.75rem; }
+    .controls-panel .action-btn{ min-height:44px; padding:7px 9px; font-size:0.75rem; }
+    .controls-panel button.play-btn{ min-height:44px; }
+    .tempo-seg button{ min-height:44px; }
     .choice-categories{ gap:7px; }
     .choice-category{ min-height:52px; padding:9px; gap:8px; font-size:0.86rem; }
     .choice-category svg{ width:23px; height:23px; }
@@ -1160,7 +1162,7 @@
   @media (max-width:760px) and (orientation:portrait){
     .field-outer{ place-items:start center; }
     .field{ margin-top:232px; }
-    .result-box{ bottom:calc(16px + clamp(134px,25vh,235px)); }
+    .result-box{ bottom:calc(24px + clamp(134px,25vh,235px)); }
     .phase-indicator{ white-space:nowrap; }
     .field .marker::before,.field .los-line::before{
       top:6px;
@@ -1193,10 +1195,132 @@
     .controls-panel{ padding:8px; }
     .controls-panel h2{ margin-bottom:5px; font-size:0.8rem; }
     .controls-panel .clock-controls{ margin-bottom:6px; }
+    .result-box{ bottom:calc(24px + min(42vh,350px)); }
     .choice-category{ min-height:44px; padding:7px; gap:6px; font-size:0.78rem; }
     .play-chooser{ min-height:0; }
   }
-  @media (max-height:560px) and (min-width:761px){
+  @media (orientation:landscape) and (max-width:1000px) and (max-height:560px){
+    .game-shell{ min-height:0; height:100dvh; }
+    .field-outer{
+      place-items:start center;
+      padding:clamp(136px,35vh,144px) 8px 8px;
+    }
+    .field{
+      width:min(calc(100vw - 16px),calc((100dvh - 160px) * 2.25));
+      aspect-ratio:120 / 53.3;
+    }
+    .hud-brand{ top:8px; left:12px; max-width:150px; }
+    .hud-brand .brand{ font-size:0.62rem; }
+    .hud-brand .brand span,.hud-brand .team-line{ display:none; }
+    .hud-brand .tag{ font-size:0.58rem; }
+    .scoreboard{
+      top:7px;
+      left:50%;
+      transform:translateX(-50%);
+      width:min(400px,calc(100vw - 210px));
+      min-width:0;
+      padding:5px 8px;
+    }
+    .team-score .name{ font-size:0.68rem; }
+    .team-score .val{ font-size:1.45rem; }
+    .team-score .timeouts{ font-size:0.52rem; margin-top:1px; }
+    .clockbox{ padding:0 6px; }
+    .clockbox .quarter{ font-size:0.58rem; }
+    .clockbox .time{ font-size:1.1rem; }
+    .clockbox .clock-state{ font-size:0.54rem; }
+    .hud-tools{ top:6px; right:8px; gap:4px; }
+    .hud-tools .icon-button{ width:40px; height:40px; }
+    .hud-tools .icon-button svg{ width:18px; height:18px; }
+    .situation{
+      top:74px;
+      left:50%;
+      width:max-content;
+      max-width:calc(100vw - 24px);
+      padding:5px 10px;
+      font-size:0.72rem;
+    }
+    .situation #situationExtra,.situation .spot-separator,.situation .spot-caption,#ballSpotLabel{ display:none; }
+    .phase-indicator{ top:110px; font-size:0.64rem; padding:3px 8px; }
+    .game-shell .player-dot{
+      width:10px;
+      height:10px;
+      margin-left:-5px;
+      margin-top:-5px;
+      font-size:0.36rem;
+      border-width:1px;
+    }
+    .game-shell .player-dot.mini{
+      width:7px;
+      height:7px;
+      margin-left:-3.5px;
+      margin-top:-3.5px;
+      font-size:0;
+      border-width:0.75px;
+    }
+    .game-shell .player-dot.carrier{ box-shadow:0 0 0 1px rgba(239,182,79,0.9),0 1px 3px rgba(0,0,0,0.6); }
+    .game-shell .player-dot.mini.qb{ border-color:var(--gold); box-shadow:none; }
+    .controls-panel{
+      right:8px;
+      bottom:8px;
+      width:min(390px,44vw);
+      max-height:min(62dvh,300px);
+      padding:8px;
+    }
+    .controls-panel h2{ font-size:0.82rem; margin-bottom:5px; }
+    .controls-panel .clock-controls{ margin:0 0 5px; padding:0; border:0; }
+    .controls-panel .mobile-clock-toggle{ display:inline-flex; align-items:center; }
+    .controls-panel .mobile-clock-details{ display:none; }
+    .controls-panel .clock-controls.is-expanded .mobile-clock-details{
+      display:flex;
+      flex:1 0 100%;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:5px;
+    }
+    .controls-panel .clock-controls .clock-info{ display:none; }
+    .controls-panel .action-row{ gap:5px; }
+    .controls-panel .action-btn{ min-height:44px; padding:5px 7px; font-size:0.68rem; }
+    .tempo-seg button{ min-height:44px; padding:5px 7px; font-size:0.68rem; }
+    .controls-panel .play-buttons{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+    .controls-panel button.play-btn{ min-height:44px; padding:5px 6px; font-size:0.68rem; }
+    .controls-panel .play-btn .pb-card{ font-size:0.58rem; }
+    .choice-categories{ gap:5px; }
+    .choice-category{ min-height:44px; padding:6px; gap:6px; font-size:0.72rem; }
+    .choice-category svg{ width:19px; height:19px; }
+    .chooser-heading{ margin-bottom:5px; }
+    .play-chooser{ min-height:0; }
+    .result-box{
+      left:8px;
+      bottom:8px;
+      width:min(320px,40vw);
+      min-width:0;
+      padding:7px;
+      gap:7px;
+    }
+    .commentator-portrait{ width:42px; height:42px; }
+    .result-box .headline{ font-size:0.74rem; }
+    .result-box .explain,.result-box .commentary{ font-size:0.64rem; }
+    .overlay-drawer{
+      top:54px;
+      right:8px;
+      width:min(360px,calc(100vw - 16px));
+      max-height:calc(100dvh - 62px);
+      padding:10px;
+    }
+    .drawer-heading{ margin-bottom:6px; }
+    .drawer-heading h2{ font-size:0.95rem; }
+    .drawer-close{ width:44px; height:44px; }
+    .setting-row{ min-height:40px; padding:4px 0; font-size:0.76rem; }
+    .skip-animation{ margin-top:8px; }
+    .trends-drawer{ left:8px; right:auto; }
+  }
+  @media (orientation:landscape) and (max-width:760px) and (max-height:560px){
+    .hud-brand{ left:8px; max-width:105px; }
+    .hud-brand .tag{ display:none; }
+    .scoreboard{ width:min(350px,calc(100vw - 210px)); }
+    .hud-tools .icon-button{ width:44px; height:44px; }
+  }
+  @media (max-height:560px) and (min-width:1001px){
     .controls-panel{ max-height:42vh; }
     .result-box{ bottom:12px; width:min(320px,calc(100vw - 590px)); }
     .scoreboard{ padding:5px 12px; }

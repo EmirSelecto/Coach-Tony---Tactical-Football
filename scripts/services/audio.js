@@ -36,19 +36,28 @@ const AudioManager = {
   musicGeneration: 0,
   audioContext: null,
   sounds: {
-    bigPlay: 'assets/sounds/cheering.mp3', touchdown: 'assets/sounds/cheering.mp3',
-    cheering: 'assets/sounds/cheering.mp3', booing: 'assets/sounds/booing.mp3',
-    crowd: 'assets/sounds/cheering.mp3'
+    bigPlay: [
+      'assets/sounds/Marvellous.mp3',
+      'assets/sounds/Incredible.mp3',
+      'assets/sounds/WAP.mp3'
+    ],
+    touchdown: 'assets/sounds/TD.mp3',
+    fieldGoalGood: 'assets/sounds/Good.mp3',
+    fieldGoalNoGood: 'assets/sounds/NoGood.mp3',
+    booing: 'assets/sounds/booing.mp3'
   },
   cache: {},
   play(name){
-    const crowdReaction = ['booing','cheering','bigPlay','touchdown'].includes(name);
+    const crowdReaction = ['booing','bigPlay','touchdown'].includes(name);
     if(!this.enabled && !(this.musicEnabled && crowdReaction)) return;
-    const src = this.sounds[name];
-    if(!src){
+    const sound = this.sounds[name];
+    if(!sound){
       if(this.enabled) this.playProcedural(name);
       return;
     }
+    const src = Array.isArray(sound)
+      ? sound[Math.floor(Math.random() * sound.length)]
+      : sound;
     let audio = this.cache[src];
     if(!audio){
       audio = new Audio(src);
