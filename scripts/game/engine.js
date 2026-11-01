@@ -1375,6 +1375,7 @@ function celebrate(kind, side, xYards){
   const layer = document.getElementById('celebrationLayer');
   if(!layer || !game || !game.teams || !layer.animate) return;
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) return;
   const W = layer.clientWidth || 600, H = layer.clientHeight || 260;
   const team = game.teams[side] || game.teams.player;
   const palette = [team.color, team.color, team.color, '#f2d27a', '#f4f6f2', '#e2a640'];
@@ -1413,7 +1414,7 @@ function celebrate(kind, side, xYards){
     }
   };
   if(kind === 'touchdown'){
-    const n = reduce ? 30 : 120;
+    const n = 120;
     const ezX = (fx(side === 'player' ? 105 : -5) / 100) * W;
     for(let i=0;i<n;i++){
       const x = clamp(ezX + (Math.random()-0.5)*W*0.18, 0, W);
@@ -1425,17 +1426,15 @@ function celebrate(kind, side, xYards){
       ], {duration: 1800 + Math.random()*1600, easing:'linear', delay: Math.random()*900});
       anim.onfinish = () => el.remove();
     }
-    if(!reduce){
-      [0, 380, 760].forEach((delay, k) => setTimeout(() => burst(ezX + (k-1)*W*0.03, H*(0.3 + 0.2*k), 28, 90, true), delay));
-      footballs(3, ezX, H*0.6);
-    }
+    [0, 380, 760].forEach((delay, k) => setTimeout(() => burst(ezX + (k-1)*W*0.03, H*(0.3 + 0.2*k), 28, 90, true), delay));
+    footballs(3, ezX, H*0.6);
   } else if(kind === 'bigPlay'){
     const cx = (fx(xYards !== undefined ? xYards : 50) / 100) * W;
-    burst(cx, H*0.5, reduce ? 12 : 40, 110, false);
-    if(!reduce) footballs(1, cx, H*0.5);
+    burst(cx, H*0.5, 40, 110, false);
+    footballs(1, cx, H*0.5);
   } else if(kind === 'fieldGoal'){
     const gx = (fx(side === 'player' ? 109 : -9) / 100) * W;
-    burst(gx, H*0.5, reduce ? 10 : 30, 80, true);
+    burst(gx, H*0.5, 30, 80, true);
   }
 }
 function restartFieldOuterAnimation(className){
@@ -1543,6 +1542,4 @@ function applyEventFeedback(offenseSide, context, tactical){
   if(tacticalMsg) showEventBanner(tacticalMsg, 'tactical', BALANCE.eventBanner.tacticalDurationMs);
 }
 
-// ---- 7. Audio optionnel (désactivé par défaut, aucun asset requis) ----
-// Chemins relatifs prévus sous assets/sounds/ ; si un fichier est absent, la
-// lecture échoue silencieusement (catch), le jeu n'est jamais bloqué.
+// ---- 7. Audio optionnel (désactivé par défaut, effets partiellement synthétisés) ----

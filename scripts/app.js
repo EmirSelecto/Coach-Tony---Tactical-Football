@@ -1,8 +1,49 @@
 /* =========================================================================
    INITIALISATION
    ========================================================================= */
-document.getElementById('resetBtn').onclick = () => { SaveManager.clear(); newGame(); };
 document.getElementById('saveMenuBtn').onclick = openSaveMenu;
+let activeHudTriggerId = null;
+function closeHudPanels(restoreFocus = true){
+  ['settingsPanel','trendsPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('settingsToggle').setAttribute('aria-expanded', 'false');
+  const trendsToggle = document.getElementById('trendsToggle');
+  if(trendsToggle) trendsToggle.setAttribute('aria-expanded', 'false');
+  const trigger = activeHudTriggerId && document.getElementById(activeHudTriggerId);
+  activeHudTriggerId = null;
+  if(restoreFocus){
+    (trigger || document.getElementById('playPhaseBar')).focus();
+  }
+}
+function toggleHudPanel(id, button){
+  const panel = document.getElementById(id);
+  const opening = panel.classList.contains('hidden');
+  closeHudPanels(false);
+  if(opening){
+    panel.classList.remove('hidden');
+    button.setAttribute('aria-expanded', 'true');
+    activeHudTriggerId = button.id;
+    const closeButton = panel.querySelector('[data-close-panel]');
+    if(closeButton) closeButton.focus();
+  } else {
+    button.focus();
+  }
+}
+document.getElementById('settingsToggle').addEventListener('click', event => toggleHudPanel('settingsPanel', event.currentTarget));
+document.getElementById('controlsBody').addEventListener('click', event => {
+  const button = event.target.closest('#trendsToggle');
+  if(button) toggleHudPanel('trendsPanel', button);
+});
+document.querySelectorAll('[data-close-panel]').forEach(button => button.addEventListener('click', () => closeHudPanels()));
+document.addEventListener('keydown', event => {
+  if(event.key === 'Escape' && activeHudTriggerId) closeHudPanels();
+});
+document.getElementById('restartToggle').addEventListener('click', () => {
+  if(window.confirm(t('ui.static.restartConfirm'))){
+    closeHudPanels(false);
+    SaveManager.clear();
+    newGame();
+  }
+});
 // Sauvegarde quand l'onglet passe en arrière-plan ou se ferme (Chrome peut
 // décharger un onglet inactif puis le recharger au retour).
 document.addEventListener('visibilitychange', () => {
@@ -38,7 +79,7 @@ document.getElementById('skipAnimBtn').onclick = ()=>{
   if(game) game.skipAnimRequested = true;
 };
 document.getElementById('audioEnabledToggle').addEventListener('change', (e)=>{
-  AudioManager.enabled = e.target.checked;
+  AudioManager.setEffectsEnabled(e.target.checked);
   Storage.set('audioEnabled', AudioManager.enabled);
 });
 document.getElementById('audioVolumeSlider').addEventListener('input', (e)=>{

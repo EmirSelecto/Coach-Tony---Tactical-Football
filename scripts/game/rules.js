@@ -133,7 +133,7 @@ const BALANCE = {
   eventBanner: { durationMs: 1600, tacticalDurationMs: 1900 },
   // ---- Récapitulatif de drive ----
   driveSummary: { autoHideMs: 4200 },
-  // ---- Audio (désactivé par défaut, aucun asset fourni) ----
+  // ---- Audio (désactivé par défaut, plusieurs effets sont synthétisés) ----
   audio: { defaultEnabled: false, defaultVolume: 0.6 }
 };
 

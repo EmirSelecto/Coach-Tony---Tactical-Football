@@ -93,7 +93,14 @@ function playerCallTimeout(){
   render();
   SaveManager.snapshot();
 }
-function setPlayerTempo(t){ game.playerTempo = t; renderControls(); }
+function setPlayerTempo(t){
+  game.playerTempo = t;
+  document.querySelectorAll('.tempo-seg button').forEach(button => {
+    const selected = button.dataset.tempo === t;
+    button.classList.toggle('on', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+}
 
 /* ---- Transformation / conversion à 2 points (Phase 3) ---- */
 const TWO_POINT_OFFENSE_OPTIONS = [

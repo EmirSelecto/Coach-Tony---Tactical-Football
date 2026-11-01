@@ -38,6 +38,38 @@ clés et les paramètres entre accolades lorsque vous modifiez les traductions.
 Les noms utilisés par le moteur de jeu restent des identifiants internes ; les
 libellés visibles correspondants se modifient dans `playbook.json`.
 
+## Fondations graphiques
+
+La direction artistique de l’interface s’inspire d’une retransmission sportive :
+fond bleu-vert profond, terrain vert, or pour les moments clés et couleurs
+d’équipe pour distinguer les camps. Les tokens de couleur, d’espacement,
+d’arrondi et d’ombre sont définis dans `styles/main.css`.
+
+Les classes `.icon-button`, `.overlay-panel`, `.choice-category` et
+`.commentator-bubble` servent de base aux prochaines étapes de l’interface.
+Les pictogrammes vectoriels réutilisables sont dans
+`assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
+est une création originale destinée à accompagner les commentaires.
+
+L’écran de match utilise le stade comme scène plein écran. Le terrain conserve
+un ratio de 120 par 53,3 (environ 2,25:1) ; les zones restantes représentent les
+tribunes et l’enceinte. Le tableau de score et la situation tactique restent en
+surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
+Les marqueurs des joueurs sont agrandis pour rester lisibles à cette échelle.
+Le panneau des tendances tactiques est accessible depuis la rangée de gestion
+du play, à côté du temps mort et du tempo.
+Les lignes de scrimmage et de 1st Down sont désormais distinguées par leur
+couleur et leur libellé. La ligne de 1st Down est continue. En portrait, le terrain reste à son ratio naturel et
+se place sous le HUD compact ; les gradins utilisent des rangées et des
+sections de sièges plus lisibles.
+Les catégories tactiques et leurs sous-menus sont navigables au clavier ; le
+focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lors de
+la fermeture des panneaux. Le choix du tempo est annoncé comme un état
+sélectionné ; les annonces de phase et de résultat sont exposées aux lecteurs
+d’écran.
+En attaque, les appels sont choisis par catégorie course/passe ; en défense,
+par pression, couverture ou défense contre la course.
+
 Les textes statiques de la page sont associés à leurs entrées de `ui.json` par
 les attributs `data-text` et `data-title` dans `index.html`.
 
@@ -45,10 +77,12 @@ les attributs `data-text` et `data-title` dans `index.html`.
 
 Le bouton « Activer la musique », disponible au coin toss et pendant le match,
 joue d’abord `assets/sounds/20secs.mp3`, puis répète `assets/sounds/loop.mp3`.
-Les effets `assets/sounds/booing.mp3` et `assets/sounds/cheering.mp3` sont
-utilisés respectivement quand l’équipe du joueur perd le ballon sur interception
-ou fumble, et lors d’un big play ou d’un touchdown. Les fichiers audio doivent
-rester dans ce dossier avec ces noms exacts.
+Les réactions `assets/sounds/booing.mp3` et `assets/sounds/cheering.mp3` sont
+utilisées respectivement quand l’équipe du joueur perd le ballon sur interception
+ou fumble, et lors d’un big play ou d’un touchdown. Les sons brefs de snap,
+passe, réception, plaquage, sifflet et premier down sont générés par Web Audio ;
+ils ne nécessitent pas de fichiers supplémentaires. Les fichiers audio fournis
+doivent rester dans ce dossier avec leurs noms exacts.
 
 Les libellés du journal de calcul de l’IA et du journal des tests d’équilibrage
 restent dans `scripts/ui/interface.js` : ce sont des sorties de diagnostic
@@ -83,8 +117,10 @@ sack.
 Les moments forts ont des effets visuels renforcés et ciblés : impact au point
 du sack, flash et onde de choc au turnover, traînées brèves derrière le porteur
 lors d'une échappée, et lumière concentrée sur la zone d'en-but au touchdown.
-Ces effets restent décoratifs et sont atténués si le système demande une
-réduction des animations.
+Les touchdowns conservent leurs confettis et gerbes spectaculaires ; ils ne
+modifient jamais le résultat sportif. Si le système demande une réduction des
+animations, les célébrations animées sont supprimées et les bannières restent
+affichées sans mouvement pour garder l'événement compréhensible.
 
 En mode debug animation, les assignments sont séparés entre attaque et défense.
 Les défenseurs en marquage individuel conservent leur receveur désigné comme

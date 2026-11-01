@@ -1586,9 +1586,16 @@ const PlayAnimationController = {
       ballState.arcOffset = -2.2 * Math.sin(Math.PI * localT);
     } else if(setup.outcome === 'incomplete' && t >= catchTime){
       ballState.mode = 'loose'; ballState.carrierId = null;
-      ballState.x = setup.throwX; ballState.y = setup.throwLane;
-      const dropProgress = smoothProgress((t - catchTime) / 0.06);
-      ballState.arcOffset = -1.3 * Math.sin(Math.PI * dropProgress);
+      const qb = setup.actorsById[setup.qbId];
+      const throwOrigin = qb ? evalPath(qb.path, throwTime) : {x:setup.throwX, y:setup.throwLane};
+      const directionX = setup.throwX - throwOrigin.x;
+      const directionY = setup.throwLane - throwOrigin.y;
+      const directionLength = Math.hypot(directionX, directionY) || 1;
+      const bounceProgress = smoothProgress((t - catchTime) / Math.max(0.0001, 1 - catchTime));
+      const bounceDistance = 6 * bounceProgress;
+      ballState.x = clamp(setup.throwX + directionX / directionLength * bounceDistance, 0, 100);
+      ballState.y = clamp(setup.throwLane + directionY / directionLength * bounceDistance, 2, 98);
+      ballState.arcOffset = -1.8 * Math.sin(Math.PI * bounceProgress);
     } else {
       ballState.mode = 'carried';
       let carrierId = setup.qbId;
@@ -2521,14 +2528,17 @@ function endGame(){
 }
 
 function setResult(headline, explain, commentary){
-  document.getElementById('resultBox').querySelector('.headline').textContent = headline;
-  document.getElementById('resultBox').querySelector('.explain').textContent = explain;
+  const box = document.getElementById('resultBox');
+  box.querySelector('.headline').textContent = headline;
+  box.querySelector('.explain').textContent = explain;
   const c = document.getElementById('resultCommentary');
   if(commentary){
     c.textContent = commentary;
     c.classList.add('show');
+    box.classList.add('has-commentary');
   } else {
     c.textContent = '';
     c.classList.remove('show');
+    box.classList.remove('has-commentary');
   }
 }

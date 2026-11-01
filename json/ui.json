@@ -2,6 +2,8 @@
   "static": {
     "documentTitle": "Coach Tony - Tactical Football",
     "versus": "vs",
+    "settingsTitle": "Réglages",
+    "restartConfirm": "Commencer un nouveau match ? La partie en cours sera effacée.",
     "headerSubtitle": "Mémoire IA & prévisibilité",
     "playerTeam": "{team} (vous)",
     "aiTeam": "{team} (IA)",
@@ -125,6 +127,7 @@
   },
   "clock": {
     "timeoutButton": "Temps mort ({count})",
+    "tempoGroup": "Tempo de jeu",
     "stopClock": "Arrête le chrono avant le prochain snap",
     "noneLeft": "Plus de temps mort",
     "alreadyStopped": "Le chrono est déjà arrêté",
@@ -146,6 +149,8 @@
   },
   "playControls": {
     "waiting": "En attente",
+    "chooseYourPlay": "Choisissez votre approche",
+    "chooseDefense": "Choisissez votre plan défensif",
     "kickoffInProgress": "Kickoff en cours...",
     "halftimeInProgress": "Mi-temps — les équipes regagnent les vestiaires...",
     "conversionInProgress": "Transformation en cours...",
@@ -163,6 +168,13 @@
     "runs": "Jeux au sol",
     "passes": "Jeux de passe",
     "defenses": "Appels défensifs",
+    "runCategory": "COURSE",
+    "passCategory": "PASSE",
+    "pressureCategory": "PRESSION / BLITZ",
+    "coverageCategory": "COUVERTURE",
+    "runDefenseCategory": "DÉFENSE CONTRE LA COURSE",
+    "backToCategories": "Retour aux catégories",
+    "choosePlay": "Choisissez votre tactique",
     "noHistory": "Aucun appel pour l'instant"
   },
   "playHistory": {

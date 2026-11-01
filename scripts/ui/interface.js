@@ -56,12 +56,6 @@ function render(){
   renderControls();
   renderDebug();
   renderMatchLog();
-
-  if(game.gameOver){
-    document.getElementById('controlsPanel').classList.add('hidden');
-  } else {
-    document.getElementById('controlsPanel').classList.remove('hidden');
-  }
 }
 
 function renderTendencies(){
@@ -100,33 +94,13 @@ function renderControls(){
   const title = document.getElementById('controlsTitle');
   const who = document.getElementById('controlsWho');
   const body = document.getElementById('controlsBody');
+  const panel = document.getElementById('controlsPanel');
   body.innerHTML = '';
+  panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
+  if(!game.playLocked && game.phase === 'playing') document.getElementById('playPhaseLabel').textContent =
+    game.possession === 'player' ? t('ui.playControls.chooseYourPlay') : t('ui.playControls.chooseDefense');
 
-  if(game.gameOver) return;
-
-  if(game.phase !== 'playing'){
-    who.textContent = t('ui.status.none');
-    title.firstChild ? title.firstChild.textContent = t('ui.playControls.waiting') + ' ' : null;
-    const wait = document.createElement('div');
-    wait.style.cssText = 'color:var(--ink-dim);font-size:0.9rem;padding:6px 0;';
-    wait.textContent = game.phase === 'kickoff' ? t('ui.playControls.kickoffInProgress')
-      : game.phase === 'halftime' ? t('ui.playControls.halftimeInProgress')
-      : game.phase === 'conversion' ? t('ui.playControls.conversionInProgress')
-      : game.phase === 'pregame' ? t('ui.playControls.pregameInProgress')
-      : t('ui.playControls.coinTossInProgress');
-    body.appendChild(wait);
-    return;
-  }
-
-  if(game.playLocked){
-    who.textContent = t('ui.status.none');
-    title.firstChild ? title.firstChild.textContent = t('ui.playControls.waiting') + ' ' : null;
-    const wait = document.createElement('div');
-    wait.style.cssText = 'color:var(--ink-dim);font-size:0.9rem;padding:6px 0;';
-    wait.textContent = t('ui.playControls.playInProgress');
-    body.appendChild(wait);
-    return;
-  }
+  if(game.gameOver || game.phase !== 'playing' || game.playLocked) return;
 
   const playerOnOffense = game.possession === 'player';
   who.textContent = playerOnOffense ? teamNameOf('player') : t('ui.playControls.defenseSuffix', {team:teamNameOf('ai')});
@@ -189,14 +163,35 @@ function buildClockControls(onOffense){
     !game.clockRunning ? t('ui.clock.alreadyStopped') : (n <= 0 ? t('ui.clock.noneLeft') : t('ui.clock.stopClock')));
   to.disabled = !game.clockRunning || n <= 0;
   row.appendChild(to);
+  const trends = document.createElement('button');
+  trends.className = 'icon-button trends-control';
+  trends.id = 'trendsToggle';
+  trends.type = 'button';
+  trends.setAttribute('aria-label', t('ui.static.tendenciesTitle'));
+  trends.setAttribute('aria-expanded', String(!document.getElementById('trendsPanel').classList.contains('hidden')));
+  trends.setAttribute('aria-controls', 'trendsPanel');
+  trends.title = t('ui.static.tendenciesTitle');
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', 'assets/images/ui-icons.svg#trends');
+  icon.appendChild(use);
+  trends.appendChild(icon);
   const late = isHalfEndQuarter(game.quarter) && game.clock <= 180;
   if(onOffense){
     const seg = document.createElement('div');
     seg.className = 'tempo-seg';
-    [['slow',t('ui.clock.slowTempo'),t('ui.clock.slowTempoHint')],
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', t('ui.clock.tempoGroup'));
+    [     ['slow',t('ui.clock.slowTempo'),t('ui.clock.slowTempoHint')],
      ['normal',t('ui.clock.normalTempo'),t('ui.clock.normalTempoHint')],
      ['hurry',t('ui.clock.hurryTempo'),t('ui.clock.hurryTempoHint')]]
-      .forEach(([k, l, t]) => seg.appendChild(mk(l, game.playerTempo === k ? 'on' : '', () => setPlayerTempo(k), t)));
+     .forEach(([k, l, hint]) => {
+       const button = mk(l, game.playerTempo === k ? 'on' : '', () => setPlayerTempo(k), hint);
+       button.dataset.tempo = k;
+       button.setAttribute('aria-pressed', String(game.playerTempo === k));
+       seg.appendChild(button);
+      });
     row.appendChild(seg);
     if(late){
       const sp = mk(t('ui.clock.spike'), 'action-btn secondary', playerSpike, t('ui.clock.spikeHint'));
@@ -207,6 +202,7 @@ function buildClockControls(onOffense){
       row.appendChild(kn);
     }
   }
+  row.appendChild(trends);
   wrap.appendChild(row);
   const info = document.createElement('div');
   info.className = 'clock-info';
@@ -229,50 +225,130 @@ function buildClockControls(onOffense){
 }
 
 function renderOffenseButtons(container, onPick){
-  const runGroup = document.createElement('div'); runGroup.className='play-group';
-  runGroup.innerHTML = `<div class="label">${t('ui.playControls.runs')}</div>`;
-  const runRow = document.createElement('div'); runRow.className='play-buttons';
-  const passGroup = document.createElement('div'); passGroup.className='play-group';
-  passGroup.innerHTML = `<div class="label">${t('ui.playControls.passes')}</div>`;
-  const passRow = document.createElement('div'); passRow.className='play-buttons';
-
-  OFFENSE_PLAYS.forEach(p=>{
-    p.directions.forEach(d=>{
-      const btn = document.createElement('button');
-      btn.className = 'play-btn ' + p.type;
-      const displayName = playLabel(p.name);
-      const label = p.directions.length > 1 ? `${displayName} (${dirLabel(d)})` : displayName;
-      btn.innerHTML = `<span class="pb-name"></span><span class="pb-card"></span>`;
-      btn.querySelector('.pb-name').textContent = label;
-      const card = offenseCardText(p.name, {type:p.type, direction:d});
-      btn.querySelector('.pb-card').textContent = card;
-      btn.title = `${label}\n${card}`;
-      btn.onclick = ()=> onPick({name:p.name, type:p.type, depth:p.depth, direction:d});
-      (p.type==='run' ? runRow : passRow).appendChild(btn);
-    });
-  });
-  runGroup.appendChild(runRow);
-  passGroup.appendChild(passRow);
-  container.appendChild(runGroup);
-  container.appendChild(passGroup);
+  const chooser = document.createElement('div');
+  chooser.className = 'play-chooser';
+  const categories = document.createElement('div');
+  categories.className = 'choice-categories';
+  categories.setAttribute('role', 'group');
+  categories.setAttribute('aria-label', t('ui.playControls.chooseYourPlay'));
+  categories.append(
+    createChoiceCategory(t('ui.playControls.runCategory'), 'run', () => renderOffenseCategory(chooser, 'run', onPick)),
+    createChoiceCategory(t('ui.playControls.passCategory'), 'pass', () => renderOffenseCategory(chooser, 'pass', onPick))
+  );
+  chooser.appendChild(categories);
+  container.appendChild(chooser);
 }
 
 function renderDefenseButtons(container, onPick){
-  const group = document.createElement('div'); group.className='play-group';
-  group.innerHTML = `<div class="label">${t('ui.playControls.defenses')}</div>`;
-  const row = document.createElement('div'); row.className='play-buttons';
-  DEFENSE_PLAYS.forEach(p=>{
-    const btn = document.createElement('button');
-    btn.className = 'play-btn def';
-    btn.innerHTML = `<span class="pb-name"></span><span class="pb-card"></span>`;
-    btn.querySelector('.pb-name').textContent = playLabel(p.name);
-    btn.querySelector('.pb-card').textContent = defenseCardText(p.name);
-    btn.title = `${playLabel(p.name)}\n${defenseCardText(p.name)}`;
-    btn.onclick = ()=> onPick({...p});
-    row.appendChild(btn);
+  const groups = [
+    {key:'pressure', label:t('ui.playControls.pressureCategory'), icon:'pressure'},
+    {key:'coverage', label:t('ui.playControls.coverageCategory'), icon:'coverage'},
+    {key:'run', label:t('ui.playControls.runDefenseCategory'), icon:'run'}
+  ];
+  const chooser = document.createElement('div');
+  chooser.className = 'play-chooser';
+  const categories = document.createElement('div');
+  categories.className = 'choice-categories';
+  categories.setAttribute('role', 'group');
+  categories.setAttribute('aria-label', t('ui.playControls.chooseDefense'));
+  groups.forEach(group => categories.appendChild(
+    createChoiceCategory(group.label, group.icon, () => renderDefenseCategory(chooser, group.key, onPick))
+  ));
+  chooser.appendChild(categories);
+  container.appendChild(chooser);
+}
+
+function createChoiceCategory(label, icon, onClick){
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'choice-category';
+  button.addEventListener('click', onClick);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', `assets/images/ui-icons.svg#${icon}`);
+  svg.appendChild(use);
+  const text = document.createElement('span');
+  text.textContent = label;
+  button.append(svg, text);
+  return button;
+}
+
+function renderOffenseCategory(chooser, type, onPick){
+  const labelKey = type === 'run' ? 'runs' : 'passes';
+  renderPlayCategory(chooser, t(`ui.playControls.${labelKey}`), OFFENSE_PLAYS.filter(play => play.type === type), plays => {
+    plays.forEach(play => {
+      play.directions.forEach(direction => {
+        const displayName = playLabel(play.name);
+        const label = play.directions.length > 1 ? `${displayName} (${dirLabel(direction)})` : displayName;
+        const card = offenseCardText(play.name, {type:play.type, direction});
+        const btn = createPlayButton(label, card, type);
+        btn.onclick = () => onPick({name:play.name, type:play.type, depth:play.depth, direction});
+        chooser.querySelector('.play-buttons').appendChild(btn);
+      });
+    });
   });
+}
+
+function renderDefenseCategory(chooser, category, onPick){
+  const plays = DEFENSE_PLAYS.filter(play => {
+    if(category === 'pressure') return play.name.includes('Blitz');
+    if(category === 'coverage') return play.type === 'passDefense' && !play.name.includes('Blitz');
+    return (play.type === 'runDefense' || play.type === 'balanced') && !play.name.includes('Blitz');
+  });
+  renderPlayCategory(chooser, t(`ui.playControls.${category === 'run' ? 'runDefenseCategory' : category === 'pressure' ? 'pressureCategory' : 'coverageCategory'}`),
+    plays, list => list.forEach(play => {
+      const card = defenseCardText(play.name);
+      const btn = createPlayButton(playLabel(play.name), card, 'def');
+      btn.onclick = () => onPick({...play});
+      chooser.querySelector('.play-buttons').appendChild(btn);
+    }));
+}
+
+function renderPlayCategory(chooser, label, plays, renderButtons){
+  chooser.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'chooser-heading';
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'chooser-back';
+  back.textContent = `‹ ${t('ui.playControls.backToCategories')}`;
+  back.onclick = () => {
+    renderControls();
+    const category = document.querySelector('#controlsBody .choice-category');
+    if(category) category.focus();
+  };
+  const title = document.createElement('h3');
+  title.textContent = label;
+  header.append(back, title);
+  const group = document.createElement('div');
+  group.className = 'play-group';
+  title.id = 'playCategoryTitle';
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-labelledby', title.id);
+  const row = document.createElement('div');
+  row.className = 'play-buttons';
   group.appendChild(row);
-  container.appendChild(group);
+  chooser.append(header, group);
+  renderButtons(plays);
+  const firstPlay = row.querySelector('.play-btn');
+  (firstPlay || back).focus();
+}
+
+function createPlayButton(label, card, type){
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `play-btn ${type}`;
+  const name = document.createElement('span');
+  name.className = 'pb-name';
+  name.textContent = label;
+  const details = document.createElement('span');
+  details.className = 'pb-card';
+  details.textContent = card;
+  button.title = `${label}\n${card}`;
+  button.append(name, details);
+  return button;
 }
 
 function renderDebug(){
