@@ -470,6 +470,8 @@
   .clock-controls{ margin-bottom:12px; padding-bottom:10px; border-bottom:1px dashed var(--border); }
   .clock-controls .action-row{ align-items:center; flex-wrap:wrap; gap:8px; }
   .clock-controls .trends-control{ flex:none; margin-left:auto; }
+  .mobile-clock-toggle{ display:none; }
+  .mobile-clock-details{ display:contents; }
   .clock-info{ font-size:0.78rem; color:var(--ink-dim); margin-top:6px; line-height:1.4; }
   .clock-info.warn{ color:#f2d27a; }
   .tempo-seg{ display:inline-flex; border:1px solid var(--border); border-radius: var(--radius-sm); overflow:hidden; }
@@ -495,18 +497,6 @@
   .mini-btn:hover{ border-color: var(--gold-dim); }
   .mini-btn.on{ background: var(--player-accent); color:#0b120e; border-color: transparent; font-weight:600; }
   .mini-btn.ai.on{ background: var(--ai-accent); }
-  .uniform-note{
-    width:fit-content;
-    max-width:100%;
-    margin:4px auto 0;
-    padding:2px 7px;
-    color:var(--ai-accent);
-    border:1px solid currentColor;
-    border-radius:var(--radius-pill);
-    font-size:0.66rem;
-    line-height:1.35;
-  }
-
   /* Controls */
   .panel{
     background: linear-gradient(145deg, var(--bg-panel), rgba(17,26,32,0.94));
@@ -1106,20 +1096,23 @@
       aspect-ratio:120 / 53.3;
     }
     .game-shell .player-dot{
-      width:23px;
-      height:23px;
-      margin-left:-11.5px;
-      margin-top:-11.5px;
-      font-size:0.62rem;
+      width:16px;
+      height:16px;
+      margin-left:-8px;
+      margin-top:-8px;
+      font-size:0.48rem;
+      border-width:1.5px;
     }
     .game-shell .player-dot.mini{
-      width:20px;
-      height:20px;
-      margin-left:-10px;
-      margin-top:-10px;
-      font-size:0.5rem;
+      width:12px;
+      height:12px;
+      margin-left:-6px;
+      margin-top:-6px;
+      font-size:0.36rem;
+      border-width:1px;
     }
-    .game-shell .player-dot.mini.qb{ box-shadow:0 0 0 2.5px rgba(239,182,79,0.72),0 2px 5px rgba(0,0,0,0.58); }
+    .game-shell .player-dot.carrier{ box-shadow:0 0 0 2px rgba(239,182,79,0.78),0 2px 4px rgba(0,0,0,0.6); }
+    .game-shell .player-dot.mini.qb{ box-shadow:0 0 0 1.5px rgba(239,182,79,0.78),0 1px 3px rgba(0,0,0,0.58); }
     .controls-panel{
       right:8px;
       bottom:8px;
@@ -1128,7 +1121,15 @@
       padding:10px;
     }
     .controls-panel .clock-controls{ display:block; margin:0 0 6px; padding:0; border:0; }
-    .controls-panel .clock-controls .action-row > :not(.trends-control){ display:none; }
+    .controls-panel .mobile-clock-toggle{ display:inline-flex; align-items:center; }
+    .controls-panel .mobile-clock-details{ display:none; }
+    .controls-panel .clock-controls.is-expanded .mobile-clock-details{
+      display:flex;
+      flex:1 0 100%;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+    }
     .controls-panel .clock-controls .clock-info{ display:none; }
     .controls-panel .action-row{ gap:6px; }
     .controls-panel .action-btn{ padding:7px 9px; font-size:0.75rem; }

@@ -112,7 +112,6 @@
     "you": "Vous",
     "ai": "IA",
     "yourTeam": "votre équipe",
-    "contrastUniform": "Tenue blanche de contraste · liseré aux couleurs de l’équipe",
     "ratings": "Attaque {offense} · Défense {defense}<br>Global {overall}"
   },
   "predictability": {
@@ -128,6 +127,8 @@
   },
   "clock": {
     "timeoutButton": "Temps mort ({count})",
+    "mobileControls": "Temps & tempo",
+    "mobileControlsHide": "Masquer",
     "tempoGroup": "Tempo de jeu",
     "stopClock": "Arrête le chrono avant le prochain snap",
     "noneLeft": "Plus de temps mort",

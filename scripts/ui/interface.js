@@ -153,6 +153,9 @@ function buildClockControls(onOffense){
   wrap.className = 'clock-controls';
   const row = document.createElement('div');
   row.className = 'action-row';
+  const details = document.createElement('div');
+  details.className = 'mobile-clock-details';
+  details.id = 'mobileClockDetails';
   const mk = (label, cls, fn, title) => {
     const b = document.createElement('button');
     b.className = cls; b.textContent = label; b.onclick = fn; if(title) b.title = title;
@@ -162,7 +165,17 @@ function buildClockControls(onOffense){
   const to = mk(t('ui.clock.timeoutButton', {count:n}), 'action-btn secondary', playerCallTimeout,
     !game.clockRunning ? t('ui.clock.alreadyStopped') : (n <= 0 ? t('ui.clock.noneLeft') : t('ui.clock.stopClock')));
   to.disabled = !game.clockRunning || n <= 0;
-  row.appendChild(to);
+  details.appendChild(to);
+  const clockToggle = mk(t('ui.clock.mobileControls'), 'action-btn secondary mobile-clock-toggle', null);
+  clockToggle.type = 'button';
+  clockToggle.setAttribute('aria-expanded', 'false');
+  clockToggle.setAttribute('aria-controls', details.id);
+  clockToggle.onclick = () => {
+    const expanded = wrap.classList.toggle('is-expanded');
+    clockToggle.setAttribute('aria-expanded', String(expanded));
+    clockToggle.textContent = t(expanded ? 'ui.clock.mobileControlsHide' : 'ui.clock.mobileControls');
+  };
+  row.appendChild(clockToggle);
   const trends = document.createElement('button');
   trends.className = 'icon-button trends-control';
   trends.id = 'trendsToggle';
@@ -192,16 +205,17 @@ function buildClockControls(onOffense){
        button.setAttribute('aria-pressed', String(game.playerTempo === k));
        seg.appendChild(button);
       });
-    row.appendChild(seg);
+    details.appendChild(seg);
     if(late){
       const sp = mk(t('ui.clock.spike'), 'action-btn secondary', playerSpike, t('ui.clock.spikeHint'));
       sp.disabled = !game.clockRunning || game.down >= 4;
-      row.appendChild(sp);
+      details.appendChild(sp);
       const kn = mk(t('ui.clock.kneel'), 'action-btn secondary', playerKneel, t('ui.clock.kneelHint'));
       kn.disabled = game.fieldPosition <= 2;
-      row.appendChild(kn);
+      details.appendChild(kn);
     }
   }
+  row.appendChild(details);
   row.appendChild(trends);
   wrap.appendChild(row);
   const info = document.createElement('div');

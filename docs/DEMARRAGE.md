@@ -47,7 +47,8 @@ d’arrondi et d’ombre sont définis dans `styles/main.css`.
 Les couleurs primaires restent visibles dans le HUD et les zones d’en-but.
 Quand les couleurs des deux équipes sont trop proches, l’équipe IA reçoit
 automatiquement une tenue blanche à liseré de sa couleur, afin de garder une
-identité visuelle distincte sans changer les couleurs de la franchise.
+identité visuelle distincte sans changer les couleurs de la franchise. Cette
+adaptation ne nécessite aucune annonce pendant le toss.
 
 Les classes `.icon-button`, `.overlay-panel`, `.choice-category` et
 `.commentator-bubble` servent de base aux prochaines étapes de l’interface.
@@ -66,6 +67,9 @@ Les lignes de scrimmage et de 1st Down sont désormais distinguées par leur
 couleur et leur libellé. La ligne de 1st Down est continue. En portrait, le terrain reste à son ratio naturel et
 se place sous le HUD compact ; les gradins utilisent des rangées et des
 sections de sièges plus lisibles.
+Sur mobile, les marqueurs des joueurs sont réduits pour limiter les
+chevauchements ; les commandes de chrono et de tempo sont accessibles depuis
+un bouton repliable pour préserver la place des choix tactiques.
 Les catégories tactiques et leurs sous-menus sont navigables au clavier ; le
 focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lors de
 la fermeture des panneaux. Le choix du tempo est annoncé comme un état
