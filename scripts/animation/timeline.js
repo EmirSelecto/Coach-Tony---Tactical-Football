@@ -217,8 +217,8 @@ function pickDefenseReactorNear(defenseActors, targetLane, targetX){
     - Math.hypot(b.x-target, b.y-targetLane))[0];
 }
 
-// Bloqueurs qui accompagnent le porteur (screen : receveurs + 2 linemen du côté
-// choisi ; courses extérieures : tight end + guard qui tire). Chacun est
+// Bloqueurs qui accompagnent le porteur (screen : trois receveurs du côté
+// choisi ; Sweep : fullback, guards et receveurs). Chacun est
 // apparié au défenseur le plus proche, qui vient s'engager sur lui.
 function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const offense = new Map(), defense = new Map();
@@ -227,24 +227,25 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const byLane = (a,b) => Math.abs(a.y-lane) - Math.abs(b.y-lane);
   let chosen = [];
   if(variant === 'screen'){
-    const rec = offenseSrc.filter(a => (a.role === 'WR' || a.role === 'TE') && !excludeIds.has(a.id) && Math.abs(a.y-lane) <= 34).sort(byLane).slice(0, 2);
-    const ol = offenseSrc.filter(a => a.role === 'OL' && !excludeIds.has(a.id)).sort(byLane).slice(0, 2);
-    chosen = [...rec, ...ol];
+    chosen = offenseSrc.filter(a => (a.role === 'WR' || a.role === 'TE') && !excludeIds.has(a.id)
+      && (lane > 50 ? a.y > 50 : a.y < 50)).sort(byLane).slice(0, 3);
   } else if(offPlay && offPlay.name === 'Sweep'){
     const fb = offenseSrc.find(a => a.role === 'FB' && !excludeIds.has(a.id));
     const guards = offenseSrc.filter(a => a.role === 'OL' && (a.y === 42 || a.y === 58) && !excludeIds.has(a.id))
       .sort((a,b) => Math.abs(a.y-50) - Math.abs(b.y-50));
-    chosen = [...(fb ? [fb] : []), ...guards];
+    const receivers = offenseSrc.filter(a => (a.role === 'WR' || a.role === 'TE') && !excludeIds.has(a.id));
+    chosen = [...(fb ? [fb] : []), ...guards, ...receivers];
   } else {
     const te = offenseSrc.filter(a => (a.role === 'TE' || a.role === 'FB') && !excludeIds.has(a.id)).sort(byLane).slice(0, 1);
     const ol = offenseSrc.filter(a => a.role === 'OL' && !excludeIds.has(a.id)).sort(byLane).slice(0, 1);
     chosen = [...te, ...ol];
   }
-  const midT = variant === 'screen' ? kf.catch : kf.laneCommit;
+  const midT = variant === 'screen' ? kf.throw : kf.laneCommit;
   const endT = kf.tackle;
   const gained = outcome === 'gain' || outcome === 'touchdown' || outcome === 'safety';
-  const baseX = variant === 'screen' ? throwX : clamp(preSnapSpot + offenseDir*1, -5, 105);
-  const offs = [-9, 9, -17, 17];
+  const baseX = variant === 'screen' ? clamp(preSnapSpot + offenseDir*4, -5, 105)
+    : clamp(preSnapSpot + offenseDir*1, -5, 105);
+  const offs = variant === 'screen' ? [-8, 0, 8] : [-9, 9, -17, 17, -25, 25, -33];
   const usedDef = new Set();
   chosen.forEach((a, k) => {
     // Un lineman qui part en escorte ne bloque plus le DL d'en face.
@@ -506,11 +507,38 @@ function buildCarrierPath(actor, ctx){
       {t:1, x:finalX, y:lane}
     ];
   }
-  if(['Outside Zone','Sweep','Counter Run'].includes(ctx.offPlay.name)){
+  if(ctx.offPlay.name === 'Sweep'){
+    const qb = ctx.qbActor;
+    const side = ctx.offPlay.direction === 'right' ? 1 : -1;
+    const meshX = clamp(qb.x - offenseDir*0.7, 0, 100);
+    const approachT = (kf.snap + kf.handoff) / 2;
+    const approachX = lerp(actor.x, meshX, 0.72);
+    const approachY = lerp(actor.y, 50 + side*2, 0.5);
+    const firstSweepT = (kf.handoff + kf.laneCommit) / 2;
+    const meshPath = [
+      {t:0,x:actor.x,y:actor.y},
+      {t:kf.snap,x:actor.x,y:actor.y},
+      {t:approachT,x:approachX,y:approachY},
+      {t:kf.handoff,x:meshX,y:50 + side*2}
+    ];
+    if(outcome === 'fumble'){
+      return [...meshPath,
+        {t:ctx.turnoverFrac,x:ctx.spotBeforeFumble,y:lane},
+        {t:1,x:ctx.spotBeforeFumble,y:lane}
+      ];
+    }
+    return [...meshPath,
+      {t:firstSweepT,x:clamp(meshX + offenseDir*1.8, 0, 100),y:50 + side*9},
+      {t:kf.laneCommit,x:clamp(meshX + offenseDir*3.6, 0, 100),y:lane},
+      {t:kf.tackle,x:finalX,y:lane},
+      {t:1,x:finalX,y:lane}
+    ];
+  }
+  if(['Outside Zone','Counter Run'].includes(ctx.offPlay.name)){
     const qb = ctx.qbActor;
     const side = ctx.offPlay.direction === 'right' ? 1 : -1;
     const meshX = clamp(qb.x + offenseDir * (ctx.offPlay.name === 'Counter Run' ? 0.35 : 0.8), 0, 100);
-    const meshY = ctx.offPlay.name === 'Sweep' ? 50 : 50 + side * 3.5;
+    const meshY = 50 + side * 3.5;
     const approachT = (kf.snap + kf.handoff) / 2;
     const approachX = ctx.offPlay.name === 'Counter Run'
       ? lerp(actor.x, qb.x - offenseDir * 0.2, 0.7)
@@ -518,8 +546,7 @@ function buildCarrierPath(actor, ctx){
     const approachY = ctx.offPlay.name === 'Counter Run'
       ? lerp(actor.y, meshY, 0.7)
       : lerp(actor.y, lane, ctx.offPlay.name === 'Outside Zone' ? 0.34 : 0.5);
-    const commitY = ctx.offPlay.name === 'Outside Zone' ? lane
-      : clamp(lane + (ctx.offPlay.name === 'Sweep' ? side * 2 : 0), 2, 98);
+    const commitY = lane;
     const meshPath = [
       {t:0, x:actor.x, y:actor.y},
       {t:kf.snap, x:actor.x, y:actor.y},
@@ -533,7 +560,7 @@ function buildCarrierPath(actor, ctx){
       ];
     }
     return [...meshPath,
-      {t:kf.laneCommit, x:clamp(meshX + offenseDir*(ctx.offPlay.name === 'Sweep' ? 4 : 3), 0, 100), y:commitY},
+      {t:kf.laneCommit, x:clamp(meshX + offenseDir*3, 0, 100), y:commitY},
       {t:kf.tackle, x:finalX, y:commitY},
       {t:1, x:finalX, y:commitY}
     ];
@@ -643,6 +670,12 @@ function buildOffenseActorPath(actor, ctx){
   }
   const plan = ctx.escortPlan && ctx.escortPlan.get(actor.id);
   if(plan){
+    if(ctx.animVariant === 'screen'){
+      return [
+        {t:0,x:actor.x,y:actor.y}, {t:kf.snap,x:actor.x,y:actor.y},
+        plan.mid, plan.end, {t:1,x:plan.end.x,y:plan.end.y}
+      ];
+    }
     const preT = (kf.snap + plan.mid.t) / 2;
     return [
       {t:0,x:actor.x,y:actor.y}, {t:kf.snap,x:actor.x,y:actor.y},
@@ -716,6 +749,14 @@ function buildOffenseActorPath(actor, ctx){
         {t:0,x:actor.x,y:actor.y}, {t:kf.snap,x:actor.x,y:actor.y},
         {t:kf.throw, x: actor.x - offenseDir*2.5, y: actor.y},          // recule pour attirer la pression
         {t:1, x: actor.x - offenseDir*2.5, y: actor.y}
+      ];
+    }
+    if(ctx.offPlay.name === 'Sweep'){
+      const retreatX = clamp(actor.x - offenseDir*1.2, 0, 100);
+      return [
+        {t:0,x:actor.x,y:actor.y}, {t:kf.snap,x:actor.x,y:actor.y},
+        {t:kf.handoff,x:retreatX,y:actor.y},
+        {t:1,x:retreatX,y:actor.y}
       ];
     }
     if(ctx.offPlay.name === 'Toss'){
@@ -2393,9 +2434,9 @@ function applyPlayOutcome(offPlay, defPlay, result, isPlayerOffense, predictabil
     tactical:{offPlay, defPlay, predictability, repetitionPenalty, surpriseBonus, result, advType}
   };
 
-  if(!game.gameOver) setResult(headline, explain, commentary);
-  render();
   runPlayAnimation(animCfg, () => {
+    if(!game.gameOver) setResult(headline, explain, commentary);
+    render();
     if(driveEndReason) showDriveSummaryPanel(game.lastFinishedDrive, driveEndReason);
     handleClockEvents(clockEvents);
     afterPlayResolved();

@@ -28,7 +28,7 @@ const OFFENSE_FORMATION_CATEGORY = {
   'Inside Zone':'iform', 'Power Run':'iform', 'Dive':'iform', 'QB Sneak':'iform',
   'Outside Zone':'outsideZone', 'Sweep':'iform', 'Toss':'toss', 'Counter Run':'counter',
   'QB Keeper':'outside', 'Read Option':'readOption',
-  'Quick Slant':'shotgun', 'Screen Pass':'shotgun', 'Hitch / Curl':'shotgun', 'Out Route':'shotgun',
+  'Quick Slant':'shotgun', 'Screen Pass':'screen', 'Hitch / Curl':'shotgun', 'Out Route':'shotgun',
   'Crossing Route':'shotgun', 'Mesh Concept':'shotgun', 'Flood Concept':'shotgun',
   'Deep Post':'shotgun', 'Four Verticals':'shotgun',
   'Play Action':'playaction'
@@ -86,6 +86,15 @@ function genOffenseFormation(category, direction){
       {dx:-1.5, y:4,  role:'WR'},
       {dx:-1.5, y:28, role:'WR'},
       {dx:-1.5, y:96, role:'WR'}
+    ];
+  }
+  if(category === 'screen'){
+    const right = direction === 'right';
+    const receiverLanes = right ? [62, 80, 96, 4] : [38, 20, 4, 96];
+    return [...OL,
+      {dx:-6, y:50, role:'QB', qb:true},
+      {dx:-8.5, y:right ? 62 : 38, role:'RB'},
+      ...receiverLanes.map(y => ({dx:-1.5, y, role:'WR'}))
     ];
   }
   // shotgun (pass)
