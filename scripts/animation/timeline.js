@@ -32,7 +32,7 @@ function createPlayTimelineEvents(setup, cfg){
   if(animVariant === 'playAction' && kf.dropback !== undefined && kf.routesDevelop !== undefined){
     add('handoff', (kf.dropback + kf.routesDevelop) / 2, {kind:'playActionFake'});
     add('fakeHandoffReturn', kf.routesDevelop);
-  } else if(offPlay.type === 'run' && carrierId !== qbId && family !== 'sack'){
+  } else   if(offPlay.type === 'run' && carrierId !== qbId && family !== 'sack' && offPlay.name !== 'Read Option'){
     add('handoff', kf.handoff, {kind:offPlay.name === 'Toss' ? 'toss' : 'handoff'});
   }
   if(family === 'sack' && kf.pressure !== undefined) add('pressure', kf.pressure);
@@ -200,19 +200,13 @@ function computeBlockPairs(offenseActors, defenseActors, family){
 }
 
 function pickTackler(defenseActors, family, lane, defPlay, targetX){
-  const byRole = (roles) => defenseActors.filter(a => roles.includes(a.role))
-    .sort((a,b) => Math.abs(a.y-lane) - Math.abs(b.y-lane))[0];
-  const nearestBack = () => defenseActors.filter(a => a.role === 'CB' || a.role === 'S')
-    .sort((a,b) => Math.hypot(a.x-targetX, a.y-lane) - Math.hypot(b.x-targetX, b.y-lane))[0];
-  if(family === 'sack'){
-    // Un sack sur un blitz déclaré doit visiblement provenir d'un blitzer (LB),
-    // pas d'un lineman qui n'a pourtant pas bougé plus que les autres.
-    const isBlitz = defPlay && defPlay.name && defPlay.name.toLowerCase().includes('blitz');
-    return isBlitz ? (byRole(['LB']) || byRole(['DL']) || defenseActors[0])
-                    : (byRole(['DL']) || byRole(['LB']) || defenseActors[0]);
-  }
-  if(family === 'insideRun' || family === 'outsideRun') return byRole(['LB']) || byRole(['CB','S']) || defenseActors[0];
-  return nearestBack() || byRole(['CB']) || byRole(['S']) || defenseActors[0];
+  const targetLane = family === 'sack' ? 50 : lane;
+  const field = document.getElementById('field');
+  const laneScale = field && field.clientWidth ? field.clientHeight / field.clientWidth : 1 / 2.25;
+  return [...defenseActors].sort((a,b) =>
+    Math.hypot(a.x-targetX, (a.y-targetLane) * laneScale)
+      - Math.hypot(b.x-targetX, (b.y-targetLane) * laneScale)
+  )[0];
 }
 function pickDefenseReactorNear(defenseActors, targetLane, targetX){
   if(!defenseActors.length) return null;
@@ -277,14 +271,63 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
 }
 
 function passTargetLane(offPlay, receiver, lane){
-  if(offPlay.name === 'Quick Slant') return clamp(lerp(lane, 50, 0.65), 4, 96);
-  if(offPlay.name === 'Out Route' || offPlay.name === 'Flood Concept'){
+  if(offPlay.name === 'Quick Slant' || offPlay.name === 'Slant'){
+    return receiver.y < 50 ? 35 : 62;
+  }
+  if(offPlay.name === 'Hitch / Curl') return receiver.y;
+  if(offPlay.name === 'Out Route'){
+    const side = Math.sign(lane - 50) || Math.sign(receiver.y - 50) || 1;
+    return clamp(lane === 50 ? (side < 0 ? 10 : 90) : lane + side * 10, 4, 96);
+  }
+  if(offPlay.name === 'Flood Concept'){
     const side = Math.sign(lane - 50) || Math.sign(receiver.y - 50) || 1;
     return clamp(lane === 50 ? (side < 0 ? 10 : 90) : lane + side * 10, 4, 96);
   }
   if(offPlay.name === 'Crossing Route') return clamp(100 - receiver.y, 4, 96);
-  if(offPlay.name === 'Mesh Concept' || offPlay.name === 'Deep Post') return 50;
+  if(offPlay.name === 'Mesh Concept') return clamp(50 + (receiver.y < 50 ? 17 : -17), 5, 95);
+  if(offPlay.name === 'Deep Post') return 50;
   return lane;
+}
+
+function slantRouteDestination(actor, offenseDir, targetLane){
+  const lateralYards = (targetLane - actor.y) * 0.533;
+  const angleFromLineOfScrimmage = 22 * Math.PI / 180;
+  const diagonalYards = Math.abs(lateralYards) / Math.cos(angleFromLineOfScrimmage);
+  return {
+    x:clamp(actor.x + offenseDir * (5 + diagonalYards * Math.sin(angleFromLineOfScrimmage)), 0, 100),
+    y:targetLane
+  };
+}
+
+function buildSlantRoutePath(actor, ctx, targetLane){
+  const {kf, offenseDir} = ctx;
+  const destination = slantRouteDestination(actor, offenseDir, targetLane);
+  const lateralYards = (destination.y - actor.y) * 0.533;
+  const angleFromLineOfScrimmage = 22 * Math.PI / 180;
+  const totalDistance = 5 + Math.abs(lateralYards) / Math.cos(angleFromLineOfScrimmage);
+  const routePoint = progress => {
+    const distance = clamp(progress, 0, 1) * totalDistance;
+    if(distance <= 5){
+      return {x:clamp(actor.x + offenseDir * distance, 0, 100), y:actor.y};
+    }
+    const diagonalDistance = distance - 5;
+    return {
+      x:clamp(actor.x + offenseDir * (5 + diagonalDistance * Math.sin(angleFromLineOfScrimmage)), 0, 100),
+      y:clamp(actor.y + Math.sign(lateralYards) * diagonalDistance * Math.cos(angleFromLineOfScrimmage) / 0.533, 2, 98)
+    };
+  };
+  const throwProgress = clamp((kf.throw - kf.snap) / (kf.catch - kf.snap), 0, 1);
+  const progressSamples = new Set([throwProgress, Math.min(1, 5 / totalDistance)]);
+  for(let i=0;i<=80;i++) progressSamples.add(i / 80);
+
+  return [
+    {t:0,x:actor.x,y:actor.y},
+    {t:kf.snap,x:actor.x,y:actor.y},
+    ...[...progressSamples].sort((a,b) => a-b).map(progress => {
+      const point = routePoint(progress);
+      return {t:lerp(kf.snap,kf.catch,progress),x:point.x,y:point.y};
+    })
+  ];
 }
 
 function buildPassRoutePath(actor, ctx, isTarget){
@@ -301,25 +344,20 @@ function buildPassRoutePath(actor, ctx, isTarget){
   let breakPoint = {x:lerp(actor.x, destination.x, 0.62), y:actor.y};
 
   if(name === 'Quick Slant' || name === 'Slant'){
-    const slantY = clamp(lerp(actor.y, 50, 0.72), 5, 95);
-    destination.y = isCarrier ? lane : slantY;
-    breakPoint = {x:lerp(actor.x, destination.x, 0.55), y:lerp(actor.y, destination.y, 0.62)};
+    destination = slantRouteDestination(actor, offenseDir, isCarrier ? lane : (actor.y < 50 ? 35 : 62));
   } else if(name === 'Hitch / Curl'){
-    breakPoint = {x:lerp(actor.x, destination.x, 0.76), y:destination.y};
-    destination = {x:clamp(breakPoint.x - offenseDir * 1.5, 0, 100), y:destination.y};
+    breakPoint = {x:throwX, y:actor.y};
+    destination = {x:clamp(throwX - offenseDir * 3, 0, 100), y:actor.y};
   } else if(name === 'Out Route'){
-    const outY = clamp(actor.y + side * 9, 3, 97);
-    destination.y = isCarrier ? lane : outY;
-    breakPoint = {x:lerp(actor.x, destination.x, 0.58), y:lerp(actor.y, destination.y, 0.35)};
-  } else if(name === 'Crossing Route' || name === 'Mesh Concept'){
-    const crossY = name === 'Mesh Concept'
-      ? clamp(50 + (ordinal % 2 ? 5 : -5), 5, 95)
-      : clamp(100 - actor.y, 5, 95);
-    destination.y = isCarrier ? lane : crossY;
-    breakPoint = {
-      x:lerp(actor.x, destination.x, 0.55),
-      y:name === 'Mesh Concept' ? lerp(actor.y, 50, 0.62) : lerp(actor.y, crossY, 0.72)
+    destination = {
+      x:isCarrier ? throwX : clamp(actor.x + offenseDir * depth, 0, 100),
+      y:isCarrier ? lane : clamp(50 + (actor.y < 50 ? -28 : 28), 3, 97)
     };
+    breakPoint = {x:destination.x, y:actor.y};
+  } else if(name === 'Crossing Route'){
+    const crossY = clamp(100 - actor.y, 5, 95);
+    destination.y = isCarrier ? lane : crossY;
+    breakPoint = {x:lerp(actor.x, destination.x, 0.55), y:lerp(actor.y, crossY, 0.72)};
   } else if(name === 'Flood Concept'){
     const level = ordinal % 3;
     const floodDepth = [5, 10, 16][level];
@@ -344,14 +382,80 @@ function buildPassRoutePath(actor, ctx, isTarget){
     breakPoint = {x:lerp(actor.x, destination.x, 0.5), y:destination.y};
   }
 
-  const path = [
+  let path = [
     {t:0,x:actor.x,y:actor.y},
     {t:kf.snap,x:actor.x,y:actor.y},
     {t:kf.routesDevelop,x:breakPoint.x,y:breakPoint.y},
-    {t:kf.throw,x:lerp(breakPoint.x,destination.x,0.68),y:lerp(breakPoint.y,destination.y,0.68)},
+    {t:kf.throw,
+      x:name === 'Hitch / Curl' ? lerp(breakPoint.x,destination.x,0.42) : lerp(breakPoint.x,destination.x,0.68),
+      y:name === 'Out Route' ? lerp(breakPoint.y,destination.y,0.92)
+        : name === 'Hitch / Curl' ? breakPoint.y : lerp(breakPoint.y,destination.y,0.68)},
     {t:kf.catch,x:destination.x,y:destination.y}
   ];
-  if(!isCarrier) return [...path, {t:1,x:destination.x,y:destination.y}];
+  if(name === 'Quick Slant' || name === 'Slant'){
+    path = buildSlantRoutePath(actor, ctx, destination.y);
+  } else if(name === 'Mesh Concept'){
+    const meshLane = isCarrier ? lane : clamp(50 + (actor.y < 50 ? 17 : -17), 5, 95);
+    destination = {x:isCarrier ? throwX : clamp(actor.x + offenseDir * depth, 0, 100), y:meshLane};
+    const field = document.getElementById('field');
+    const laneScale = field && field.clientWidth ? field.clientHeight / field.clientWidth : 1 / 2.25;
+    const control1 = {
+      x:clamp(actor.x + offenseDir * 7, -8, 108),
+      y:lerp(actor.y, 50, 0.12)
+    };
+    const control2 = {
+      x:clamp(destination.x - offenseDir * 3, -8, 108),
+      y:lerp(meshLane, 50, 0.12)
+    };
+    const curve = [];
+    for(let i=0;i<=80;i++){
+      const u = i / 80, v = 1 - u;
+      curve.push({
+        x:v*v*v*actor.x + 3*v*v*u*control1.x + 3*v*u*u*control2.x + u*u*u*destination.x,
+        y:v*v*v*actor.y + 3*v*v*u*control1.y + 3*v*u*u*control2.y + u*u*u*meshLane
+      });
+    }
+    const crossingIndex = curve.findIndex((point,index) => index > 0
+      && (curve[index-1].y - 50) * (point.y - 50) <= 0);
+    if(crossingIndex < 1) throw new Error('Une trajectoire Mesh doit traverser le centre du terrain.');
+    const previous = curve[crossingIndex-1], crossing = curve[crossingIndex];
+    const crossingRatio = (50 - previous.y) / (crossing.y - previous.y);
+    const crossingPoint = {
+      x:lerp(previous.x,crossing.x,crossingRatio),
+      y:50
+    };
+    curve.splice(crossingIndex,0,crossingPoint);
+    const crossingPosition = crossingIndex;
+    const segmentLength = (a,b) => Math.hypot(b.x-a.x,(b.y-a.y)*laneScale);
+    const lengths = [0];
+    for(let i=1;i<curve.length;i++) lengths.push(lengths[i-1] + segmentLength(curve[i-1],curve[i]));
+    const splitLength = lengths[crossingPosition];
+    path = [
+      {t:0,x:actor.x,y:actor.y},
+      {t:kf.snap,x:actor.x,y:actor.y},
+      ...curve.slice(1).map((point,index) => {
+        const curveIndex = index + 1;
+        return {
+        t:curveIndex <= crossingPosition
+          ? lerp(kf.snap,kf.throw,lengths[curveIndex]/splitLength)
+          : lerp(kf.throw,kf.catch,(lengths[curveIndex]-splitLength)/(lengths[lengths.length-1]-splitLength)),
+        x:point.x,
+        y:point.y
+        };
+      })
+    ];
+  }
+  if(!isCarrier){
+    const keepsMoving = ctx.outcome !== 'incomplete';
+    const endTime = keepsMoving ? kf.tackle : kf.catch;
+    const endPoint = {
+      x:clamp(destination.x + (keepsMoving ? offenseDir * 3.5 : 0), -8, 108),
+      y:name === 'Mesh Concept' && keepsMoving
+        ? clamp(destination.y + (actor.y < 50 ? 5 : -5), 3, 97)
+        : destination.y
+    };
+    return [...path, {t:endTime,...endPoint}, {t:1,...endPoint}];
+  }
 
   if(ctx.outcome === 'fumble'){
     return [...path,
@@ -370,6 +474,7 @@ function buildPassRoutePath(actor, ctx, isTarget){
 
 function buildCarrierPath(actor, ctx){
   const {kf, family, outcome, finalX, lane, offenseDir, throwX} = ctx;
+  if(ctx.animVariant === 'readOption') return buildReadOptionPath(actor, ctx);
   if(family === 'sack'){
     return [
       {t:0, x:actor.x, y:actor.y}, {t:kf.snap, x:actor.x, y:actor.y},
@@ -470,9 +575,72 @@ function buildCarrierPath(actor, ctx){
   ];
 }
 
+function buildReadOptionPath(actor, ctx){
+  const {kf, offenseDir, offPlay, lane, finalX, outcome} = ctx;
+  const qb = ctx.qbActor;
+  const rb = ctx.readOptionActor;
+  if(!qb || !rb) return [{t:0,x:actor.x,y:actor.y},{t:1,x:finalX,y:lane}];
+
+  const side = offPlay.direction === 'right' ? 1 : -1;
+  const isQuarterback = actor.id === qb.id;
+  const isCarrier = actor.id === ctx.carrierId;
+  const crossingTime = kf.handoff;
+  const crossingX = clamp(qb.x + offenseDir * 0.45, 0, 100);
+  const crossingPoint = {
+    x:clamp(crossingX + (isQuarterback ? -offenseDir * 0.25 : offenseDir * 0.25), 0, 100),
+    y:50 + (isQuarterback ? side : -side) * 1.3
+  };
+  const decoyLane = clamp(50 - side * 14, 3, 97);
+  const runStart = {
+    x:clamp(crossingPoint.x + offenseDir * 1.7, 0, 100),
+    y:isCarrier ? lane : decoyLane
+  };
+  const endX = clamp(finalX + (isCarrier ? 0 : offenseDir * 2.5), 0, 100);
+  const path = [
+    {t:0,x:actor.x,y:actor.y},
+    {t:kf.snap,x:actor.x,y:actor.y},
+    {t:crossingTime,...crossingPoint},
+    {t:kf.laneCommit,...runStart}
+  ];
+  if(isCarrier && outcome === 'fumble'){
+    return [...path,
+      {t:ctx.turnoverFrac,x:ctx.spotBeforeFumble,y:lane},
+      {t:1,x:ctx.spotBeforeFumble,y:lane}
+    ];
+  }
+  return [...path,
+    {t:kf.tackle,x:endX,y:isCarrier ? lane : decoyLane},
+    {t:1,x:endX,y:isCarrier ? lane : decoyLane}
+  ];
+}
+
 function buildOffenseActorPath(actor, ctx){
   if(actor.id === ctx.carrierId) return buildCarrierPath(actor, ctx);
   const {kf, offenseDir, family} = ctx;
+  if(ctx.animVariant === 'readOption'
+    && (actor.id === ctx.qbId || (ctx.readOptionActor && actor.id === ctx.readOptionActor.id))){
+    return buildReadOptionPath(actor, ctx);
+  }
+  if(ctx.offPlay.name === 'QB Keeper' && actor.role === 'RB'){
+    const qb = ctx.qbActor;
+    const target = ctx.defenseActors.find(defender => defender.id === ctx.qbKeeperBlockerId);
+    if(qb && target){
+      const contact = {x:clamp(target.x - offenseDir * 0.8, 0, 100), y:target.y};
+      const approach = {
+        x:clamp(qb.x + offenseDir * 1.2, 0, 100),
+        y:lerp(actor.y, ctx.lane, 0.65)
+      };
+      const engageTime = Math.min(kf.laneCommit || 0.4, 0.38);
+      return [
+        {t:0,x:actor.x,y:actor.y},
+        {t:kf.snap,x:actor.x,y:actor.y},
+        {t:(kf.snap + engageTime) / 2,...approach},
+        {t:engageTime,...contact},
+        {t:kf.tackle,x:contact.x,y:contact.y},
+        {t:1,x:contact.x,y:contact.y}
+      ];
+    }
+  }
   const plan = ctx.escortPlan && ctx.escortPlan.get(actor.id);
   if(plan){
     const preT = (kf.snap + plan.mid.t) / 2;
@@ -701,26 +869,23 @@ function buildCoveragePath(actor, assignment, targetPath, ctx){
 }
 
 function buildTacklePursuitPath(actor, carrierPath, ctx, approachPath){
-  const {kf, offPlay} = ctx;
-  const startT = offPlay.type === 'pass' ? kf.catch : (kf.handoff || kf.laneCommit || kf.snap);
+  const {kf, family, offPlay} = ctx;
+  const startT = offPlay.type === 'pass' && family !== 'sack' ? kf.catch : (kf.handoff || kf.laneCommit || kf.snap);
   const endT = kf.tackle;
   if(!carrierPath || endT <= startT) return approachPath;
 
   const start = evalPath(approachPath, startT);
-  const carrierAtStart = evalPath(carrierPath, startT);
-  const dx = start.x - carrierAtStart.x;
-  const dy = start.y - carrierAtStart.y;
-  const gap = Math.hypot(dx, dy);
-  const offsetScale = gap > 2.8 ? 2.8 / gap : 1;
-  const offsetX = dx * offsetScale;
-  const offsetY = dy * offsetScale;
   const midT = (startT + endT) / 2;
   const carrierAtMid = evalPath(carrierPath, midT);
   const carrierAtEnd = evalPath(carrierPath, endT);
+  const field = document.getElementById('field');
+  const carrier = ctx.offenseActors.find(candidate => candidate.id === ctx.carrierId);
+  const markerWidth = carrier && carrier.el ? carrier.el.getBoundingClientRect().width : 15;
+  const contactOffset = 100 * Math.max(1, markerWidth - 1) / Math.max(1, field ? field.clientWidth : 800);
   const tail = [
     {t:startT,x:start.x,y:start.y},
-    {t:midT,x:clamp(carrierAtMid.x + offsetX, 0, 100),y:clamp(carrierAtMid.y + offsetY, 2, 98)},
-    {t:endT,x:clamp(carrierAtEnd.x + offsetX, 0, 100),y:clamp(carrierAtEnd.y + offsetY, 2, 98)}
+    {t:midT,x:clamp(carrierAtMid.x - ctx.offenseDir * contactOffset, 0, 100),y:carrierAtMid.y},
+    {t:endT,x:clamp(carrierAtEnd.x - ctx.offenseDir * contactOffset, 0, 100),y:carrierAtEnd.y}
   ];
   const path = approachPath.filter(point => point.t < startT);
   path.push(...tail, {t:1,x:tail[tail.length-1].x,y:tail[tail.length-1].y});
@@ -780,8 +945,7 @@ function buildBlitzerPath(actor, ctx){
 function buildDefenseActorPath(actor, ctx){
   const {kf, family, finalX, lane, throwX} = ctx;
   const applyTacklePursuit = path => {
-    if(actor.id !== ctx.tacklerId || family === 'sack'
-      || ['incomplete','interception','fumble'].includes(ctx.outcome)) return path;
+    if(actor.id !== ctx.tacklerId || ['incomplete','interception','fumble'].includes(ctx.outcome)) return path;
     const carrierPath = ctx.offensePaths && ctx.offensePaths.get(ctx.carrierId);
     return buildTacklePursuitPath(actor, carrierPath, ctx, path);
   };
@@ -940,6 +1104,10 @@ function actorAssignment(actor, ctx){
       pathType = animVariant === 'playAction' ? 'playAction'
         : offPlay.type === 'run' ? 'handoff' : 'pocketAndThrow';
       targetId = ctx.carrierId;
+    } else if(offPlay.name === 'QB Keeper' && actor.role === 'RB'){
+      task = 'leadBlock';
+      pathType = 'leadBlock';
+      targetId = ctx.qbKeeperBlockerId;
     } else if(actor.role === 'OL' || actor.role === 'FB'){
       const duel = ctx.duelByActor && ctx.duelByActor.get(actor.id);
       const blockTarget = ctx.blockPairs.get(actor.id);
@@ -1109,14 +1277,18 @@ function buildPlaySetup(cfg){
   const animVariant = family === 'sack' ? null
     : offPlay.name === 'Play Action' ? 'playAction'
     : offPlay.name === 'Screen Pass' ? 'screen'
+    : offPlay.name === 'Read Option' ? 'readOption'
     : outcome === 'interception' || outcome === 'fumble' ? null
     : ['Sweep','Toss','Outside Zone','Counter Run'].includes(offPlay.name) ? 'outsideLead'
     : offPlay.name === 'Four Verticals' ? 'verticals'
-    : ['Mesh Concept','Crossing Route'].includes(offPlay.name) ? 'crossers'
+    : offPlay.name === 'Mesh Concept' ? 'mesh'
+    : offPlay.name === 'Crossing Route' ? 'crossers'
     : null;
 
   let carrier;
   if(animVariant === 'screen'){
+    carrier = offenseSrc.find(a => a.role === 'RB');
+  } else if(offPlay.name === 'Read Option' && offPlay.direction === 'left'){
     carrier = offenseSrc.find(a => a.role === 'RB');
   }
   if(carrier){
@@ -1133,9 +1305,19 @@ function buildPlaySetup(cfg){
   }
 
   const airYards = animVariant === 'screen' ? -2 : offPlay.depth === 'short' ? 6 : offPlay.depth === 'medium' ? 12 : 22;
-  const throwX = clamp(preSnapSpot + offenseDir*airYards, 0, 100);
   const throwLane = offPlay.type === 'pass' ? passTargetLane(offPlay, carrier, lane) : lane;
+  const standardThrowX = clamp(preSnapSpot + offenseDir*airYards, 0, 100);
+  const throwX = offPlay.name === 'Quick Slant' || offPlay.name === 'Slant'
+    ? slantRouteDestination(carrier, offenseDir, throwLane).x
+    : standardThrowX;
   const qbActor = offenseSrc.find(a => a.role === 'QB') || carrier;
+  const readOptionActor = offPlay.name === 'Read Option'
+    ? offenseSrc.find(a => a.role === 'RB') : null;
+  const qbKeeperBlocker = offPlay.name === 'QB Keeper'
+    ? [...defenseSrc].sort((a,b) =>
+      Math.hypot(a.x - (qbActor.x + offenseDir * 3), a.y - lane)
+        - Math.hypot(b.x - (qbActor.x + offenseDir * 3), b.y - lane))[0]
+    : null;
 
   const coverageScheme = coverageSchemeFor(defPlay);
   const blitzerIds = selectBlitzers(defPlay, offPlay, defenseSrc);
@@ -1159,12 +1341,7 @@ function buildPlaySetup(cfg){
     });
   }
   let tackler = ['interception','fumble','incomplete'].includes(outcome) ? null
-    : pickTackler(defenseSrc, family, lane, defPlay, finalX);
-  if(offPlay.type === 'pass' && coverageScheme === 'man' && family !== 'sack'
-    && tackler && !['interception','fumble','incomplete'].includes(outcome)){
-    const assignedDefender = defenseSrc.find(defender => coverageTargets.get(defender.id) === carrier.id);
-    if(assignedDefender) tackler = assignedDefender;
-  }
+    : pickTackler(defenseSrc, family, offPlay.type === 'pass' && family !== 'sack' ? throwLane : lane, defPlay, finalX);
   const interceptor = outcome === 'interception'
     ? (pickDefenseReactorNear(defenseSrc, throwLane, throwX) || defenseSrc[0]) : null;
   const fumbleRecoverer = outcome === 'fumble'
@@ -1187,6 +1364,12 @@ function buildPlaySetup(cfg){
   };
 
   const blockPairs = computeBlockPairs(offenseSrc, defenseSrc, family);
+  if(qbKeeperBlocker){
+    const runningBack = offenseSrc.find(actor => actor.role === 'RB');
+    if(runningBack){
+      blockPairs.set(runningBack.id, qbKeeperBlocker);
+    }
+  }
   // Sur un touchdown, le porteur finit sa course DANS la zone d'en-but.
   const animFinalX = outcome === 'touchdown' ? finalX + offenseDir*4 : finalX;
   const escort = planEscorts(animVariant, offenseSrc, defenseSrc, blockPairs, {
@@ -1210,6 +1393,7 @@ function buildPlaySetup(cfg){
     duelByActor, duelsByDefender,
     offenseActors: offenseSrc, defenseActors: defenseSrc,
     carrierId: carrier.id, qbId: qbActor.id, qbActor, tacklerId: tackler ? tackler.id : null,
+    readOptionActor, qbKeeperBlockerId:qbKeeperBlocker ? qbKeeperBlocker.id : null,
     playActionFakeId: playActionFake ? playActionFake.id : null,
     interceptorId: interceptor ? interceptor.id : null,
     fumbleRecovererId: fumbleRecoverer ? fumbleRecoverer.id : null,
@@ -1262,7 +1446,8 @@ function buildPlaySetup(cfg){
   actors.forEach(actor => {
     if(actor.team !== 'offense') return;
     applyStartDelay(actor);
-    if(actor.role !== 'OL' && actor.role !== 'FB' && actor.id !== ctx.carrierId
+    if(ctx.animVariant !== 'mesh' && !['Quick Slant','Slant'].includes(ctx.offPlay.name)
+      && actor.role !== 'OL' && actor.role !== 'FB' && actor.id !== ctx.carrierId
       && actor.id !== ctx.qbId && actor.id !== ctx.tacklerId){
       const routePointIndex = actor.path.findIndex(point => point.t >= (kf.routesDevelop || kf.laneCommit || 0.4));
       const routePoint = routePointIndex >= 0 ? actor.path[routePointIndex] : null;
@@ -1559,6 +1744,7 @@ const PlayAnimationController = {
       ballState.y = lerp(qb.y, setup.throwLane, localT);
       ballState.arcOffset = -5 * Math.sin(Math.PI * localT);
     } else if(setup.offPlay.type === 'run' && setup.carrierId !== setup.qbId
+      && setup.offPlay.name !== 'Read Option'
       && setup.animVariant !== 'playAction'
       && t >= Math.max(snapTime, handoffTime - (setup.offPlay.name === 'Toss' ? 0.10 : 0.07))
       && t < handoffTime){
@@ -1599,7 +1785,8 @@ const PlayAnimationController = {
     } else {
       ballState.mode = 'carried';
       let carrierId = setup.qbId;
-      if(setup.offPlay.type === 'run' && setup.carrierId !== setup.qbId
+      if(setup.animVariant === 'readOption') carrierId = setup.carrierId;
+      else if(setup.offPlay.type === 'run' && setup.carrierId !== setup.qbId
         && setup.animVariant !== 'playAction' && t >= handoffTime) carrierId = setup.carrierId;
       if(setup.offPlay.type === 'pass' && setup.family !== 'sack' && t >= catchTime
         && setup.outcome !== 'incomplete') carrierId = setup.carrierId;
@@ -2439,10 +2626,11 @@ function attemptPunt(){
 // disponible. Traité comme un run ou une passe surprise depuis la formation de kick.
 function attemptFakeFieldGoal(){
   if(game.gameOver || game.phase !== 'playing' || game.playLocked) return;
+  const offenseSide = game.possession;
   game.playLocked = true;
-  if(!preSnapGate(game.possession, 'normal')) return;
-  const context = buildContext(game.possession);
-  const isPlayerOffense = game.possession === 'player';
+  if(!preSnapGate(offenseSide, 'normal')) return;
+  const context = buildContext(offenseSide);
+  const isPlayerOffense = offenseSide === 'player';
   const predictability = calculatePredictability(
     isPlayerOffense ? game.offensivePlayHistoryPlayer : game.defensivePlayHistoryPlayer, context
   );
@@ -2472,21 +2660,20 @@ function attemptFakeFieldGoal(){
     } else {
       yards = randInt(-3, Math.max(0, context.distance - 3));
     }
-    recordDrivePlay(game.possession, yards, fakePlay.name);
+    recordDrivePlay(offenseSide, yards, fakePlay.name);
     const fakeResult = {yards, outcome:success ? (fakeType === 'pass' ? 'completion' : 'gain') : 'incomplete'};
     const offHistory = isPlayerOffense ? game.offensivePlayHistoryPlayer : game.offensivePlayHistoryAI;
     const defHistory = isPlayerOffense ? game.defensivePlayHistoryAI : game.defensivePlayHistoryPlayer;
     addHistory(offHistory, buildHistoryEntry(fakePlay, context, fakeResult, success));
     addHistory(defHistory, buildHistoryEntry({name:'Défense',type:'balanced'}, context, fakeResult, !success));
     recordOffensivePlayTendency(isPlayerOffense ? 'player' : 'ai', fakeType);
-    const fakeScorer = game.possession;
-    const adv = advanceBall(yards, dir, game.possession);
+    const adv = advanceBall(yards, dir, offenseSide);
     const clockEvents = endSnapClock(playDurationSeconds(), adv.type === 'touchdown' || adv.type === 'turnoverOnDowns');
     const fakeVisualBallX = adv.finalX;
     const fakeVisualMarkerX = (adv.type==='touchdown'||adv.type==='safety') ? adv.finalX
       : (adv.type==='turnoverOnDowns') ? computeFirstDownTargetX(adv.finalX, game.possession, 10)
       : computeFirstDownTargetX(adv.finalX, isPlayerOffense ? 'player' : 'ai', game.distance);
-    const teamName = teamLabel(game.possession);
+    const teamName = teamLabel(offenseSide);
     const headline = t(success ? 'game.results.fakeFieldGoalMade' : 'game.results.fakeFieldGoalStopped');
     const touchdownOrGain = adv.type === 'firstdown' ? t('game.results.fakeFieldGoalFirstDown')
       : adv.type === 'touchdown' ? t('game.results.fakeFieldGoalTouchdown')
@@ -2498,10 +2685,10 @@ function attemptFakeFieldGoal(){
     if(!game.gameOver) setResult(headline, explain, commentary);
     render();
     runPlayAnimation(
-      {offPlay: fakePlay, defPlay: {name:'Défense', type:'balanced'}, preSnapSpot, offenseSide: game.possession,
+      {offPlay: fakePlay, defPlay: {name:'Défense', type:'balanced'}, preSnapSpot, offenseSide,
        outcome: adv.type === 'touchdown' ? 'touchdown' : 'gain', finalX: adv.finalX, yards,
        advType:adv.type,
-       feedback:{kind:'fakeFieldGoal', success, advType:adv.type, scorer:fakeScorer},
+       feedback:{kind:'fakeFieldGoal', success, advType:adv.type, scorer:offenseSide},
        visualBallX: fakeVisualBallX, visualMarkerX: fakeVisualMarkerX},
       () => {
         handleClockEvents(clockEvents);

@@ -27,7 +27,7 @@ function makeDot(cls, label, teamSide){
 const OFFENSE_FORMATION_CATEGORY = {
   'Inside Zone':'iform', 'Power Run':'iform', 'Dive':'iform', 'QB Sneak':'iform',
   'Outside Zone':'outsideZone', 'Sweep':'iform', 'Toss':'toss', 'Counter Run':'counter',
-  'QB Keeper':'outside', 'Read Option':'outside',
+  'QB Keeper':'outside', 'Read Option':'readOption',
   'Quick Slant':'shotgun', 'Screen Pass':'shotgun', 'Hitch / Curl':'shotgun', 'Out Route':'shotgun',
   'Crossing Route':'shotgun', 'Mesh Concept':'shotgun', 'Flood Concept':'shotgun',
   'Deep Post':'shotgun', 'Four Verticals':'shotgun',
@@ -72,6 +72,16 @@ function genOffenseFormation(category, direction){
     return [...OL,
       {dx:-3.5, y:50, role:'QB', qb:true},
       {dx:-7, y:category === 'outsideZone' ? (direction === 'right' ? 36 : 64) : selectedSide, role:'RB'},
+      {dx:-1.5, y:76, role:'TE'},
+      {dx:-1.5, y:4,  role:'WR'},
+      {dx:-1.5, y:28, role:'WR'},
+      {dx:-1.5, y:96, role:'WR'}
+    ];
+  }
+  if(category === 'readOption'){
+    return [...OL,
+      {dx:-3.5, y:50, role:'QB', qb:true},
+      {dx:-6, y:50, role:'RB'},
       {dx:-1.5, y:76, role:'TE'},
       {dx:-1.5, y:4,  role:'WR'},
       {dx:-1.5, y:28, role:'WR'},
