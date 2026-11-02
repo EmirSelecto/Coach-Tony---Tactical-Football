@@ -175,7 +175,7 @@
     box-shadow:0 0 8px rgba(239,182,79,0.68);
     transition:left 650ms ease; z-index:4;
   }
-  .field .marker::before,.field .los-line::before{
+  .field .marker::before{
     position:absolute;
     top:9px;
     left:50%;
@@ -189,7 +189,7 @@
     box-shadow:0 2px 6px rgba(0,0,0,0.38);
   }
   .field .marker::before{
-    content:"1st Down";
+    content:attr(data-down-label);
     color:#17130a;
     background:var(--gold);
   }
@@ -246,13 +246,6 @@
     box-shadow:0 0 7px rgba(71,181,255,0.85),0 0 0 1px rgba(8,28,47,0.72);
     z-index:3; margin-left:-1.5px;
     transition: left 220ms ease-out;
-  }
-  .field .los-line::before{
-    content:"LIGNE DE SCRIMMAGE";
-    top:auto;
-    bottom:9px;
-    color:#07131c;
-    background:#9edfff;
   }
   .field .los-line.pop{ animation: losPop 480ms ease; }
   @keyframes losPop{
@@ -1164,15 +1157,10 @@
     .field{ margin-top:232px; }
     .result-box{ bottom:calc(24px + clamp(134px,25vh,235px)); }
     .phase-indicator{ white-space:nowrap; }
-    .field .marker::before,.field .los-line::before{
+    .field .marker::before{
       top:6px;
       padding:3px 4px;
       font-size:0.48rem;
-    }
-    .field .los-line::before{
-      content:"SCRIMMAGE";
-      top:auto;
-      bottom:6px;
     }
   }
   @media (max-width:340px){

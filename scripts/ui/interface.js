@@ -26,6 +26,11 @@ function render(){
   const downNames = {1:t('ui.status.downFirst'), 2:t('ui.status.downSecond'), 3:t('ui.status.downThird'), 4:t('ui.status.downFourth')};
   document.getElementById('downDistance').textContent = game.phase === 'conversion' ? t('ui.status.conversion')
     : `${downNames[game.down]} tentative & ${game.distance}`;
+  const downLabel = game.phase === 'conversion' ? 'TRY'
+    : ({1:'1st DOWN', 2:'2nd DOWN', 3:'3rd DOWN', 4:'4th DOWN'}[game.down] || '1st DOWN');
+  const downMarker = document.getElementById('firstDownMarker');
+  downMarker.dataset.downLabel = downLabel;
+  downMarker.setAttribute('aria-label', downLabel);
   document.getElementById('possTag').textContent = t('ui.status.onOffense', {team:teamNameOf(game.possession)});
   document.getElementById('possTag').className = 'poss-tag ' + game.possession;
 

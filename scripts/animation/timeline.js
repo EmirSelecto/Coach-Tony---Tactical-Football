@@ -710,6 +710,9 @@ function buildOffenseActorPath(actor, ctx){
   }
   if(actor.role === 'OL' || actor.role === 'FB'){
     const duel = ctx.duelByActor && ctx.duelByActor.get(actor.id);
+    if(actor.role === 'OL' && ctx.offPlay.type === 'pass'){
+      return buildPassOffensiveLinePath(actor, duel, ctx);
+    }
     if(duel){
       const blockerEnd = duel.blockerEnd;
       return [
@@ -1054,6 +1057,11 @@ function buildDefenseActorPath(actor, ctx){
     const duel = ctx.duelsByDefender && ctx.duelsByDefender.get(actor.id)
       && ctx.duelsByDefender.get(actor.id)[0];
     if(duel){
+      if(ctx.offPlay.type === 'pass'){
+        const path = buildPassDefensiveLinePath(actor, duel, ctx);
+        return actor.id === ctx.tacklerId && family !== 'sack'
+          ? applyTacklePursuit(path) : path;
+      }
       if(actor.id === ctx.tacklerId && family === 'sack'){
         return applyTacklePursuit([
           {t:0,x:actor.x,y:actor.y},
@@ -1252,6 +1260,168 @@ function actorAssignment(actor, ctx){
   };
 }
 
+function passPocketTarget(blocker, offenseDir){
+  const centerWeight = 1 - clamp(Math.abs(blocker.y - 50) / 16, 0, 1);
+  return {
+    x:clamp(blocker.x - offenseDir * (0.8 + centerWeight * 1.3), 0, 100),
+    y:clamp(blocker.y + Math.sign(blocker.y - 50) * 0.45, 2, 98)
+  };
+}
+
+function passRushSide(duel){
+  const blockerIndex = Number(duel.blockerId.slice(1)) || 0;
+  const defenderIndex = Number(duel.defenderId.slice(1)) || 0;
+  return (blockerIndex + defenderIndex) % 2 ? 1 : -1;
+}
+
+function passPocketQB(ctx){
+  return {
+    x:clamp(ctx.qbActor.x - ctx.offenseDir*2.4, 0, 100),
+    y:ctx.qbActor.y
+  };
+}
+
+function blockerBetweenRushAndQB(rushPoint, qbPoint, fraction){
+  return {
+    x:lerp(rushPoint.x, qbPoint.x, fraction),
+    y:lerp(rushPoint.y, qbPoint.y, fraction)
+  };
+}
+
+function passBlockerLineFraction(duel, ctx){
+  const paired = ctx.offenseActors
+    .filter(actor => actor.role === 'OL' && ctx.blockPairs.get(actor.id)
+      && ctx.blockPairs.get(actor.id).id === duel.defenderId)
+    .sort((a,b) => a.y-b.y);
+  if(paired.length < 2) return 0.08;
+  const index = Math.max(0, paired.findIndex(actor => actor.id === duel.blockerId));
+  return 0.04 + index * 0.05;
+}
+
+function passDuelVariation(duel, cycle){
+  const blockerIndex = Number(duel.blockerId.slice(1)) || 0;
+  const defenderIndex = Number(duel.defenderId.slice(1)) || 0;
+  const seed = (blockerIndex*17 + defenderIndex*29) % 19;
+  const variation = (seed + cycle*7) % 19;
+  return {
+    side:((seed + cycle) % 2) ? 1 : -1,
+    magnitude:0.9 + (variation % 7) * 0.09
+  };
+}
+
+function buildPassDuelCycles(duel, ctx, stopAt){
+  const {kf, offenseDir, outcome} = ctx;
+  const defenderActor = ctx.defenseActors.find(actor => actor.id === duel.defenderId);
+  const isDefensiveEnd = defenderActor && Math.abs(defenderActor.y - 50) > 12;
+  const stopTime = Number.isFinite(stopAt) ? stopAt
+    : ['incomplete','interception','fumble'].includes(outcome) ? kf.whistle : kf.tackle;
+  const duration = Math.max(0, stopTime - duel.engageTime);
+  if(duration < 0.08) return {blocker:[],defender:[]};
+
+  const count = Math.max(1, Math.floor(duration / 0.14));
+  const cycleDuration = duration / count;
+  const qb = passPocketQB(ctx);
+  const lineFraction = passBlockerLineFraction(duel, ctx);
+  const baseRush = duel.defenderContact;
+  const edgeScale = isDefensiveEnd ? 2 : 1;
+  const blocker = [], defender = [];
+  for(let cycle=0;cycle<count;cycle++){
+    const start = duel.engageTime + cycle * cycleDuration;
+    const recoilTime = Math.min(stopTime, start + cycleDuration * 0.2);
+    const driveTime = Math.min(stopTime, start + cycleDuration * 0.32);
+    const collisionTime = Math.min(stopTime, start + cycleDuration * 0.94);
+    const variation = passDuelVariation(duel, cycle);
+    const recoilDistance = isDefensiveEnd ? 0.35 : 0.75;
+    const progressX = baseRush.x - offenseDir * cycle * (isDefensiveEnd ? 0.55 * edgeScale : 0.12);
+    const progressY = baseRush.y + variation.side * variation.magnitude * edgeScale;
+    const blockerRecoilFraction = lineFraction + (isDefensiveEnd ? 0.18 : 0.07);
+    const defenderRecoil = {
+      x:progressX + offenseDir*recoilDistance,
+      y:progressY + variation.side*0.12*edgeScale
+    };
+    const defenderDrive = {
+      x:progressX - offenseDir*(isDefensiveEnd ? 0.28 : 0.1),
+      y:progressY
+    };
+    const defenderImpact = {
+      x:progressX - offenseDir*(isDefensiveEnd ? 0.48 : 0.16),
+      y:progressY
+    };
+    const blockerRecoil = blockerBetweenRushAndQB(defenderRecoil,qb,Math.min(0.7,blockerRecoilFraction));
+    const blockerDrive = blockerBetweenRushAndQB(defenderDrive,qb,Math.min(0.7,blockerRecoilFraction));
+    const blockerImpact = blockerBetweenRushAndQB(defenderImpact,qb,lineFraction);
+    blocker.push(
+      {t:recoilTime,x:blockerRecoil.x,y:blockerRecoil.y},
+      {t:driveTime,x:blockerDrive.x,y:blockerDrive.y},
+      {t:collisionTime,x:blockerImpact.x,y:blockerImpact.y}
+    );
+    defender.push(
+      {t:recoilTime,x:defenderRecoil.x,y:defenderRecoil.y},
+      {t:driveTime,x:defenderDrive.x,y:defenderDrive.y},
+      {t:collisionTime,x:defenderImpact.x,y:defenderImpact.y}
+    );
+  }
+  const finalVariation = passDuelVariation(duel,count-1);
+  const finalRush = {
+    x:baseRush.x - offenseDir*((count-1)*(isDefensiveEnd ? 0.55 * edgeScale : 0.12)
+      + (isDefensiveEnd ? 0.48 : 0.16)),
+    y:baseRush.y + finalVariation.side*finalVariation.magnitude*edgeScale
+  };
+  const finalBlocker = blockerBetweenRushAndQB(finalRush,qb,lineFraction);
+  blocker.push({t:stopTime,x:finalBlocker.x,y:finalBlocker.y});
+  defender.push({t:stopTime,x:finalRush.x,y:finalRush.y});
+  return {blocker,defender};
+}
+
+function buildPassOffensiveLinePath(actor, duel, ctx){
+  const {kf, offenseDir} = ctx;
+  const pocket = passPocketTarget(actor, offenseDir);
+  const engageTime = duel ? duel.engageTime : (kf.throw || kf.catch || 0.5);
+  const pocketSetTime = (kf.dropback || kf.routesDevelop || engageTime - 0.05) + 0.06;
+  const setTime = Math.max(kf.snap + 0.03,
+    Math.min(pocketSetTime, engageTime - 0.035));
+  const path = [
+    {t:0,x:actor.x,y:actor.y},
+    {t:kf.snap,x:actor.x,y:actor.y}
+  ];
+  if(!duel){
+    path.push({t:setTime,x:pocket.x,y:pocket.y});
+    path.push({t:1,x:pocket.x,y:pocket.y});
+    return path;
+  }
+
+  const contact = duel.blockerContact;
+  const cycles = buildPassDuelCycles(duel, ctx);
+  const last = cycles.blocker[cycles.blocker.length-1] || contact;
+  path.push(
+    {t:engageTime,x:contact.x,y:contact.y},
+    ...cycles.blocker
+  );
+  if(last.t < 1) path.push({t:1,x:last.x,y:last.y});
+  return path;
+}
+
+function buildPassDefensiveLinePath(actor, duel, ctx){
+  const {kf} = ctx;
+  const contact = duel.defenderContact;
+  const isSackTackler = actor.id === ctx.tacklerId && ctx.family === 'sack';
+  const cycles = buildPassDuelCycles(duel, ctx, isSackTackler ? kf.tackle-0.04 : undefined);
+  const path = [
+    {t:0,x:actor.x,y:actor.y},
+    {t:kf.snap,x:actor.x,y:actor.y},
+    {t:duel.engageTime,x:contact.x,y:contact.y},
+    ...cycles.defender
+  ];
+  if(isSackTackler){
+    path.push({t:kf.tackle,x:ctx.finalX,y:ctx.lane});
+    path.push({t:1,x:ctx.finalX,y:ctx.lane});
+  } else {
+    const last = cycles.defender[cycles.defender.length-1] || contact;
+    if(last.t < 1) path.push({t:1,x:last.x,y:last.y});
+  }
+  return path;
+}
+
 function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards, offPlay, offenseDir){
   const duels = [];
   const offenseById = new Map(offenseActors.map(actor => [actor.id, actor]));
@@ -1282,6 +1452,27 @@ function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards
     const blockerContactY = isDoubleTeam ? blocker.y : defenderContactY;
     const lateralSign = blocker.y < 50 ? -1 : 1;
     const isPassBlock = passPlay;
+    const pocketTarget = isPassBlock ? passPocketTarget(blocker, offenseDir) : null;
+    const pairedBlockers = isPassBlock
+      ? offenseActors.filter(candidate => blockPairs.get(candidate.id) === opponent).sort((a,b) => a.y-b.y)
+      : [];
+    const sharedPocketX = pairedBlockers.length > 1
+      ? pairedBlockers.reduce((sum,candidate) => sum + passPocketTarget(candidate,offenseDir).x, 0) / pairedBlockers.length
+      : pocketTarget && pocketTarget.x;
+    const contactX = isPassBlock
+      ? lerp(sharedPocketX, opponent.x - offenseDir*0.65, 0.68)
+      : null;
+    const passContactY = isPassBlock
+      ? (pairedBlockers.length > 1 ? opponent.y : clamp(lerp(blocker.y, opponent.y, 0.42), 2, 98))
+      : null;
+    const qbActor = isPassBlock ? offenseActors.find(actor => actor.role === 'QB') : null;
+    const lineFraction = pairedBlockers.length > 1
+      ? 0.04 + Math.max(0,pairedBlockers.indexOf(blocker))*0.05
+      : 0.08;
+    const qbAnchor = qbActor ? {
+      x:clamp(qbActor.x - offenseDir*2.4, 0, 100),
+      y:qbActor.y
+    } : null;
     const blockerEnd = isPassBlock
       ? {x:clamp(blocker.x - offenseDir * 0.8, 0, 100), y:clamp(lerp(blocker.y, 50, 0.16), 2, 98)}
       : {x:clamp(blocker.x + offenseDir * (advantage === 'offense' ? 0.9 : advantage === 'defense' ? -0.8 : 0.15), 0, 100),
@@ -1293,7 +1484,8 @@ function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards
         y:clamp(defenderContactY + lateralSign * 0.35, 2, 98)}
       : {x:clamp(opponent.x + offenseDir * (advantage === 'offense' ? 1.8 : advantage === 'defense' ? -2.2 : 0.05), 0, 100),
         y:clamp(defenderContactY + lateralSign * (advantage === 'defense' ? 0.65 : -0.25), 2, 98)};
-    const engageTime = Math.min(PLAY_TIMELINES[family].tackle - 0.12, PLAY_TIMELINES[family].snap + 0.14);
+    const engageDelay = passPlay ? 0.22 : 0.14;
+    const engageTime = Math.min(PLAY_TIMELINES[family].tackle - 0.12, PLAY_TIMELINES[family].snap + engageDelay);
     const resolveTime = Math.min(PLAY_TIMELINES[family].tackle - 0.06,
       Math.max(engageTime + 0.1, PLAY_TIMELINES[family].defenderRead
         || PLAY_TIMELINES[family].pressure || PLAY_TIMELINES[family].laneCommit
@@ -1308,8 +1500,16 @@ function buildBlockDuels(blockPairs, offenseActors, family, outcome, lane, yards
       duration: Math.max(0.1, (PLAY_TIMELINES[family].tackle || 0.85) - PLAY_TIMELINES[family].snap),
       engageTime,
       resolveTime,
-      blockerContact: {x:clamp(blocker.x + offenseDir * 0.65, 0, 100), y:blockerContactY},
-      defenderContact: {x:clamp(opponent.x - offenseDir * 0.65, 0, 100), y:defenderContactY},
+      blockerContact: isPassBlock
+        ? blockerBetweenRushAndQB(
+          {x:clamp(contactX + offenseDir*0.22, 0, 100),y:passContactY},
+          qbAnchor,
+          lineFraction
+        )
+        : {x:clamp(blocker.x + offenseDir * 0.65, 0, 100), y:blockerContactY},
+      defenderContact: isPassBlock
+        ? {x:clamp(contactX + offenseDir*0.22, 0, 100), y:passContactY}
+        : {x:clamp(opponent.x - offenseDir * 0.65, 0, 100), y:defenderContactY},
       blockerEnd,
       defenderEnd
     });
@@ -1479,6 +1679,10 @@ function buildPlaySetup(cfg){
   ctx.offensePaths = new Map();
   const applyStartDelay = actor => {
     actor.assignment = ctx.actorAssignments.get(actor.id);
+    if(ctx.offPlay.type === 'pass' && ['OL','DL'].includes(actor.role)){
+      actor.assignment.startDelay = 0;
+      return;
+    }
     const startIndex = actor.path.findIndex(point => point.t >= kf.snap);
     const nextPoint = actor.path[startIndex + 1];
     if(startIndex >= 0 && nextPoint){
