@@ -236,9 +236,8 @@ function pickDefenseReactorNear(defenseActors, targetLane, targetX){
     - Math.hypot(b.x-target, b.y-targetLane))[0];
 }
 
-// Bloqueurs qui accompagnent le porteur (screen : trois receveurs du côté
-// choisi ; courses extérieures : un tight end ou fullback). Les linemen gardent
-// leur assignment de ligne au lieu de converger vers le porteur.
+// Bloqueurs qui accompagnent le porteur : receveurs sur screen, FB et guard
+// de course sur Sweep, ou TE/FB sur les autres courses extérieures.
 function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const offense = new Map(), defense = new Map();
   if(variant !== 'screen' && variant !== 'outsideLead') return {offense, defense};
@@ -250,7 +249,9 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
       && (lane > 50 ? a.y > 50 : a.y < 50)).sort(byLane).slice(0, 3);
   } else if(offPlay && offPlay.name === 'Sweep'){
     const fb = offenseSrc.find(a => a.role === 'FB' && !excludeIds.has(a.id));
-    chosen = fb ? [fb] : [];
+    const guardY = lane > 50 ? 58 : 42;
+    const guard = offenseSrc.find(a => a.role === 'OL' && a.y === guardY && !excludeIds.has(a.id));
+    chosen = [fb, guard].filter(Boolean);
   } else {
     const te = offenseSrc.filter(a => (a.role === 'TE' || a.role === 'FB') && !excludeIds.has(a.id)).sort(byLane).slice(0, 1);
     chosen = te;
@@ -1279,8 +1280,7 @@ function passPocketTarget(blocker, offenseDir){
 }
 
 function isRunLineDuel(duel, ctx){
-  return ctx.offPlay.type === 'run' && ctx.offPlay.name !== 'Sweep'
-    && duel && duel.battleType !== 'pullBlock'
+  return ctx.offPlay.type === 'run' && duel && duel.battleType !== 'pullBlock'
     && !(ctx.escortPlan && ctx.escortPlan.has(duel.blockerId));
 }
 
@@ -1730,7 +1730,8 @@ function buildPlaySetup(cfg){
         .find(duel => duel.battleType !== 'pullBlock')
       : ctx.duelByActor.get(actor.id);
     if(['OL','DL'].includes(actor.role)
-      && (ctx.offPlay.type === 'pass' || isRunLineDuel(assignedDuel, ctx))){
+      && (ctx.offPlay.type === 'pass' || isRunLineDuel(assignedDuel, ctx)
+        || actor.role === 'OL' && ctx.escortPlan.has(actor.id))){
       actor.assignment.startDelay = 0;
       return;
     }
