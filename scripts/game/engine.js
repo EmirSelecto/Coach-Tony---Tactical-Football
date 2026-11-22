@@ -830,8 +830,17 @@ function newGame(){
 function applyTeamNamesToUI(teams){
   document.getElementById('headerTeamPlayer').textContent = teams.player.name;
   document.getElementById('headerTeamAI').textContent = teams.ai.name;
-  document.getElementById('scoreNamePlayer').textContent = t('ui.static.playerTeam', {team:teams.player.name});
-  document.getElementById('scoreNameAI').textContent = t('ui.static.aiTeam', {team:teams.ai.name});
+  const scoreNamePlayer = document.getElementById('scoreNamePlayer');
+  const scoreNameAI = document.getElementById('scoreNameAI');
+  [[scoreNamePlayer, teams.player.name], [scoreNameAI, teams.ai.name]].forEach(([element, name]) => {
+    const parts = splitTeamName(name);
+    element.querySelector('.team-city').textContent = parts.city;
+    element.querySelector('.team-mascot').textContent = parts.mascot;
+  });
+  scoreNamePlayer.title = t('ui.static.playerTeam', {team:teams.player.name});
+  scoreNameAI.title = t('ui.static.aiTeam', {team:teams.ai.name});
+  scoreNamePlayer.setAttribute('aria-label', scoreNamePlayer.title);
+  scoreNameAI.setAttribute('aria-label', scoreNameAI.title);
   const ezL = document.getElementById('endzoneLeft'), ezR = document.getElementById('endzoneRight');
   ezL.textContent = teams.player.name.toUpperCase();
   ezR.textContent = teams.ai.name.toUpperCase();
@@ -1374,7 +1383,7 @@ function showEventBanner(text, variant, durationMs, subtitle){
     : variant === 'turnover' ? 'turnover' : variant === 'firstdown' ? 'firstdown' : 'impact';
   showMatchCutin(type, text, game.possession, subtitle || '', null, {
     durationMs:durationMs || BALANCE.eventBanner.durationMs,
-    shake:false
+    shake:false, bigPlay:variant === 'bigPlay'
   });
 }
 function triggerScoreCelebration(side){
@@ -1519,7 +1528,7 @@ function applyEventFeedback(offenseSide, context, tactical){
     if(result.outcome !== 'sack'){
       showMatchCutin('impact', t('game.banners.bigPlay'), offenseSide, '',
         result.yards >= BALANCE.eventThresholds.bigPlay.minYards ? 'smirking' : null,
-        {durationMs:BALANCE.eventBanner.durationMs, shake:false});
+        {durationMs:BALANCE.eventBanner.durationMs, shake:false, bigPlay:true});
     }
     celebrate('bigPlay', offenseSide, game.visualBallX);
     AudioManager.play('bigPlay');

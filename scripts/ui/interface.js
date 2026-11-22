@@ -8,9 +8,17 @@ function fmtClock(s){
 }
 
 function render(){
-  document.getElementById('scorePlayer').textContent = game.scorePlayer;
-  document.getElementById('scoreAI').textContent = game.scoreAI;
-  document.getElementById('quarterLabel').textContent = game.quarter >= 5 ? t('ui.status.overtime') : t('ui.status.quarter', {quarter:game.quarter});
+  const scorePlayer = document.getElementById('scorePlayer');
+  const scoreAI = document.getElementById('scoreAI');
+  scorePlayer.textContent = game.scorePlayer;
+  scoreAI.textContent = game.scoreAI;
+  scorePlayer.dataset.digits = String(game.scorePlayer).length;
+  scoreAI.dataset.digits = String(game.scoreAI).length;
+  const quarterLabel = document.getElementById('quarterLabel');
+  const quarterDescription = game.quarter >= 5 ? t('ui.status.overtime') : t('ui.status.quarter', {quarter:game.quarter});
+  quarterLabel.textContent = t(game.quarter >= 5 ? 'ui.status.scoreboardOvertime' : `ui.status.scoreboardQuarter${game.quarter}`);
+  quarterLabel.setAttribute('aria-label', quarterDescription);
+  quarterLabel.title = quarterDescription;
   document.getElementById('clockLabel').textContent = fmtClock(game.clock);
   const toMax = game.quarter >= 5 ? BALANCE.overtime.timeouts : BALANCE.timeoutsPerHalf;
   const toTxt = n => '\u25CF'.repeat(Math.max(0, n)) + '\u25CB'.repeat(Math.max(0, toMax - n));

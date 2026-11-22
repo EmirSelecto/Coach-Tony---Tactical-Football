@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/main.css?v=manga-commentator-1">
 </head>
 <body>
 <div class="wrap game-shell">
@@ -24,7 +24,7 @@
       <div class="field-markings" id="fieldMarkings"></div>
       <div class="marker" id="firstDownMarker" role="img" aria-label="Ligne à gagner"></div>
       <div class="los-line" id="scrimmageLine" role="img" aria-label="Ligne de scrimmage"></div>
-      <div class="ball" id="ballMarker"></div>
+      <div class="ball-flight" id="ballMarker"></div>
     </div>
   </div>
 
@@ -49,21 +49,34 @@
 
     <div class="scoreboard">
       <div class="team-score player">
+        <div class="team-banner-halftone" aria-hidden="true"></div>
         <img class="team-logo" id="scoreLogoPlayer" alt="">
-        <div class="name" id="scoreNamePlayer" data-text="ui.static.playerTeam" data-text-values='{"team":"Comètes"}'>Comètes (vous)</div>
-        <div class="val" id="scorePlayer">0</div>
-        <div class="timeouts" id="toPlayer" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+        <div class="team-content">
+          <div class="name" id="scoreNamePlayer"><span class="team-city"></span><span class="team-mascot" data-text="ui.static.playerTeamName">Comètes</span></div>
+          <div class="timeouts" id="toPlayer" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+        </div>
+      </div>
+      <div class="score-tile player">
+        <div class="score-upright"><div class="val" id="scorePlayer">0</div></div>
       </div>
       <div class="clockbox">
-        <div class="quarter" id="quarterLabel" data-text="ui.static.quarterFirst">1er quart-temps</div>
+        <span class="clock-chevron left" aria-hidden="true">❮</span>
+        <div class="quarter" id="quarterLabel" data-text="ui.status.scoreboardQuarter1">1st QTR</div>
         <div class="time" id="clockLabel">05:00</div>
         <div class="clock-state" id="clockState"></div>
+        <div class="broadcast-badge" data-text="ui.static.liveBroadcast">LIVE BROADCAST</div>
+        <span class="clock-chevron right" aria-hidden="true">❯</span>
+      </div>
+      <div class="score-tile ai">
+        <div class="score-upright"><div class="val" id="scoreAI">0</div></div>
       </div>
       <div class="team-score ai">
+        <div class="team-banner-halftone" aria-hidden="true"></div>
         <img class="team-logo" id="scoreLogoAI" alt="">
-        <div class="name" id="scoreNameAI" data-text="ui.static.aiTeam" data-text-values='{"team":"Loups de Fer"}'>Loups de Fer (IA)</div>
-        <div class="val" id="scoreAI">0</div>
-        <div class="timeouts" id="toAI" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+        <div class="team-content">
+          <div class="name" id="scoreNameAI"><span class="team-city"></span><span class="team-mascot" data-text="ui.static.aiTeamName">Loups de Fer</span></div>
+          <div class="timeouts" id="toAI" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
+        </div>
       </div>
     </div>
 
@@ -80,7 +93,8 @@
     </div>
 
     <div class="situation">
-      <div class="situation-main"><span class="poss-tag" id="possTag">—</span><b id="downStatus">1st DOWN</b><b id="downDistance">10 YDS TO GO</b><span class="spot-separator"> · </span><span class="spot-caption">ballon à</span> <b id="ballSpotLabel">--</b></div>
+      <b id="downStatus">1st DOWN</b>
+      <div class="situation-main"><span class="poss-tag" id="possTag">—</span><b id="downDistance">10 YDS TO GO</b><span class="spot-separator"> · </span><span class="spot-caption">ballon à</span> <b id="ballSpotLabel">--</b></div>
       <div id="situationExtra"></div>
     </div>
     <div class="phase-indicator" id="playPhaseBar" aria-live="polite" tabindex="-1">
@@ -88,8 +102,10 @@
     </div>
 
     <div class="result-box commentator-bubble" id="resultBox" aria-live="polite">
+      <div class="commentator-frame" aria-hidden="true"></div>
+      <div class="commentator-label" data-text="ui.static.liveCommentary" aria-hidden="true">LIVE COMMENTARY // COMMENTAIRE</div>
       <img class="commentator-portrait" src="assets/images/commentator-manga.svg" alt="" aria-hidden="true">
-      <div class="result-copy">
+      <div class="result-copy" tabindex="0">
         <div class="headline" data-text="ui.static.openingHeadline">Coup d'envoi</div>
         <div class="explain" data-text="ui.static.openingExplain">Choisissez votre premier appel offensif pour lancer la partie.</div>
         <div class="commentary" id="resultCommentary"></div>
@@ -222,6 +238,6 @@
 </div>
 
 
-  <script src="scripts/loader.js"></script>
+  <script src="scripts/loader.js?v=manga-commentator-1"></script>
 </body>
 </html>

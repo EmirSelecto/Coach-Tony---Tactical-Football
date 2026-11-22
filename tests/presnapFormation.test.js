@@ -23,9 +23,15 @@ function createHarness(){
     fillText(text, x, y){ labels.push({text, x, y, border:this.strokeStyle}); }
   };
   const children = [];
+  const fieldClasses = new Set();
   const field = {
     appendChild(el){ children.push(el); el.remove = () => children.splice(children.indexOf(el), 1); },
     querySelectorAll(){ return [...children]; },
+    classList:{
+      add:name => fieldClasses.add(name),
+      remove:name => fieldClasses.delete(name),
+      contains:name => fieldClasses.has(name)
+    },
     getBoundingClientRect:() => ({left:0, top:0, width:800, height:400})
   };
   const canvas = {getContext:() => context};
@@ -50,7 +56,7 @@ function createHarness(){
   };
   const window = {
     devicePixelRatio:1, addEventListener(){}, renderAnimeVFX:() => false,
-    TeamArt:{getTeamLogoCanvas:() => ({}), getSpriteCanvas:() => ({})}
+    TeamArt:{getTeamLogoCanvas:() => ({}), getSpriteCanvas:() => { throw Error('Unexpected sprite rendering'); }}
   };
   const sandbox = vm.createContext({
     window, document, game, PlayAnimationController:{_setup:null},
@@ -60,8 +66,22 @@ function createHarness(){
     requestAnimationFrame:() => 1, setTimeout(){}
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'players.js'), 'utf8'), sandbox);
-  return {sandbox, game, children, labels, strokes, gradients};
+  return {sandbox, game, children, labels, strokes, gradients, field};
 }
+
+test('team names keep multiword cities and mascots when split for display', () => {
+  const {sandbox} = createHarness();
+  for(const [name, city, mascot] of [
+    ['Pinecrest Stags', 'Pinecrest', 'Stags'],
+    ['Grand Mesa Mustangs', 'Grand Mesa', 'Mustangs'],
+    ['Aurora Northern Lights', 'Aurora', 'Northern Lights'],
+    ['Comètes', '', 'Comètes']
+  ]){
+    const parts = sandbox.splitTeamName(name);
+    assert.equal(parts.city, city);
+    assert.equal(parts.mascot, mascot);
+  }
+});
 
 test('choice formations draw 22 distinct players around the scrimmage for both possessions', () => {
   const h = createHarness();
@@ -136,4 +156,11 @@ test('repeated choice rendering preserves the formation and a changed spot repla
   h.sandbox.ensureChoiceFormation();
   assert.equal(h.children.length, 22);
   assert.notEqual(h.children[0], first);
+});
+
+test('clearing an animation restores the stationary ball', () => {
+  const h = createHarness();
+  h.field.classList.add('ball-in-play');
+  h.sandbox.clearTempPlayers();
+  assert.equal(h.field.classList.contains('ball-in-play'), false);
 });

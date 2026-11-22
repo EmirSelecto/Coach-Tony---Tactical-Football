@@ -60,6 +60,8 @@ Les types disponibles sont `touchdown`, `fieldgoal`, `turnover`, `impact` et
 Les événements successifs sont affichés dans l'ordre ; la sélection d'un nouveau
 play efface les annonces en attente. Le portrait suit l'événement affiché, puis
 revient à l'expression neutre lorsque le choix suivant est disponible.
+Le bloc du commentateur associe portrait animé, onglet « LIVE COMMENTARY » et
+encadrement manga biseauté.
 Les tests ciblés du cut-in se lancent avec `node --test tests/animeCutin.test.js`.
 Les pictogrammes vectoriels réutilisables sont dans
 `assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
@@ -69,6 +71,11 @@ L’écran de match utilise le stade comme scène plein écran. Le terrain conse
 un ratio de 120 par 53,3 (environ 2,25:1) ; les zones restantes représentent les
 tribunes et l’enceinte. Le tableau de score et la situation tactique restent en
 surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
+Le tableau de score adopte un style manga angulaire : bordures polygonales
+asymétriques, ailes en perspective, logos débordants, scores aux couleurs des
+équipes, horloge ambrée sombre et bandeau de situation contrasté. Sur les
+écrans très étroits, les noms longs peuvent être tronqués visuellement ; leur
+nom complet reste disponible aux lecteurs d’écran.
 Les marqueurs des joueurs sont agrandis pour rester lisibles à cette échelle.
 Le panneau des tendances tactiques est accessible depuis la rangée de gestion
 du play, à côté du temps mort et du tempo.

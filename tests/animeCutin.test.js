@@ -42,7 +42,7 @@ function createHarness(){
     }
   };
   const context = vm.createContext({
-    window, document, game:{phase:'playing', gameOver:false, playLocked:false},
+    window, document, game:{phase:'playing', gameOver:false, playLocked:false, possession:'player'},
     setTimeout(callback, delay){
       const id = nextTimer++;
       timers.set(id, {at:now + delay, callback});
@@ -54,9 +54,10 @@ function createHarness(){
   const engine = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'game', 'engine.js'), 'utf8');
   context.teamNameOf = () => 'Team';
   context.ENDZONE_WIDTH_RATIO = 1 / 11.6;
+  context.BALANCE = {eventBanner:{durationMs:1400}};
   const vfx = [];
   window.triggerAnimeVFX = (...args) => vfx.push(args);
-  vm.runInContext(engine.slice(engine.indexOf('function showMatchCutin('), engine.indexOf('function showEventBanner(')), context);
+  vm.runInContext(engine.slice(engine.indexOf('function showMatchCutin('), engine.indexOf('function triggerScoreCelebration(')), context);
   const advance = ms => {
     const target = now + ms;
     while(true){
@@ -134,4 +135,20 @@ test('queued cut-ins start effects with captured coordinates only when displayed
   h.window.cancelAnimeCutins();
   h.advance(5000);
   assert.equal(h.vfx.length, 2);
+});
+
+test('big play size follows queued announcements and does not leak to other events', () => {
+  const h = createHarness();
+  h.context.showEventBanner('BIG PLAY', 'bigPlay');
+  h.window.showAnimeCutin('impact', 'SACK', '', 'Team', {queue:true});
+  assert.equal(h.overlay.classList.contains('cutin-bigplay'), true);
+  h.advance(1400);
+  assert.equal(h.title.textContent, 'SACK');
+  assert.equal(h.overlay.classList.contains('cutin-bigplay'), false);
+
+  h.context.showEventBanner('FAKE FIELD GOAL', 'bigPlay');
+  h.advance(1400);
+  assert.equal(h.overlay.classList.contains('cutin-bigplay'), true);
+  h.window.cancelAnimeCutins();
+  assert.equal(h.overlay.classList.contains('cutin-bigplay'), false);
 });

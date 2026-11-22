@@ -1979,6 +1979,8 @@ const PlayAnimationController = {
     const center = setup.actorsById[setup.centerId];
     ballState = {x:center ? center.x : (qb ? qb.x : cfg.preSnapSpot), y:center ? center.y : (qb ? qb.y : 50),
       mode:'preSnap', carrierId:center ? setup.centerId : null, visible:true, element:ballEl, arcOffset:0, angle:0};
+    renderBall();
+    field.classList.add('ball-in-play');
     this._lastCarrierId = ballState.carrierId;
     if(ballState.carrierId) this._possessionLog.push('Center ' + ballState.carrierId);
     animDebugAssert(ballState.carrierId === setup.centerId, 'avant le snap, le Center doit porter le ballon');
@@ -2364,6 +2366,8 @@ function runKickPlayAnimation(cfg, onComplete){
   ballEl.className = 'ball-flight temp-player';
   field.appendChild(ballEl);
   ballState = {x:cfg.preSnapSpot, y:50, mode:'held', carrierId:null, visible:true, element:ballEl, arcOffset:0, angle:0};
+  renderBall();
+  field.classList.add('ball-in-play');
 
   let targetX = cfg.type === 'fieldGoal' ? (offenseDir === 1 ? 110 : -10) : cfg.newPos;
   let missDeviation = 0;
@@ -3042,6 +3046,7 @@ function setResult(headline, explain, commentary){
   const box = document.getElementById('resultBox');
   box.querySelector('.headline').textContent = headline;
   box.querySelector('.explain').textContent = explain;
+  box.querySelector('.result-copy').scrollTop = 0;
   const c = document.getElementById('resultCommentary');
   if(commentary){
     c.textContent = commentary;

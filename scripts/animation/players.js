@@ -2,6 +2,7 @@ function clearTempPlayers(){
   const field = document.getElementById('field');
   if(!field) return;
   field.querySelectorAll('.temp-player').forEach(el => el.remove());
+  field.classList.remove('ball-in-play');
   choiceFormationKey = null;
   if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
@@ -179,6 +180,15 @@ function refreshTacticalCanvas(){
   });
 }
 
+function splitTeamName(name){
+  const parts = name.trim().split(/\s+/);
+  const mascotWords = name === 'Aurora Northern Lights' ? 2 : 1;
+  return {
+    city:parts.slice(0, -mascotWords).join(' '),
+    mascot:parts.slice(-mascotWords).join(' ')
+  };
+}
+
 function renderTacticalCanvas(){
   const field = document.getElementById('field');
   const canvas = document.getElementById('tacticalCanvas');
@@ -216,9 +226,9 @@ function renderTacticalCanvas(){
     const mascotTextCenterX = centerX + inward * endzoneWidth * 0.17;
     const cityTextCenterX = centerX - inward * endzoneWidth * 0.14;
     const logoCenterY = height * 0.18;
-    const nameParts = team.name.toUpperCase().split(/\s+/);
-    const city = team.name === 'Aurora Northern Lights' ? nameParts[0] : nameParts.slice(0, -1).join(' ');
-    const mascot = team.name === 'Aurora Northern Lights' ? nameParts.slice(1).join(' ') : nameParts[nameParts.length - 1];
+    const name = splitTeamName(team.name);
+    const city = name.city.toUpperCase();
+    const mascot = name.mascot.toUpperCase();
     const rgb = team.color.match(/^#([0-9a-f]{6})$/i);
     if(!rgb) throw new Error(`Couleur d’équipe invalide pour l’end zone : "${team.color}".`);
     const hex = rgb[1];
@@ -484,18 +494,6 @@ function renderTacticalCanvas(){
     context.restore();
   });
 
-  const football = window.TeamArt.getSpriteCanvas('football');
-  if(typeof ballState !== 'undefined' && ballState.visible && setup){
-    const ballX = fx(ballState.x) / 100 * width, ballY = ballState.y / 100 * height;
-    context.drawImage(football, ballX - 8, ballY - 4, 16, 8);
-  } else if(teams && game){
-    const ballX = Number.isFinite(game.visualBallX) ? game.visualBallX : 50;
-    context.save();
-    context.shadowColor = 'rgba(255,215,112,0.85)';
-    context.shadowBlur = width * 0.008;
-    context.drawImage(football, fx(ballX) / 100 * width - 8, height / 2 - 4, 16, 8);
-    context.restore();
-  }
   if(window.renderAnimeVFX(bounds, now)) refreshTacticalCanvas();
   if(!setup && game && game.playLocked && formationDots.offense.length){
     setTimeout(refreshTacticalCanvas, 80);

@@ -36,13 +36,13 @@
     clearTimeout(exitTimer);
     clearTimeout(hideTimer);
     clearTimeout(shakeTimer);
-    overlay.classList.remove('is-active', 'is-exiting', ...Object.keys(themes).map(theme => `cutin-${theme}`));
+    overlay.classList.remove('is-active', 'is-exiting', 'cutin-bigplay', ...Object.keys(themes).map(theme => `cutin-${theme}`));
     stadium.classList.remove('screen-shake');
   };
 
   function displayCutin(cutin){
-    const {type, title, subtitle, team, logoUrl, duration, shake, onStart} = cutin;
-    overlay.classList.remove('is-active', 'is-exiting', ...Object.keys(themes).map(theme => `cutin-${theme}`));
+    const {type, title, subtitle, team, logoUrl, duration, shake, bigPlay, onStart} = cutin;
+    overlay.classList.remove('is-active', 'is-exiting', 'cutin-bigplay', ...Object.keys(themes).map(theme => `cutin-${theme}`));
     stadium.classList.remove('screen-shake');
     clearTimeout(shakeTimer);
     void overlay.offsetWidth;
@@ -54,6 +54,7 @@
     overlay.style.setProperty('--team-secondary', team.secondary);
     overlay.classList.add(`cutin-${type}`, 'is-active');
     if(type === 'fieldgoal') overlay.classList.add('cutin-touchdown');
+    if(bigPlay) overlay.classList.add('cutin-bigplay');
     if(onStart) onStart();
     if(shake){
       stadium.classList.add('screen-shake');
@@ -77,7 +78,8 @@
     const duration = options.durationMs === undefined ? themes[type].duration : options.durationMs;
     if(!Number.isFinite(duration) || duration < 200) throw new RangeError('La durée du cut-in doit être au moins de 200 ms.');
     const cutin = {type, title, subtitle, team, logoUrl, duration,
-      shake:options.shake === undefined ? themes[type].shake : options.shake, onStart:options.onStart};
+      shake:options.shake === undefined ? themes[type].shake : options.shake,
+      bigPlay:options.bigPlay, onStart:options.onStart};
     if(options.queue && overlay.classList.contains('is-active')) queue.push(cutin);
     else {
       if(!options.queue) window.cancelAnimeCutins();
