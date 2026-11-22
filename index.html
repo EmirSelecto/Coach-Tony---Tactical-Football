@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=manga-commentator-1">
+  <link rel="stylesheet" href="styles/main.css?v=manga-commentator-3">
 </head>
 <body>
 <div class="wrap game-shell">
@@ -102,13 +102,26 @@
     </div>
 
     <div class="result-box commentator-bubble" id="resultBox" aria-live="polite">
-      <div class="commentator-frame" aria-hidden="true"></div>
-      <div class="commentator-label" data-text="ui.static.liveCommentary" aria-hidden="true">LIVE COMMENTARY // COMMENTAIRE</div>
-      <img class="commentator-portrait" src="assets/images/commentator-manga.svg" alt="" aria-hidden="true">
-      <div class="result-copy" tabindex="0">
-        <div class="headline" data-text="ui.static.openingHeadline">Coup d'envoi</div>
-        <div class="explain" data-text="ui.static.openingExplain">Choisissez votre premier appel offensif pour lancer la partie.</div>
-        <div class="commentary" id="resultCommentary"></div>
+      <div class="commentator-portrait-wrapper" aria-hidden="true">
+        <div class="commentator-portrait-card">
+          <div class="commentator-card-frame">
+            <div class="commentator-halftone"></div>
+          </div>
+        </div>
+        <div class="commentator-portrait-window">
+          <img class="commentator-portrait" src="assets/images/commentator-manga.svg" alt="">
+        </div>
+      </div>
+      <div class="commentator-dialogue-card">
+        <div class="commentator-card-frame" aria-hidden="true">
+          <div class="commentator-halftone"></div>
+        </div>
+        <div class="commentator-label" data-text="ui.static.liveCommentary" aria-hidden="true">LIVE COMMENTARY // COMMENTAIRE</div>
+        <div class="result-copy" tabindex="0">
+          <div class="headline" data-text="ui.static.openingHeadline">Coup d'envoi</div>
+          <div class="explain" data-text="ui.static.openingExplain">Choisissez votre premier appel offensif pour lancer la partie.</div>
+          <div class="commentary" id="resultCommentary"></div>
+        </div>
       </div>
     </div>
 

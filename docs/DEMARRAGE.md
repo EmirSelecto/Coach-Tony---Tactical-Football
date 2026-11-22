@@ -60,8 +60,8 @@ Les types disponibles sont `touchdown`, `fieldgoal`, `turnover`, `impact` et
 Les événements successifs sont affichés dans l'ordre ; la sélection d'un nouveau
 play efface les annonces en attente. Le portrait suit l'événement affiché, puis
 revient à l'expression neutre lorsque le choix suivant est disponible.
-Le bloc du commentateur associe portrait animé, onglet « LIVE COMMENTARY » et
-encadrement manga biseauté.
+Le bloc du commentateur associe un portrait animé et une boîte de dialogue dans
+deux panneaux manga en perspective, avec l'onglet « LIVE COMMENTARY ».
 Les tests ciblés du cut-in se lancent avec `node --test tests/animeCutin.test.js`.
 Les pictogrammes vectoriels réutilisables sont dans
 `assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
