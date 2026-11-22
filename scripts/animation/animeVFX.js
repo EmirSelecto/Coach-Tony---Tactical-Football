@@ -9,16 +9,26 @@
     INTERCEPTION:['#E45DFF', '#63E7FF'],
     SACK:['#FFB23F', '#FFF1AA']
   };
-  let flashTimer;
+  let flashTimer, crowdTimer;
 
   window.clearAnimeVFX = function(){
     effects.length = 0;
     clearTimeout(flashTimer);
-    flashes.classList.remove('anime-vfx-flash');
+    clearTimeout(crowdTimer);
+    flashes.classList.remove('anime-vfx-flash', 'crowd-celebrating');
     const context = canvas.getContext('2d');
     if(!context) throw new Error('Impossible de nettoyer le canvas des effets anime.');
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  window.triggerCrowdCelebration = function(){
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    clearTimeout(crowdTimer);
+    flashes.classList.remove('crowd-celebrating');
+    void flashes.offsetWidth;
+    flashes.classList.add('crowd-celebrating');
+    crowdTimer = setTimeout(() => flashes.classList.remove('crowd-celebrating'), 2000);
   };
 
   window.triggerAnimeVFX = function(type, x, y, teamColors){

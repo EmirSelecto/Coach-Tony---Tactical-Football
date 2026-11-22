@@ -62,16 +62,22 @@ play efface les annonces en attente. Le portrait suit l'événement affiché, pu
 revient à l'expression neutre lorsque le choix suivant est disponible.
 Le bloc du commentateur associe un portrait animé et une boîte de dialogue dans
 deux panneaux manga en perspective, avec l'onglet « LIVE COMMENTARY ». Le
-portrait, les commentaires et le Playbook sont alignés en bas de l'écran.
+portrait agrandi passe devant le bord des commentaires, tandis que le Playbook
+reste aligné à droite en bas de l'écran.
 Les tests ciblés du cut-in se lancent avec `node --test tests/animeCutin.test.js`.
 Les pictogrammes vectoriels réutilisables sont dans
 `assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
 est une création originale destinée à accompagner les commentaires.
+En cas d'échec de sauvegarde, un avertissement apparaît sous les commandes en
+haut à droite.
 
 L’écran de match utilise le stade comme scène plein écran. Le terrain conserve
 un ratio de 120 par 53,3 (environ 2,25:1) ; les zones restantes représentent les
 tribunes et l’enceinte. Le tableau de score et la situation tactique restent en
 surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
+Les tribunes et les projecteurs prennent les couleurs primaires des deux équipes
+sans teinter la pelouse. Les flashs du public accélèrent pendant deux secondes
+lors des touchdowns et des gros jeux, sauf si les animations sont réduites.
 Le tableau de score adopte un style manga angulaire : bordures polygonales
 asymétriques, ailes en perspective, logos débordants, scores aux couleurs des
 équipes, horloge ambrée sombre et bandeau de situation contrasté. Sur les
@@ -94,7 +100,9 @@ Leurs fiches affichent les forces et faiblesses générales ; lorsqu'elles
 varient selon la direction, les fiches suivantes présentent les valeurs propres
 à chaque direction. Chaque carte comporte un schéma tactique ; les variantes
 directionnelles affichent leur tracé correspondant.
-En 4e tentative, le punt est proposé à côté des deux catégories offensives.
+En 4e tentative, le field goal (si sa distance le permet), son pourcentage de
+réussite, puis le punt précèdent les deux catégories offensives ; le fake field
+goal, disponible à la même distance que le field goal, vient en dernier.
 En défense, les appels sont regroupés par pression, couverture ou défense contre
 la course. Les cartes défilent horizontalement ; la molette permet de parcourir
 la rangée. Les commandes de l'en-tête passent à la ligne lorsque nécessaire,

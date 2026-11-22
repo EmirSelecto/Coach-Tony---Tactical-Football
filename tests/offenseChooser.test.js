@@ -7,7 +7,8 @@ const vm = require('node:vm');
 function createHarness(){
   const document = {activeElement:null};
   class Element {
-    constructor(){
+    constructor(tagName = ''){
+      this.tagName = tagName;
       this.children = [];
       this.dataset = {};
       this.attributes = {};
@@ -25,14 +26,14 @@ function createHarness(){
     querySelectorAll(selector){
       const className = selector.slice(1);
       return this.children.flatMap(child => [
-        ...(child.className.split(' ').includes(className) ? [child] : []),
+        ...((selector.startsWith('.') ? child.className.split(' ').includes(className) : child.tagName === selector) ? [child] : []),
         ...child.querySelectorAll(selector)
       ]);
     }
     querySelector(selector){ return this.querySelectorAll(selector)[0] || null; }
   }
-  document.createElement = () => new Element();
-  document.createElementNS = () => new Element();
+  document.createElement = tag => new Element(tag);
+  document.createElementNS = (namespace, tag) => new Element(tag);
   const navigation = new Element();
   document.getElementById = id => id === 'playbookNavigation' ? navigation : null;
   const ui = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'json', 'ui.json'), 'utf8'));
@@ -46,6 +47,9 @@ function createHarness(){
     document, t,
     game:{down:1},
     playerAttemptPunt:() => { context.puntCalled = true; },
+    playerAttemptFieldGoal:() => { context.fieldGoalCalled = true; },
+    attemptFakeFieldGoal:() => { context.fakeCalled = true; },
+    getFieldGoalSuccessChance:distance => distance === 42 ? 0.854 : 0,
     playLabel:name => playbook.offenseNames[name] || playbook.defenseNames[name],
     dirLabel:direction => playbook.directions[direction],
     offenseCardText:(name, play) => `Fiche ${name} ${play.direction}`,
@@ -60,19 +64,59 @@ function createHarness(){
   return {context, document, navigation, chooser:new Element(), plays};
 }
 
-test('punt appears alongside offensive categories only on fourth down and triggers the punt', () => {
+test('fourth-down choices show the available field goal and punt before offensive categories', () => {
   const {context, chooser} = createHarness();
-  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'));
+  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'), 42);
   let buttons = chooser.querySelectorAll('.choice-category');
   assert.deepEqual(buttons.map(button => button.children[1].textContent), ['JEU AU SOL', 'JEU DE PASSE']);
 
   chooser.innerHTML = '';
   context.game.down = 4;
-  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'));
+  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'), 42);
   buttons = chooser.querySelectorAll('.choice-category');
-  assert.deepEqual(buttons.map(button => button.children[1].textContent), ['JEU AU SOL', 'JEU DE PASSE', 'Punt']);
-  buttons[2].click();
+  assert.deepEqual(buttons.map(button => button.children[1].textContent), ['FG', 'Punt', 'JEU AU SOL', 'JEU DE PASSE', 'Fake Field Goal (risqué)']);
+  assert.equal(buttons[0].querySelector('.field-goal-detail').textContent, '85 % · 42 yd');
+  assert.equal(buttons[0].attributes['aria-label'], 'Field Goal (42y, 85%)');
+  buttons[0].click();
+  assert.equal(context.fieldGoalCalled, true);
+  buttons[1].click();
   assert.equal(context.puntCalled, true);
+  buttons[4].click();
+  assert.equal(context.fakeCalled, true);
+
+  chooser.innerHTML = '';
+  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'), null);
+  buttons = chooser.querySelectorAll('.choice-category');
+  assert.deepEqual(buttons.map(button => button.children[1].textContent), ['Punt', 'JEU AU SOL', 'JEU DE PASSE']);
+});
+
+test('field goal and fake are available together in the choices, never the toolbar', () => {
+  for(const [distance, available] of [[42, true], [71, false]]){
+    const {context, navigation, chooser, document} = createHarness();
+    const toolbar = document.createElement('div');
+    const panel = {querySelector:() => toolbar, classList:{toggle(){}}};
+    const elements = {controlsPanel:panel, controlsBody:chooser, playbookNavigation:navigation, playPhaseLabel:{}};
+    document.getElementById = id => elements[id] || null;
+    context.window.resetCommentatorForChoice = () => {};
+    context.ensureChoiceFormation = () => {};
+    context.buildClockControls = () => document.createElement('div');
+    context.buildContext = () => ({});
+    context.computeKickDistance = () => distance;
+    context.BALANCE = {fieldGoal:{availableMaxDistance:70}};
+    context.playerCallOffense = () => {};
+    context.attemptFakeFieldGoal = () => { context.fakeCalled = true; };
+    Object.assign(context.game, {phase:'playing', possession:'player', down:4});
+    context.renderControls();
+    assert.equal(!!chooser.querySelector('.field-goal-detail'), available);
+    assert.equal(toolbar.querySelector('.fourth-down-actions'), null);
+    const buttons = chooser.querySelectorAll('.choice-category');
+    assert.equal(buttons.some(button => button.dataset.category === 'fake-field-goal'), available);
+    if(available){
+      assert.equal(buttons[buttons.length - 1].dataset.category, 'fake-field-goal');
+      buttons[buttons.length - 1].click();
+      assert.equal(context.fakeCalled, true);
+    }
+  }
 });
 
 test('playbook renders both possessions without the removed offensive or defensive heading', () => {

@@ -8,12 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=landscape-hud-3">
+  <link rel="stylesheet" href="styles/main.css?v=stadium-crowd-1">
 </head>
 <body>
 <div class="wrap game-shell">
   <div class="field-outer" id="fieldOuter">
-    <div class="stadium-team-tints" aria-hidden="true"></div>
+    <div class="stadium-crowd-tint" aria-hidden="true"></div>
+    <div class="stadium-crowd-glow" aria-hidden="true"></div>
     <div class="stadium-flashes" aria-hidden="true"></div>
     <canvas class="anime-vfx-canvas" id="animeVfxCanvas" aria-hidden="true"></canvas>
     <div class="field" id="field">
@@ -41,12 +42,6 @@
   </div>
 
   <main class="game-overlay">
-    <div class="hud-brand">
-      <div class="brand">Coach Tony <span>- Tactical Football</span></div>
-      <div class="team-line"><span id="headerTeamPlayer">Comètes</span> <span data-text="ui.static.versus">vs</span> <span id="headerTeamAI">Loups de Fer</span></div>
-      <div class="tag"><span id="versionTag"></span><span id="saveStatus" class="save-status"></span></div>
-    </div>
-
     <div class="scoreboard">
       <div class="team-score player">
         <div class="team-banner-halftone" aria-hidden="true"></div>
@@ -90,6 +85,7 @@
       <button class="icon-button music-toggle" id="musicToggle" type="button" aria-label="Activer la musique" title="Activer la musique" aria-pressed="false">
         <svg aria-hidden="true"><use href="assets/images/ui-icons.svg#music"></use></svg>
       </button>
+      <span id="saveStatus" class="save-status" role="status"></span>
     </div>
 
     <div class="situation">
@@ -269,6 +265,6 @@
 </div>
 
 
-  <script src="scripts/loader.js?v=landscape-hud-1"></script>
+  <script src="scripts/loader.js?v=stadium-crowd-1"></script>
 </body>
 </html>

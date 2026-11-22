@@ -1,6 +1,6 @@
 (async function loadGame(){
-  const celebrationVersion = '?v=match-celebration-1';
-  const playbookVersion = '?v=landscape-hud-1';
+  const celebrationVersion = '?v=stadium-crowd-1';
+  const playbookVersion = '?v=hud-cleanup-1';
   const modalVersion = '?v=manga-modal-3';
   const catalogs = [
     'ui',
@@ -67,9 +67,9 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/game/engine.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
+        script.src = src + (['scripts/game/engine.js', 'scripts/animation/animeVFX.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
           src === 'scripts/game/plays.js' ? modalVersion :
-          ['scripts/ui/playDiagrams.js', 'scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
+          ['scripts/services/save.js', 'scripts/ui/playDiagrams.js', 'scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
           '');
         script.async = false;
         script.onload = resolve;

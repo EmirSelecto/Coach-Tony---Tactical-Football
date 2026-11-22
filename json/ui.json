@@ -171,6 +171,8 @@
     "offenseTitle": "Appel offensif",
     "defenseTitle": "Appel défensif",
     "fieldGoal": "Field Goal ({yards}y, {chance}%)",
+    "fieldGoalShort": "FG",
+    "fieldGoalDetail": "{chance} % · {yards} yd",
     "fakeFieldGoal": "Fake Field Goal (risqué)",
     "punt": "Punt",
     "runs": "Jeux au sol",

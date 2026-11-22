@@ -111,8 +111,6 @@ function renderControls(){
   const toolbar = panel.querySelector('.playbook-toolbar');
   const previousClockControls = toolbar.querySelector('.clock-controls');
   if(previousClockControls) previousClockControls.remove();
-  const previousFourthDown = toolbar.querySelector('.fourth-down-actions');
-  if(previousFourthDown) previousFourthDown.remove();
   document.getElementById('playbookNavigation').innerHTML = '';
   body.innerHTML = '';
   panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
@@ -127,26 +125,15 @@ function renderControls(){
   toolbar.appendChild(buildClockControls(playerOnOffense));
 
   if(playerOnOffense){
-    // 4e tentative : proposer les field goals en plus des appels.
+    let fieldGoalDistance = null;
     if(game.down === 4){
       const context = buildContext('player');
       const kickDistance = computeKickDistance(context);
       if(kickDistance <= BALANCE.fieldGoal.availableMaxDistance){
-        const row = document.createElement('div');
-        row.className = 'action-row fourth-down-actions';
-        const chance = Math.round(getFieldGoalSuccessChance(kickDistance) * 100);
-        const fg = document.createElement('button');
-        fg.className = 'action-btn'; fg.textContent = t('ui.playControls.fieldGoal', {yards:kickDistance, chance});
-        fg.onclick = playerAttemptFieldGoal;
-        row.appendChild(fg);
-        const fake = document.createElement('button');
-        fake.className = 'action-btn secondary'; fake.textContent = t('ui.playControls.fakeFieldGoal');
-        fake.onclick = attemptFakeFieldGoal;
-        row.appendChild(fake);
-        toolbar.appendChild(row);
+        fieldGoalDistance = kickDistance;
       }
     }
-    renderOffenseButtons(body, playerCallOffense);
+    renderOffenseButtons(body, playerCallOffense, fieldGoalDistance);
   } else {
     renderDefenseButtons(body, playerCallDefense);
   }
@@ -257,20 +244,34 @@ function buildClockControls(onOffense){
   return wrap;
 }
 
-function renderOffenseButtons(container, onPick){
+function renderOffenseButtons(container, onPick, fieldGoalDistance){
   const chooser = document.createElement('div');
   chooser.className = 'play-chooser';
   const categories = document.createElement('div');
   categories.className = 'choice-categories playbook-cards-row offense-categories';
   categories.setAttribute('role', 'group');
   categories.setAttribute('aria-label', t('ui.playControls.chooseYourPlay'));
+  if(game.down === 4){
+    categories.className += ' fourth-down-categories';
+    if(fieldGoalDistance != null){
+      categories.className += ' has-field-goal';
+      const chance = Math.round(getFieldGoalSuccessChance(fieldGoalDistance) * 100);
+      const fieldGoal = createChoiceCategory(t('ui.playControls.fieldGoalShort'), 'field-goal', playerAttemptFieldGoal);
+      fieldGoal.setAttribute('aria-label', t('ui.playControls.fieldGoal', {yards:fieldGoalDistance, chance}));
+      const detail = document.createElement('small');
+      detail.className = 'field-goal-detail';
+      detail.textContent = t('ui.playControls.fieldGoalDetail', {yards:fieldGoalDistance, chance});
+      fieldGoal.querySelector('span').appendChild(detail);
+      categories.appendChild(fieldGoal);
+    }
+    categories.appendChild(createChoiceCategory(t('ui.playControls.punt'), 'punt', playerAttemptPunt));
+  }
   categories.append(
     createChoiceCategory(t('ui.playControls.runCategory'), 'run', () => renderOffenseCategory(chooser, 'run', onPick)),
     createChoiceCategory(t('ui.playControls.passCategory'), 'pass', () => renderOffenseCategory(chooser, 'pass', onPick))
   );
-  if(game.down === 4){
-    categories.className += ' fourth-down-categories';
-    categories.appendChild(createChoiceCategory(t('ui.playControls.punt'), 'punt', playerAttemptPunt));
+  if(game.down === 4 && fieldGoalDistance != null){
+    categories.appendChild(createChoiceCategory(t('ui.playControls.fakeFieldGoal'), 'fake-field-goal', attemptFakeFieldGoal));
   }
   chooser.appendChild(categories);
   container.appendChild(chooser);
@@ -309,6 +310,9 @@ function createChoiceCategory(label, icon, onClick){
   }else if(icon === 'pass'){
     svg.setAttribute('viewBox', '0 0 48 36');
     svg.innerHTML = '<defs><marker id="passArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="currentColor"/></marker></defs><circle cx="7" cy="26" r="3" fill="currentColor"/><path d="M10 25Q25 23 36 9H43" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-dasharray="2 2" marker-end="url(#passArrow)"/><path d="M20 17L26 14" stroke="currentColor" stroke-width="1.6"/>';
+  }else if(icon === 'field-goal' || icon === 'fake-field-goal'){
+    svg.setAttribute('viewBox', '0 0 48 36');
+    svg.innerHTML = '<path d="M24 33V21M8 5V15Q8 21 14 21H34Q40 21 40 15V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="24" cy="10" rx="3.5" ry="5" fill="none" stroke="currentColor" stroke-width="1.5"/>';
   }else if(icon === 'punt'){
     svg.setAttribute('viewBox', '0 0 48 36');
     svg.innerHTML = '<ellipse cx="12" cy="24" rx="8" ry="5" transform="rotate(-25 12 24)" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 24H15M12 22V26M21 25Q29 19 39 7M33 8L40 6L40 13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';

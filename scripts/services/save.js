@@ -129,7 +129,6 @@ function restoreGame(data){
   applyTeamColorsToCSS(game.teams);
   applyTeamNamesToUI(game.teams);
   document.getElementById('animSpeedSelect').value = String(game.animSpeed);
-  document.getElementById('versionTag').textContent = 'v' + GAME_VERSION;
   renderMatchLog();
   // Les enchaînements en attente (transformation, kickoff, mi-temps...) sont rejoués.
   const pendingFlow = game.pendingConversion || game.pendingKickoff || game.pendingHalftime || game.pendingRegulationEnd || game.pendingGameEnd || game.pendingOvertime;

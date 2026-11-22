@@ -22,21 +22,53 @@ function createHarness(reduced = false){
     getBoundingClientRect:() => ({left:10, top:20, width:1000, height:600})
   };
   const flashes = {offsetWidth:100, classList:{
-    add(name){ classes.add(name); }, remove(name){ classes.delete(name); }
+    add(...names){ names.forEach(name => classes.add(name)); },
+    remove(...names){ names.forEach(name => classes.delete(name)); }
   }};
+  let nextTimer = 1;
+  const timers = new Map();
   const window = {devicePixelRatio:2, matchMedia:() => ({matches:reduced})};
   const sandbox = vm.createContext({
     window, document:{getElementById:() => canvas, querySelector:() => flashes},
     performance:{now:() => now}, refreshTacticalCanvas:() => { refreshes++; },
-    setTimeout:() => 1, clearTimeout(){}
+    setTimeout(callback, delay){ const id = nextTimer++; timers.set(id, {at:now + delay, callback}); return id; },
+    clearTimeout(id){ timers.delete(id); }
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'animeVFX.js'), 'utf8'), sandbox);
-  return {window, paths, classes, canvas, advance(ms){ now += ms; },
+  return {window, paths, classes, canvas, advance(ms){
+    const target = now + ms;
+    while(true){
+      const next = [...timers.entries()].sort((a,b) => a[1].at - b[1].at)[0];
+      if(!next || next[1].at > target) break;
+      now = next[1].at;
+      timers.delete(next[0]);
+      next[1].callback();
+    }
+    now = target;
+  },
     render(){ paths.length = 0; return window.renderAnimeVFX({left:110, top:120, width:800, height:400}, now); },
     get refreshes(){ return refreshes; }, get clearCount(){ return clearCount; }};
 }
 
 const colors = {primary:'#123456', secondary:'#abcdef'};
+
+test('crowd celebration lasts two seconds, restarts on a new event and respects reduced motion', () => {
+  const h = createHarness();
+  h.window.triggerCrowdCelebration();
+  assert.equal(h.classes.has('crowd-celebrating'), true);
+  h.advance(1500);
+  h.window.triggerCrowdCelebration();
+  h.advance(1999);
+  assert.equal(h.classes.has('crowd-celebrating'), true);
+  h.advance(1);
+  assert.equal(h.classes.has('crowd-celebrating'), false);
+  h.window.triggerCrowdCelebration();
+  h.window.clearAnimeVFX();
+  assert.equal(h.classes.has('crowd-celebrating'), false);
+  const reduced = createHarness(true);
+  reduced.window.triggerCrowdCelebration();
+  assert.equal(reduced.classes.has('crowd-celebrating'), false);
+});
 
 test('score effects draw forty glowing rays from the selected end zone and expire', () => {
   for(const [type, x] of [['TOUCHDOWN', 4], ['FIELD GOAL', 96]]){

@@ -817,7 +817,6 @@ function newGame(){
   applyTeamColorsToCSS(teams);
   applyTeamNamesToUI(teams);
   document.getElementById('animSpeedSelect').value = String(game.animSpeed);
-  document.getElementById('versionTag').textContent = 'v' + GAME_VERSION;
   AudioManager.enabled = Storage.get('audioEnabled', BALANCE.audio.defaultEnabled);
   AudioManager.volume = Storage.get('audioVolume', BALANCE.audio.defaultVolume);
   AudioManager.setMusicEnabled(false);
@@ -828,8 +827,6 @@ function newGame(){
 }
 
 function applyTeamNamesToUI(teams){
-  document.getElementById('headerTeamPlayer').textContent = teams.player.name;
-  document.getElementById('headerTeamAI').textContent = teams.ai.name;
   const scoreNamePlayer = document.getElementById('scoreNamePlayer');
   const scoreNameAI = document.getElementById('scoreNameAI');
   [[scoreNamePlayer, teams.player.name], [scoreNameAI, teams.ai.name]].forEach(([element, name]) => {
@@ -1382,13 +1379,14 @@ function pickTacticalMessage(ctx){
 
 // ---- 2/3/5. Feedback visuel (bannières, pulsations, flash, marqueur) ----
 function showMatchCutin(type, text, side, subtitle = '', expression = null, options = {}){
-  const {vfx, ...cutinOptions} = options;
+  const {vfx, crowdCelebration, ...cutinOptions} = options;
   const team = vfx ? window.TeamArt.getTeamConfig(teamNameOf(side)) : null;
   window.showAnimeCutin(type, text, subtitle, teamNameOf(side), {
     ...cutinOptions,
     queue:true,
     onStart:() => {
       if(expression) window.setCommentatorExpression(expression);
+      if(crowdCelebration || cutinOptions.bigPlay || (vfx && vfx.type === 'TOUCHDOWN')) window.triggerCrowdCelebration();
       if(vfx) window.triggerAnimeVFX(vfx.type, vfx.x, vfx.y,
         {primary:team.primary, secondary:team.secondary});
     }
@@ -1538,7 +1536,7 @@ function applyEventFeedback(offenseSide, context, tactical){
   } else if(eventLevel === 'clutch'){
     showMatchCutin('impact', t('game.banners.clutch'), offenseSide, '',
       result.yards >= BALANCE.eventThresholds.bigPlay.minYards ? 'smirking' : null,
-      {durationMs:BALANCE.eventBanner.durationMs, shake:false});
+      {durationMs:BALANCE.eventBanner.durationMs, shake:false, crowdCelebration:result.yards >= BALANCE.eventThresholds.bigPlay.minYards});
   } else if(eventLevel === 'bigPlay'){
     triggerBigPlayPulse();
     if(result.outcome !== 'sack'){

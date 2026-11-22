@@ -12,6 +12,8 @@
     --gold-dim: #ac7c31;
     --player-accent: #55bdd0;
     --ai-accent: #d96b52;
+    --home-primary: var(--player-accent);
+    --away-primary: var(--ai-accent);
     --danger: #df5b58;
     --success: #6bc17a;
     --border: #29373d;
@@ -412,9 +414,7 @@
     color: rgba(255,255,255,0.45); transform: translateX(-50%);
   }
 
-  /* Marque + sauvegarde */
-  .brand{ font-family:'Oswald',sans-serif; font-size:0.85rem; letter-spacing:0.14em; text-transform:uppercase; color: var(--gold); margin-bottom:2px; }
-  .brand span{ color: var(--ink-dim); letter-spacing:0.06em; }
+  /* Sauvegarde */
   .save-status{ color: var(--ink-dim); }
   .save-status.ok{ color:#8fe39c; }
   .save-status.warn{ color:#f2d27a; }
@@ -755,21 +755,6 @@
     pointer-events:none;
   }
   .game-overlay > *{ pointer-events:auto; }
-  .hud-brand{
-    position:absolute;
-    top:14px;
-    left:20px;
-    max-width:260px;
-    text-shadow:0 2px 8px rgba(0,0,0,0.8);
-  }
-  .hud-brand .brand{ font-size:0.72rem; }
-  .hud-brand .team-line{
-    color:var(--chalk);
-    font:600 0.9rem 'Oswald',sans-serif;
-  }
-  .hud-brand .team-line span:nth-child(2){ color:var(--ink-dim); font-weight:400; }
-  .hud-brand .tag{ display:flex; gap:8px; color:var(--ink-dim); font-size:0.68rem; }
-  .hud-brand .save-status{ max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .scoreboard{
     position:absolute;
     top:12px;
@@ -797,6 +782,19 @@
     right:18px;
     display:flex;
     gap:7px;
+  }
+  .hud-tools .save-status{ display:none; }
+  .hud-tools .save-status.warn{
+    position:absolute;
+    top:calc(100% + 6px);
+    right:0;
+    display:block;
+    width:max-content;
+    max-width:280px;
+    padding:5px 8px;
+    background:#0b1120;
+    border:2px solid #facc15;
+    font:700 0.8rem/1.2 'Rajdhani',sans-serif;
   }
   .hud-tools .icon-button{
     color:var(--chalk);
@@ -1003,17 +1001,11 @@
 
   @media (max-width:1000px) and (min-width:761px){
     .scoreboard{ top:68px; width:min(440px,calc(100vw - 32px)); }
-    .hud-brand .team-line{ display:none; }
     .situation{ top:178px; }
     .phase-indicator{ top:230px; }
   }
 
   @media (max-width:760px){
-    .hud-brand{ top:9px; left:12px; max-width:150px; }
-    .hud-brand .brand{ font-size:0.6rem; letter-spacing:0.08em; }
-    .hud-brand .brand span{ display:none; }
-    .hud-brand .team-line{ display:none; }
-    .hud-brand .tag{ font-size:0.6rem; }
     .scoreboard{
       top:58px;
       left:12px;
@@ -1153,10 +1145,6 @@
       width:min(calc(100vw - 16px),calc((100dvh - 160px) * 2.25));
       aspect-ratio:120 / 53.3;
     }
-    .hud-brand{ top:8px; left:12px; max-width:150px; }
-    .hud-brand .brand{ font-size:0.62rem; }
-    .hud-brand .brand span,.hud-brand .team-line{ display:none; }
-    .hud-brand .tag{ font-size:0.58rem; }
     .scoreboard{
       top:7px;
       left:50%;
@@ -1259,8 +1247,6 @@
     .trends-drawer{ left:8px; right:auto; }
   }
   @media (orientation:landscape) and (max-width:760px) and (max-height:560px){
-    .hud-brand{ left:8px; max-width:105px; }
-    .hud-brand .tag{ display:none; }
     .scoreboard{ width:min(350px,calc(100vw - 210px)); }
     .hud-tools .icon-button{ width:44px; height:44px; }
   }
@@ -1315,25 +1301,32 @@
     background:#0C1C20 url('../assets/images/stadium_base.jpg') center / 100% 100% no-repeat;
   }
   .field-outer::before,.field-outer::after{ content:none; }
-  .stadium-team-tints,.stadium-flashes{
+  .stadium-crowd-tint,.stadium-crowd-glow,.stadium-flashes{
     position:absolute;
     inset:0;
-    z-index:0;
+    z-index:2;
     pointer-events:none;
   }
-  .stadium-team-tints{
-    opacity:0.31;
-    mix-blend-mode:color;
-    background:linear-gradient(90deg,var(--player-accent) 0%,transparent 42%,transparent 58%,var(--ai-accent) 100%);
-    mask-image:radial-gradient(ellipse 68% 54% at 50% 50%,transparent 0 54%,#000 76%);
+  .stadium-crowd-tint,.stadium-crowd-glow{
+    --crowd-gradient:linear-gradient(90deg,var(--home-primary) 0%,var(--home-primary) 46%,transparent 50%,var(--away-primary) 54%,var(--away-primary) 100%);
+    --crowd-mask:radial-gradient(ellipse 46% 38% at 50% 52%,transparent 82%,black 100%);
+    /* The inner contour protects the turf in stadium_base.jpg, including its corners. */
+    clip-path:polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,12% 29%,13% 21%,16% 16%,35% 14.5%,65% 14.5%,84% 16%,87% 21%,88% 29%,88% 77%,87% 82%,84% 86%,65% 89%,35% 89%,16% 86%,13% 82%,12% 77%,12% 29%);
+    background:var(--crowd-gradient);
+    -webkit-mask-image:var(--crowd-mask);
+    mask-image:var(--crowd-mask);
   }
-  .stadium-flashes{ z-index:1; }
+  .stadium-crowd-tint{
+    opacity:0.78;
+    mix-blend-mode:color;
+  }
+  .stadium-crowd-glow{ opacity:0.25; mix-blend-mode:screen; }
   .anime-vfx-canvas{
     position:absolute;
     inset:0;
     width:100%;
     height:100%;
-    z-index:3;
+    z-index:4;
     pointer-events:none;
   }
   .stadium-flashes::before{
@@ -1349,6 +1342,28 @@
       radial-gradient(circle at 10% 86%,rgba(255,242,208,0.85),transparent 1.2%),
       radial-gradient(circle at 89% 84%,rgba(200,236,255,0.9),transparent 1.4%);
   }
+  .stadium-flashes::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(circle at 8% 30%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 19% 11%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 31% 8%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 70% 8%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 83% 12%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 93% 30%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 7% 72%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 22% 93%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 77% 94%,#fff 0 1px,transparent 3px),
+      radial-gradient(circle at 93% 72%,#fff 0 1px,transparent 3px);
+    animation:crowdFlash 4s infinite;
+  }
+  .stadium-flashes.crowd-celebrating::after{ animation-duration:0.55s; }
+  @keyframes crowdFlash{
+    0%,15%,32%,49%,72%,100%{ opacity:0; }
+    5%,38%,78%{ opacity:0.85; }
+  }
   .field-outer.action-flash .stadium-flashes::before,
   .stadium-flashes.anime-vfx-flash::before{ animation:stadiumFlash 700ms ease-out; }
   @keyframes stadiumFlash{
@@ -1359,7 +1374,7 @@
   }
   .field{
     position:absolute;
-    z-index:2;
+    z-index:3;
     left:17.04%;
     top:25.66%;
     width:65.85%;
@@ -1389,21 +1404,6 @@
     z-index:3;
     pointer-events:none;
   }
-  .hud-brand{
-    top:2.5%;
-    left:2%;
-    max-width:20%;
-    padding:8px 14px;
-    background:rgba(11,17,32,0.82);
-    backdrop-filter:blur(8px);
-    border-left:3px solid #38bdf8;
-    clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);
-    text-shadow:0 2px 12px rgba(0,0,0,0.95);
-  }
-  .hud-brand .brand{ color:#AFC6DB; font-size:clamp(0.52rem,0.72vw,0.78rem); letter-spacing:0.14em; text-transform:uppercase; }
-  .hud-brand .brand span{ color:#EFF7FF; }
-  .hud-brand .team-line{ font-size:clamp(0.78rem,1.08vw,1.12rem); }
-  .hud-brand .tag{ font-size:clamp(0.5rem,0.62vw,0.68rem); }
   .scoreboard{
     top:2.2%;
     left:50%;
@@ -1602,10 +1602,11 @@
     transform-origin:left bottom;
   }
   .commentator-portrait-wrapper{
+    z-index:21;
     flex:0 0 clamp(90px,10.5vw,190px);
     width:clamp(90px,10.5vw,190px);
     aspect-ratio:150 / 175;
-    transform:perspective(750px) rotateY(16deg) rotateZ(-2deg) skewX(-6deg);
+    transform:scale(1.2) perspective(750px) rotateY(16deg) rotateZ(-2deg) skewX(-6deg);
   }
   .commentator-portrait-card{
     position:absolute;
@@ -1754,8 +1755,6 @@
     .commentator-label{ font-size:clamp(0.42rem,1vw,0.72rem); padding:2px 5px; }
   }
   @media (max-width:760px){
-    .hud-brand{ max-width:18%; padding:4px 8px; }
-    .hud-brand .team-line,.hud-brand .tag{ display:none; }
     .scoreboard{ width:55%; padding:5px 8px; }
     .team-score{ grid-template-columns:36px minmax(0,1fr); gap:0 4px; }
     .team-score .team-logo{ width:36px; height:36px; }
@@ -1773,8 +1772,6 @@
     .overlay-drawer{ top:8%; width:min(360px,70%); max-height:84%; }
   }
   @media (max-width:460px){
-    .hud-brand{ top:1.5%; left:1.5%; }
-    .hud-brand .brand{ font-size:0.42rem; }
     .scoreboard{ top:1.5%; width:47%; }
     .hud-tools{ right:1.5%; gap:3px; }
     .hud-tools .icon-button{ width:30px; height:30px; }
@@ -1811,7 +1808,9 @@
   }
   @media (prefers-reduced-motion:reduce){
     .field-outer.action-flash .stadium-flashes::before,
-    .stadium-flashes.anime-vfx-flash::before{ animation:none; }
+    .stadium-flashes.anime-vfx-flash::before,
+    .stadium-flashes::after{ animation:none; }
+    .stadium-flashes::after{ opacity:0; }
   }
 
   /* Manga broadcast scoreboard */
@@ -1825,20 +1824,13 @@
     font-weight:800;
     text-transform:uppercase;
   }
-  .hud-brand,.phase-indicator{
+  .phase-indicator{
     background:
       radial-gradient(rgba(255,255,255,0.08) 1px,transparent 0) 0 0 / 8px 8px,
       rgba(11,17,32,0.92);
     border:2px solid #090d16;
     border-radius:0;
     box-shadow:4px 4px 0 #090d16;
-    font-family:'Chakra Petch','Rajdhani',sans-serif;
-    font-style:italic;
-    font-weight:800;
-    text-transform:uppercase;
-  }
-  .hud-brand{ border-left:3px solid #00f0ff; }
-  .hud-brand .brand,.hud-brand .team-line{
     font-family:'Chakra Petch','Rajdhani',sans-serif;
     font-style:italic;
     font-weight:800;
@@ -1989,6 +1981,8 @@
     text-shadow:2px 2px 0 #090d16,-1px -1px 0 #090d16,1px -1px 0 #090d16,-1px 1px 0 #090d16;
   }
   .team-city,.team-mascot{ display:block; }
+  .team-score.ai .team-city,.team-score.ai .team-mascot{ white-space:nowrap; }
+  .team-score.ai .team-content .name{ font-size:clamp(0.48rem,1.55cqw,0.82rem); }
   .team-city{ font-size:0.72em; }
   .team-mascot{ font-size:1.12em; }
   .score-tile{
@@ -2210,7 +2204,6 @@
     .situation #situationExtra{ display:none; }
   }
   @media (max-width:460px){
-    .hud-brand{ max-width:14%; }
     .hud-tools{ flex-direction:column; }
     .scoreboard{
       top:2.2%;
@@ -2618,8 +2611,7 @@
     font-weight:900;
   }
   .playbook-toolbar .clock-controls,
-  .playbook-toolbar .clock-controls .action-row,
-  .playbook-toolbar .fourth-down-actions{ display:contents; }
+  .playbook-toolbar .clock-controls .action-row{ display:contents; }
   .playbook-navigation{ flex:0 1 auto; min-width:0; }
   .playbook-navigation .chooser-heading{ min-width:0; }
   .playbook-toolbar .clock-controls .action-btn,
@@ -2658,28 +2650,6 @@
     border-color:#68cde7;
   }
   .playbook-toolbar .trends-control svg{ width:20px; height:20px; }
-  .playbook-toolbar .fourth-down-actions .action-btn{
-    flex:none;
-    min-height:34px;
-    padding:5px 8px;
-    font-size:0.8rem;
-    white-space:nowrap;
-  }
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar{ gap:6px; }
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar h2,
-  .controls-panel:has(.fourth-down-actions) .chooser-heading h3,
-  .controls-panel:has(.fourth-down-actions) .chooser-back,
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .action-btn,
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .tempo-seg button{
-    font-size:0.8rem;
-  }
-  .controls-panel:has(.fourth-down-actions) .chooser-back,
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .action-btn,
-  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .tempo-seg button{
-    min-height:34px;
-    padding:5px 8px;
-  }
-  .controls-panel:has(.fourth-down-actions) .trends-control{ width:34px; height:34px; }
   .controls-panel #controlsBody{
     flex:1 1 0;
     min-height:0;
@@ -2760,6 +2730,7 @@
   }
   .controls-panel .offense-categories .choice-category{ flex-basis:calc((100% - 10px) / 2); min-width:0; }
   .controls-panel .fourth-down-categories .choice-category{ flex-basis:calc((100% - 20px) / 3); min-width:120px; }
+  .controls-panel .fourth-down-categories.has-field-goal .choice-category{ flex-basis:calc((100% - 40px) / 5); }
   .controls-panel .choice-category[data-category="run"],
   .controls-panel button.play-btn.run{
     --card-accent:#facc15;
@@ -2808,6 +2779,19 @@
     height:44px;
     color:var(--card-accent);
     stroke:var(--card-accent);
+  }
+  .controls-panel .fourth-down-categories.has-field-goal .choice-category{
+    flex-direction:column;
+    gap:4px;
+    font-size:clamp(0.8rem,0.85vw,0.95rem);
+    text-align:center;
+  }
+  .controls-panel .fourth-down-categories.has-field-goal .choice-category svg{ width:38px; height:29px; }
+  .controls-panel .field-goal-detail{
+    display:block;
+    margin-top:4px;
+    font:700 0.75rem/1.1 'Rajdhani',sans-serif;
+    white-space:nowrap;
   }
   .controls-panel button.play-btn{
     display:grid;
