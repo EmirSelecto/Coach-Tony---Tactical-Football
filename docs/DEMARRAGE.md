@@ -79,18 +79,9 @@ nom complet reste disponible aux lecteurs d’écran.
 Les marqueurs des joueurs sont agrandis pour rester lisibles à cette échelle.
 Le panneau des tendances tactiques est accessible depuis la rangée de gestion
 du play, à côté du temps mort et du tempo.
-Les lignes de scrimmage et de 1st Down sont désormais distinguées par leur
-couleur et leur libellé. La ligne de 1st Down est continue. En portrait, le terrain reste à son ratio naturel et
-se place sous le HUD compact ; les gradins utilisent des rangées et des
-sections de sièges plus lisibles.
-Sur mobile, les marqueurs des joueurs sont réduits pour limiter les
-chevauchements ; les commandes de chrono et de tempo sont accessibles depuis
-un bouton repliable pour préserver la place des choix tactiques.
-En paysage sur un écran mobile, l’interface passe automatiquement en mode
-broadcast compact : HUD en haut, terrain à ses proportions naturelles,
-commandes tactiques latérales et commandes de chrono dépliables. Les boutons
-tactiles conservent une zone de frappe adaptée ; les panneaux restent
-défilables si leur contenu dépasse la hauteur disponible.
+Les lignes de scrimmage et de 1st Down sont distinguées par leur couleur et
+leur libellé. La ligne de 1st Down est continue. Le jeu est conçu pour un
+affichage desktop en paysage 16:9.
 Les catégories tactiques et leurs sous-menus sont navigables au clavier ; le
 focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lors de
 la fermeture des panneaux. Le choix du tempo est annoncé comme un état
@@ -104,9 +95,9 @@ varient selon la direction, les fiches suivantes présentent les valeurs propres
 directionnelles affichent leur tracé correspondant.
 En 4e tentative, le punt est proposé à côté des deux catégories offensives.
 En défense, les appels sont regroupés par pression, couverture ou défense contre
-la course. Les cartes défilent horizontalement ; la barre de commandes défile
-également si l'écran est trop étroit, notamment en 4e tentative. La molette de
-la souris permet de parcourir horizontalement la rangée survolée.
+la course. Les cartes défilent horizontalement ; la molette permet de parcourir
+la rangée. Les commandes de l'en-tête passent à la ligne lorsque nécessaire,
+notamment en 4e tentative.
 
 Les textes statiques de la page sont associés à leurs entrées de `ui.json` par
 les attributs `data-text` et `data-title` dans `index.html`.

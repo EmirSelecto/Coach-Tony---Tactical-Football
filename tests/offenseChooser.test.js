@@ -75,6 +75,28 @@ test('punt appears alongside offensive categories only on fourth down and trigge
   assert.equal(context.puntCalled, true);
 });
 
+test('playbook renders both possessions without the removed offensive or defensive heading', () => {
+  const {context, navigation, chooser} = createHarness();
+  const toolbar = {querySelector:() => null, appendChild(){}};
+  const panel = {querySelector:() => toolbar, classList:{toggle(){}}};
+  const phaseLabel = {};
+  const elements = {controlsPanel:panel, controlsBody:chooser, playbookNavigation:navigation, playPhaseLabel:phaseLabel};
+  context.document.getElementById = id => elements[id] || null;
+  context.window.resetCommentatorForChoice = () => {};
+  context.ensureChoiceFormation = () => {};
+  context.buildClockControls = () => ({});
+  context.playerCallOffense = context.playerCallDefense = () => {};
+  let shown;
+  context.renderOffenseButtons = () => { shown = 'offense'; };
+  context.renderDefenseButtons = () => { shown = 'defense'; };
+  context.game.phase = 'playing';
+  for(const [side, expected] of [['player','offense'], ['ai','defense']]){
+    context.game.possession = side;
+    context.renderControls();
+    assert.equal(shown, expected);
+  }
+});
+
 test('vertical wheel scrolls overflowing playbook rows without intercepting other gestures', () => {
   const {context} = createHarness();
   const row = {scrollWidth:500, clientWidth:200, scrollLeft:0};

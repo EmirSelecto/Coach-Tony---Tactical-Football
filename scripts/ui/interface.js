@@ -106,8 +106,6 @@ function renderTendencies(){
 }
 
 function renderControls(){
-  const title = document.getElementById('controlsTitle');
-  const who = document.getElementById('controlsWho');
   const body = document.getElementById('controlsBody');
   const panel = document.getElementById('controlsPanel');
   const toolbar = panel.querySelector('.playbook-toolbar');
@@ -126,9 +124,6 @@ function renderControls(){
 
   ensureChoiceFormation();
   const playerOnOffense = game.possession === 'player';
-  who.textContent = playerOnOffense ? teamNameOf('player') : t('ui.playControls.defenseSuffix', {team:teamNameOf('ai')});
-  title.title = `${title.textContent.trim()} — ${who.textContent}`;
-  title.firstChild ? title.firstChild.textContent = t(playerOnOffense ? 'ui.playControls.offenseTitle' : 'ui.playControls.defenseTitle') + ' ' : null;
   toolbar.appendChild(buildClockControls(playerOnOffense));
 
   if(playerOnOffense){

@@ -1586,7 +1586,7 @@
     display:flex;
     align-items:flex-end;
     gap:8px;
-    width:min(calc(29% + clamp(78px,8.5vw,110px)),610px);
+    width:min(538px,calc(44vw - 20px));
     min-width:0;
     padding:0;
     color:#EAF3FF;
@@ -1602,8 +1602,9 @@
     transform-origin:left bottom;
   }
   .commentator-portrait-wrapper{
-    flex:0 0 min(125px,32%);
-    aspect-ratio:125 / 145;
+    flex:0 0 150px;
+    width:150px;
+    height:175px;
     transform:rotateY(16deg) rotateZ(-2deg) skewX(-6deg);
   }
   .commentator-portrait-card{
@@ -1612,8 +1613,11 @@
   }
   .commentator-dialogue-card{
     z-index:20;
-    flex:1 1 0;
+    flex:1 1 390px;
+    width:390px;
+    min-height:118px;
     min-width:0;
+    padding:16px 20px;
     margin-left:-10px;
     transform:rotateY(12deg) rotateZ(-0.8deg) skewX(-8deg);
   }
@@ -1662,21 +1666,23 @@
   .commentator-label{
     position:absolute;
     z-index:30;
-    top:-14px;
+    top:-16px;
     left:14px;
     padding:3px 8px;
     color:#090d16;
     background:linear-gradient(90deg,#dc2626 0%,#f97316 45%,#facc15 100%);
     border:2px solid #090d16;
     box-shadow:3px 3px 0 #090d16;
-    font:italic 900 0.72rem/1 'Chakra Petch',sans-serif;
+    font:italic 900 0.82rem/1 'Chakra Petch',sans-serif;
     white-space:nowrap;
     transform:skewX(-18deg);
   }
   .result-copy{
     position:relative;
     z-index:1;
-    padding:14px 14px 10px;
+    max-height:min(200px,28vh);
+    overflow-y:auto;
+    padding:0;
     transform:skewX(8deg);
   }
   .commentator-portrait-window{
@@ -1701,8 +1707,8 @@
     border-radius:0;
     filter:drop-shadow(0 0 6px rgba(56,189,248,0.5));
   }
-  .result-box .headline{ color:#fde047; font:italic 800 clamp(0.72rem,1.4vw,1.1rem)/1.15 'Chakra Petch','Rajdhani',sans-serif; }
-  .result-box .explain,.result-box .commentary{ color:#fff; font-size:clamp(0.62rem,0.82vw,0.86rem); line-height:1.4; }
+  .result-box .headline{ color:#fde047; font:italic 800 1.25rem/1.15 'Chakra Petch','Rajdhani',sans-serif; }
+  .result-box .explain,.result-box .commentary{ color:#fff; font-size:0.95rem; line-height:1.4; }
   .overlay-drawer{
     top:10%;
     right:2%;
@@ -2539,10 +2545,11 @@
     right:-6px;
     bottom:-4px;
     z-index:40;
-    width:min(58vw,880px);
-    height:185px;
+    width:56vw;
+    max-width:960px;
+    height:215px;
     max-height:none;
-    padding:10px 12px 8px;
+    padding:40px 12px 8px;
     gap:2px;
     overflow:visible;
     isolation:isolate;
@@ -2585,16 +2592,18 @@
     mask-image:linear-gradient(to left,#000,rgba(0,0,0,0.4) 45%,transparent 80%);
   }
   .controls-panel .playbook-toolbar{
+    position:absolute;
+    right:22px;
+    bottom:calc(100% - 30px);
+    left:14px;
     flex:none;
+    flex-wrap:wrap;
     justify-content:flex-start;
-    gap:6px;
+    gap:8px;
     min-height:38px;
-    margin-top:-18px;
-    padding:2px 3px 4px;
-    overflow-x:auto;
-    overflow-y:hidden;
-    scrollbar-width:thin;
-    scrollbar-color:#00f0ff #090d16;
+    margin:0;
+    padding:2px 6px 4px;
+    overflow:visible;
   }
   .playbook-toolbar h2,.playbook-label{
     flex:none;
@@ -2608,13 +2617,14 @@
     white-space:nowrap;
     transform:skewX(18deg);
   }
-  .playbook-label{
+  .playbook-toolbar .playbook-label{
     color:#090d16;
     background:#00f0ff;
     font-weight:900;
   }
-  .playbook-toolbar .clock-controls{ flex:none; margin-left:auto; }
-  .playbook-navigation{ flex:none; }
+  .playbook-toolbar .clock-controls{ flex:none; margin-left:0; }
+  .playbook-navigation{ flex:0 1 auto; min-width:0; }
+  .playbook-navigation .chooser-heading{ min-width:0; }
   .playbook-toolbar .clock-controls .action-row{ flex-wrap:nowrap; }
   .playbook-toolbar .clock-controls .action-btn,
   .playbook-toolbar .tempo-seg button{
@@ -2728,7 +2738,7 @@
     --card-accent:#00f0ff;
     --card-gradient:linear-gradient(160deg,#082f49 0%,#0369a1 45%,#090d16 100%);
     flex:0 0 calc((100% - 30px) / 4);
-    min-width:155px;
+    min-width:185px;
     min-height:0;
     height:100%;
     padding:4px 5px;
@@ -2820,7 +2830,7 @@
   .controls-panel .pb-copy{ display:contents; }
   .controls-panel .pb-name{
     grid-area:name;
-    font:italic 800 0.78rem/1.05 'Chakra Petch','Rajdhani',sans-serif;
+    font:italic 800 0.9rem/1.05 'Chakra Petch','Rajdhani',sans-serif;
     text-shadow:2px 2px 0 #090d16;
     text-transform:uppercase;
     -webkit-line-clamp:1;
@@ -2832,7 +2842,7 @@
     width:auto;
     height:100%;
     min-height:0;
-    max-height:68px;
+    max-height:82px;
     aspect-ratio:5 / 3;
     background:none;
     border:0;
@@ -2860,27 +2870,24 @@
     min-width:0;
     overflow:hidden;
     gap:2px;
-    font:700 0.58rem/1.1 'Rajdhani',sans-serif;
+    font:700 0.76rem/1.1 'Rajdhani',sans-serif;
   }
   .controls-panel .pb-card span{
+    display:-webkit-box;
     flex:1 1 0;
     min-width:0;
     overflow:hidden;
     padding:1px 3px;
     border-radius:999px;
     text-overflow:ellipsis;
-    white-space:nowrap;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
   }
   .controls-panel .pb-card .positive{ color:#a7f3d0; background:#064e3b; }
   .controls-panel .pb-card .negative{ color:#fecaca; background:#7f1d1d; }
   .overlay-drawer{ z-index:41; }
-  @media (min-width:1001px) and (min-height:650px){
-    .controls-panel.playbook-hud{
-      /* Le terrain finit à 77,25 % de la hauteur de la scène 16:9 centrée. */
-      height:max(185px,calc(50dvh - min(28.125vw,50dvh) + min(12.796875vw,22.75dvh) - 4px));
-    }
-    .controls-panel .pb-diagram{ max-height:clamp(68px,8vh,120px); }
-  }
   @media (max-height:500px) and (orientation:landscape){
     .controls-panel.playbook-hud{ height:min(180px,42vh); }
   }
