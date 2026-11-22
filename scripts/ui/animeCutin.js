@@ -5,7 +5,7 @@
   const titleElement = overlay.querySelector('.cutin-title');
   const subtitleElement = overlay.querySelector('.cutin-subtitle');
   const themes = {
-    touchdown:{duration:1800, shake:true},
+    touchdown:{duration:3000, shake:true},
     fieldgoal:{duration:1800, shake:true},
     turnover:{duration:1600, shake:true},
     impact:{duration:1400, shake:true},
@@ -13,6 +13,7 @@
   };
   const portraits = new Map();
   const queue = [];
+  const completionCallbacks = [];
   let exitTimer, hideTimer, shakeTimer;
 
   window.setCommentatorExpression = function(expression){
@@ -33,11 +34,17 @@
 
   window.cancelAnimeCutins = function(){
     queue.length = 0;
+    completionCallbacks.length = 0;
     clearTimeout(exitTimer);
     clearTimeout(hideTimer);
     clearTimeout(shakeTimer);
     overlay.classList.remove('is-active', 'is-exiting', 'cutin-bigplay', ...Object.keys(themes).map(theme => `cutin-${theme}`));
     stadium.classList.remove('screen-shake');
+  };
+
+  window.afterAnimeCutins = function(callback){
+    if(overlay.classList.contains('is-active')) completionCallbacks.push(callback);
+    else callback();
   };
 
   function displayCutin(cutin){
@@ -64,7 +71,10 @@
     hideTimer = setTimeout(() => {
       overlay.classList.remove('is-active', 'is-exiting');
       if(queue.length) displayCutin(queue.shift());
-      else window.resetCommentatorForChoice();
+      else {
+        window.resetCommentatorForChoice();
+        completionCallbacks.splice(0).forEach(callback => callback());
+      }
     }, duration);
   }
 

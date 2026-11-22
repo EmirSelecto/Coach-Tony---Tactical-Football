@@ -1125,7 +1125,18 @@ function beginOvertimeState(){
 function afterPlayResolved(){
   if(game.gameOver) return;
   SaveManager.snapshot();
-  if(game.pendingConversion){ runConversion(); return; }
+  if(game.pendingConversion){
+    const currentGame = game;
+    const conversion = game.pendingConversion;
+    game.playLocked = true;
+    renderControls();
+    window.afterAnimeCutins(() => {
+      if(game === currentGame && !game.gameOver && game.phase === 'playing' && game.pendingConversion === conversion){
+        runConversion();
+      }
+    });
+    return;
+  }
   if(game.pendingRegulationEnd){
     game.pendingRegulationEnd = false;
     if(game.scorePlayer === game.scoreAI) game.pendingOvertime = true; else game.pendingGameEnd = true;
@@ -1499,10 +1510,6 @@ function triggerBreakawayEffect(element, offenseDir){
   if(!element) return;
   element.dataset.direction = offenseDir >= 0 ? 'right' : 'left';
   element.classList.remove('breakaway'); void element.offsetWidth; element.classList.add('breakaway');
-  setTimeout(() => {
-    element.classList.remove('breakaway');
-    delete element.dataset.direction;
-  }, 800);
 }
 
 // Point d'entrée unique : classifie l'événement puis déclenche le feedback

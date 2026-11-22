@@ -1,5 +1,5 @@
 (async function loadGame(){
-  const scoreboardVersion = '?v=manga-commentator-1';
+  const celebrationVersion = '?v=match-celebration-1';
   const playbookVersion = '?v=manga-playbook-5';
   const modalVersion = '?v=manga-modal-3';
   const catalogs = [
@@ -67,9 +67,10 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/game/engine.js', 'scripts/game/plays.js'].includes(src) ? modalVersion :
+        script.src = src + (['scripts/game/engine.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
+          src === 'scripts/game/plays.js' ? modalVersion :
           ['scripts/ui/playDiagrams.js', 'scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
-          ['scripts/animation/players.js', 'scripts/animation/timeline.js'].includes(src) ? scoreboardVersion : '');
+          '');
         script.async = false;
         script.onload = resolve;
         script.onerror = () => reject(new Error(`Impossible de charger ${src}.`));

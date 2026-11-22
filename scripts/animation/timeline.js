@@ -51,8 +51,12 @@ function createPlayTimelineEvents(setup, cfg){
     }
   }
 
-  if(setup.breakaway){
+  if(setup.breakaway || (['gain','touchdown'].includes(outcome)
+    && setup.yards >= BALANCE.eventThresholds.bigPlay.minYards)){
     add('breakaway', offPlay.type === 'pass' ? kf.catch : (kf.laneCommit || 0.45));
+  } else if(outcome === 'interception' && setup.ret
+    && (setup.ret.isPickSix || setup.ret.returnYards >= BALANCE.eventThresholds.bigPlay.minYards)){
+    add('breakaway', kf.catch, {kind:'return'});
   }
   if(outcome !== 'incomplete') add('tackle', kf.tackle || kf.whistle);
   if(cfg.advType === 'turnoverOnDowns'){
@@ -1014,12 +1018,17 @@ function buildDefenseActorPath(actor, ctx){
 
   if(actor.id === ctx.interceptorId){
     const midX = clamp((actor.x+throwX)/2,0,100), midY=(actor.y+ctx.throwLane)/2;
-    return buildBoundedDefensePath(actor, [
+    const checkpoints = [
       {t:kf.snap,x:actor.x,y:actor.y},
       {t:kf.routesDevelop || 0.3,x:midX,y:midY},
-      {t:ctx.catchFrac,x:throwX,y:ctx.throwLane},
-      {t:1,x:ctx.ret.newSpot,y:ctx.throwLane}
-    ]);
+      {t:ctx.catchFrac,x:throwX,y:ctx.throwLane}
+    ];
+    if(ctx.ret.isPickSix){
+      const endX = ctx.ret.newSpot + ctx.ret.defenderDir * 4;
+      return [...buildBoundedDefensePath(actor, checkpoints),
+        {t:kf.tackle,x:endX,y:ctx.throwLane}, {t:1,x:endX,y:ctx.throwLane}];
+    }
+    return buildBoundedDefensePath(actor, [...checkpoints, {t:1,x:ctx.ret.newSpot,y:ctx.throwLane}]);
   }
   const eng = ctx.escortDefenders && ctx.escortDefenders.get(actor.id);
   if(eng){
@@ -1572,7 +1581,7 @@ function buildPlaySetup(cfg){
     : clamp(preSnapSpot + offenseDir * (cfg.yards || 0), 0, 100);
   const lane = laneForDirection(offPlay.direction);
   const family = selectPlayFamily(offPlay, outcome);
-  const kf = PLAY_TIMELINES[family];
+  let kf = PLAY_TIMELINES[family];
 
   const offenseSrc = formationDots.offense.map((d,i) => ({id:'O'+i, team:'offense', role:d.role, x:d.formX, y:d.y, el:d.el}));
   const defenseSrc = formationDots.defense.map((d,i) => ({id:'D'+i, team:'defense', role:d.role, x:d.formX, y:d.y, el:d.el}));
@@ -1614,6 +1623,25 @@ function buildPlaySetup(cfg){
   const throwX = offPlay.name === 'Quick Slant' || offPlay.name === 'Slant'
     ? slantRouteDestination(carrier, offenseDir, throwLane).x
     : standardThrowX;
+  const speedScale = BALANCE.animation.globalSlowdown / (game.animSpeed || 1);
+  const baseMs = BALANCE.animation.familyBaseMs[family] || 1800;
+  const yardsMs = Math.min(BALANCE.animation.yardsMsCap, Math.abs(cfg.yards || 0) * BALANCE.animation.yardsMsPerYard);
+  let totalMs = Math.max(300, Math.round((baseMs + yardsMs) * speedScale));
+  if(outcome === 'interception' && cfg.ret && cfg.ret.isPickSix){
+    const catchMs = totalMs * kf.catch;
+    const endX = cfg.ret.newSpot + cfg.ret.defenderDir * 4;
+    const returnMs = Math.max(800, Math.abs(endX - throwX) * BALANCE.animation.yardsMsPerYard) * speedScale;
+    const durationMs = Math.max(300, Math.round(catchMs + returnMs + 250 * speedScale));
+    const catchProgress = catchMs / durationMs;
+    const arrivalProgress = (catchMs + returnMs) / durationMs;
+    const oldCatch = kf.catch;
+    kf = Object.fromEntries(Object.entries(kf).map(([name, time]) => [
+      name, name === 'whistle' ? 1 : name === 'tackle' ? arrivalProgress
+        : time <= oldCatch ? time * totalMs / durationMs
+        : catchProgress + (arrivalProgress - catchProgress) * (time - oldCatch) / (1 - oldCatch)
+    ]));
+    totalMs = durationMs;
+  }
   const qbActor = offenseSrc.find(a => a.role === 'QB') || carrier;
   const readOptionActor = offPlay.name === 'Read Option'
     ? offenseSrc.find(a => a.role === 'RB') : null;
@@ -1719,9 +1747,6 @@ function buildPlaySetup(cfg){
     }
   });
 
-  const baseMs = BALANCE.animation.familyBaseMs[family] || 1800;
-  const yardsMs = Math.min(BALANCE.animation.yardsMsCap, Math.abs(cfg.yards || 0) * BALANCE.animation.yardsMsPerYard);
-  const totalMs = Math.max(300, Math.round((baseMs + yardsMs) * BALANCE.animation.globalSlowdown / (game.animSpeed || 1)));
   const actors = [];
   ctx.offensePaths = new Map();
   const applyStartDelay = actor => {
@@ -2201,12 +2226,18 @@ const PlayAnimationController = {
       this._triggerCameraShake('light');
     }
     if(name === 'tackle'){
-      AudioManager.play('tackle');
+      const breakawayActor = setup.actorsById[setup.breakawayActorId];
+      if(breakawayActor){
+        breakawayActor.element.classList.remove('breakaway');
+        delete breakawayActor.element.dataset.direction;
+      }
+      const scoringInterception = setup.outcome === 'interception' && setup.ret && setup.ret.isPickSix;
+      if(!scoringInterception) AudioManager.play('tackle');
       if(!['interception','fumble'].includes(setup.outcome)){
         this._triggerCameraShake(setup.outcome === 'sack' || setup.yards <= 0 ? 'heavy' : 'light');
       }
       const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
-      if(carrierActor && setup.outcome !== 'sack'){
+      if(carrierActor && setup.outcome !== 'sack' && !scoringInterception){
         triggerTackleImpact(carrierActor.x, carrierActor.y, 'standard');
       }
       if(setup.outcome === 'sack'){
@@ -2232,8 +2263,12 @@ const PlayAnimationController = {
     }
     if(name === 'breakaway'){
       this._triggerCameraShake('breakaway');
-      const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
-      if(carrierActor) triggerBreakawayEffect(carrierActor.element, setup.offenseDir);
+      const carrierActor = event.kind === 'return' ? setup.actorsById[setup.interceptorId]
+        : setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
+      if(carrierActor){
+        setup.breakawayActorId = carrierActor.id;
+        triggerBreakawayEffect(carrierActor.element, event.kind === 'return' ? setup.ret.defenderDir : setup.offenseDir);
+      }
     }
     if(name === 'whistle'){
       AudioManager.play('whistle');
@@ -3038,7 +3073,16 @@ function endGame(){
   let title = game.scorePlayer === game.scoreAI ? t('game.results.matchTie') : t('game.results.victory', {team:teamNameOf(game.scorePlayer > game.scoreAI ? 'player' : 'ai')});
   if(game.quarter >= 5) title += t('game.results.overtimeSuffix');
   document.getElementById('finalTitle').textContent = title;
-  document.getElementById('finalScore').textContent = `${game.scorePlayer} – ${game.scoreAI}`;
+  [['Player', 'player', game.scorePlayer, game.scoreAI], ['AI', 'ai', game.scoreAI, game.scorePlayer]]
+    .forEach(([suffix, side, points, opponentPoints]) => {
+      const team = document.getElementById('finalTeam' + suffix);
+      const logo = document.getElementById('finalLogo' + suffix);
+      logo.src = window.TeamArt.getTeamLogoCanvas(teamNameOf(side)).toDataURL();
+      logo.alt = teamNameOf(side);
+      document.getElementById('finalPoints' + suffix).textContent = String(points);
+      team.classList.toggle('winner', points > opponentPoints);
+      team.classList.toggle('loser', points < opponentPoints);
+    });
   overlay.classList.remove('hidden');
 }
 

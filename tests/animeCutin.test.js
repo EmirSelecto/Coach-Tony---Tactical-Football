@@ -74,7 +74,7 @@ function createHarness(){
 
 test('cut-in durations and shake follow the event type', () => {
   for(const [type, duration, shake] of [
-    ['touchdown',1800,true], ['fieldgoal',1800,true], ['turnover',1600,true],
+    ['touchdown',3000,true], ['fieldgoal',1800,true], ['turnover',1600,true],
     ['impact',1400,true], ['firstdown',950,false]
   ]){
     const h = createHarness();
@@ -100,9 +100,60 @@ test('queued events retain their full duration and reset the portrait afterwards
   h.advance(1);
   assert.equal(h.title.textContent, 'TOUCHDOWN');
   assert.equal(h.portrait.src, 'hyped');
-  h.advance(1800);
+  h.advance(3000);
   assert.equal(h.portrait.src, 'neutral');
   assert.equal(h.overlay.classList.contains('is-active'), false);
+});
+
+test('completion waits for the entire queue, runs immediately when idle, and is cancelled on reset', () => {
+  const h = createHarness();
+  let completed = 0;
+  h.window.afterAnimeCutins(() => completed++);
+  assert.equal(completed, 1);
+  h.window.showAnimeCutin('turnover', 'INTERCEPTION', '', 'Team', {queue:true});
+  h.window.showAnimeCutin('touchdown', 'TOUCHDOWN', '', 'Team', {queue:true});
+  h.window.afterAnimeCutins(() => completed++);
+  h.advance(1600 + 2999);
+  assert.equal(completed, 1);
+  assert.equal(h.title.textContent, 'TOUCHDOWN');
+  h.advance(1);
+  assert.equal(completed, 2);
+  h.window.showAnimeCutin('touchdown', 'TOUCHDOWN', '', 'Team');
+  h.window.afterAnimeCutins(() => completed++);
+  h.window.cancelAnimeCutins();
+  h.advance(5000);
+  assert.equal(completed, 2);
+});
+
+test('conversion remains locked until the touchdown queue finishes and resumes immediately after restoration', () => {
+  const h = createHarness();
+  const engine = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'game', 'engine.js'), 'utf8');
+  h.context.SaveManager = {snapshot(){}};
+  h.context.renderControls = () => {};
+  let conversions = 0;
+  h.context.runConversion = () => { conversions++; h.context.game.phase = 'conversion'; };
+  vm.runInContext(engine.slice(engine.indexOf('function afterPlayResolved('), engine.indexOf('function startHalftime(')), h.context);
+  h.context.game.pendingConversion = {team:'player'};
+  h.window.showAnimeCutin('turnover', 'INTERCEPTION', '', 'Team', {queue:true});
+  h.window.showAnimeCutin('touchdown', 'TOUCHDOWN', '', 'Team', {queue:true});
+  h.context.afterPlayResolved();
+  assert.equal(h.context.game.playLocked, true);
+  h.advance(4599);
+  assert.equal(conversions, 0);
+  h.advance(1);
+  assert.equal(conversions, 1);
+
+  h.context.game = {phase:'playing', pendingConversion:{team:'ai'}};
+  h.context.afterPlayResolved();
+  assert.equal(conversions, 2);
+
+  h.context.game = {phase:'playing', pendingConversion:{team:'player'}};
+  h.window.showAnimeCutin('touchdown', 'TOUCHDOWN', '', 'Team');
+  h.context.afterPlayResolved();
+  h.window.cancelAnimeCutins();
+  h.context.game = {phase:'playing', pendingConversion:{team:'ai'}};
+  h.advance(3000);
+  assert.equal(conversions, 2);
 });
 
 test('cancelling prevents queued events from appearing during the next play', () => {

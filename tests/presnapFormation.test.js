@@ -5,15 +5,19 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 function createHarness(){
-  const labels = [], strokes = [], gradients = [];
+  const labels = [], strokes = [], gradients = [], linearGradients = [];
   let arc, line;
   const context = {
     setTransform(){}, clearRect(){}, save(){}, restore(){}, beginPath(){ arc = null; line = false; }, rect(){},
-    clip(){}, fillRect(){}, moveTo(){}, lineTo(){ line = true; }, closePath(){},
+    clip(){}, fillRect(){}, moveTo(){}, lineTo(){ line = true; }, bezierCurveTo(){}, closePath(){},
     stroke(){ strokes.push({arc, line, color:this.strokeStyle, shadow:this.shadowColor, width:this.lineWidth, blur:this.shadowBlur}); },
     fill(){}, arc(x, y, radius){ arc = {x, y, radius}; },
     translate(){}, rotate(){}, strokeText(){}, drawImage(){},
-    createLinearGradient:() => ({addColorStop(){}}),
+    createLinearGradient(x1, y1, x2, y2){
+      const gradient = {x1, y1, x2, y2, stops:[]};
+      linearGradients.push(gradient);
+      return {addColorStop(offset, color){ gradient.stops.push({offset, color}); }};
+    },
     createRadialGradient(){
       const stops = [];
       gradients.push(stops);
@@ -66,7 +70,7 @@ function createHarness(){
     requestAnimationFrame:() => 1, setTimeout(){}
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'players.js'), 'utf8'), sandbox);
-  return {sandbox, game, children, labels, strokes, gradients, field};
+  return {sandbox, game, children, labels, strokes, gradients, linearGradients, field};
 }
 
 test('team names keep multiword cities and mascots when split for display', () => {
@@ -143,6 +147,25 @@ test('moving routes and breakaway trails follow the actual team primary color', 
     assert.equal(lines.filter(stroke => stroke.color === defenseColor).length, 1);
     assert.ok(lines.filter(stroke => [offenseColor, defenseColor].includes(stroke.color))
       .every(stroke => stroke.shadow.startsWith('rgb(')));
+  }
+});
+
+test('breakaway draws a large hot flame behind the runner in both directions', () => {
+  for(const direction of ['left', 'right']){
+    const h = createHarness();
+    h.sandbox.ensureChoiceFormation();
+    const runner = h.children.find(el => el.classList.contains('qb'));
+    runner.className += ' breakaway';
+    runner.dataset.direction = direction;
+    h.sandbox.PlayAnimationController._setup = {actors:[
+      {id:'O0', team:'offense', role:'QB', element:runner, x:50, y:50, path:[]}
+    ], frameProgress:0.5};
+    h.sandbox.renderTacticalCanvas();
+    const fire = h.linearGradients.find(g => g.stops.some(stop => stop.color === '#ff8900'));
+    assert.ok(fire);
+    assert.equal(Math.sign(fire.x2 - fire.x1), direction === 'right' ? 1 : -1);
+    assert.ok(Math.abs(fire.x2 - fire.x1) >= 60);
+    assert.ok(fire.stops.some(stop => stop.color === '#e32708'));
   }
 });
 

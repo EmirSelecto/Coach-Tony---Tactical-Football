@@ -66,3 +66,39 @@ test('scoreboard shows each quarter, overtime, scores and clock', () => {
   assert.equal(h.elements.get('downStatus').textContent, 'TRY');
   assert.equal(h.elements.get('downDistance').textContent, 'CONVERSION');
 });
+
+test('final score shows team logos and updates winner, loser and tie states', () => {
+  const ids = ['finalOverlay','finalTitle','finalTeamPlayer','finalTeamAI',
+    'finalLogoPlayer','finalLogoAI','finalPointsPlayer','finalPointsAI'];
+  const elements = Object.fromEntries(ids.map(id => {
+    const classes = new Set();
+    return [id, {classList:{
+      remove:name => classes.delete(name),
+      toggle:(name, force) => force ? classes.add(name) : classes.delete(name),
+      contains:name => classes.has(name)
+    }}];
+  }));
+  const context = vm.createContext({
+    document:{getElementById:id => elements[id]},
+    window:{TeamArt:{getTeamLogoCanvas:name => ({toDataURL:() => 'logo:' + name})}},
+    game:{scorePlayer:21, scoreAI:14, quarter:4},
+    teamNameOf:side => side === 'player' ? 'Home' : 'Away',
+    render(){}, SaveManager:{clear(){}}, t:key => key
+  });
+  const source = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'timeline.js'), 'utf8');
+  vm.runInContext(source.slice(source.indexOf('function endGame('), source.indexOf('function setResult(')), context);
+  for(const [player, ai, playerClass, aiClass] of [
+    [21,14,'winner','loser'], [7,17,'loser','winner'], [10,10,null,null]
+  ]){
+    context.game.scorePlayer = player;
+    context.game.scoreAI = ai;
+    context.endGame();
+    assert.equal(elements.finalLogoPlayer.src, 'logo:Home');
+    assert.equal(elements.finalLogoAI.alt, 'Away');
+    assert.equal(elements.finalPointsPlayer.textContent, String(player));
+    assert.equal(elements.finalPointsAI.textContent, String(ai));
+    for(const [id, expected] of [['finalTeamPlayer', playerClass], ['finalTeamAI', aiClass]]){
+      for(const state of ['winner','loser']) assert.equal(elements[id].classList.contains(state), state === expected);
+    }
+  }
+});

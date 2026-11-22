@@ -441,6 +441,28 @@ function renderTacticalCanvas(){
     if(element.classList.contains('breakaway')){
       const direction = element.dataset.direction === 'left' ? -1 : 1;
       context.save();
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const fireLength = radius * (5.2 + (reducedMotion ? 0 : 0.35 * Math.sin(now / 90)));
+      const fire = context.createLinearGradient(x - direction * fireLength, y, x, y);
+      fire.addColorStop(0, 'rgba(255,45,0,0)');
+      fire.addColorStop(0.35, '#e32708');
+      fire.addColorStop(0.7, '#ff8900');
+      fire.addColorStop(1, '#fff3a0');
+      context.fillStyle = fire;
+      context.shadowColor = '#ff4d00';
+      context.shadowBlur = radius * 1.8;
+      context.beginPath();
+      context.moveTo(x, y - radius * 0.8);
+      context.bezierCurveTo(x - direction * radius * 1.8, y - radius * 1.9,
+        x - direction * radius * 2.4, y - radius * 0.2, x - direction * fireLength, y - radius * 1.25);
+      context.bezierCurveTo(x - direction * radius * 3.8, y,
+        x - direction * fireLength, y + radius * 0.65, x - direction * radius * 2.6, y + radius * 0.5);
+      context.bezierCurveTo(x - direction * radius * 1.8, y + radius * 2,
+        x - direction * radius * 0.8, y + radius * 0.9, x, y + radius * 0.8);
+      context.closePath();
+      context.fill();
+      context.restore();
+      context.save();
       context.strokeStyle = palette.primary;
       context.lineWidth = Math.max(1.5, radius * 0.18);
       context.lineCap = 'round';

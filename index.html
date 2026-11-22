@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=manga-modal-3">
+  <link rel="stylesheet" href="styles/main.css?v=match-celebration-1">
 </head>
 <body>
 <div class="wrap game-shell">
@@ -259,13 +259,17 @@
   <span class="modal-texture" aria-hidden="true"></span>
   <div class="final-card">
     <h2 id="finalTitle" data-text="ui.static.finalTitle">Fin du match</h2>
-    <div class="score" id="finalScore">0 – 0</div>
+    <div class="score final-score" id="finalScore">
+      <div class="final-score-team" id="finalTeamPlayer"><img id="finalLogoPlayer" alt=""><span id="finalPointsPlayer">0</span></div>
+      <span aria-hidden="true">–</span>
+      <div class="final-score-team" id="finalTeamAI"><span id="finalPointsAI">0</span><img id="finalLogoAI" alt=""></div>
+    </div>
     <button class="action-btn" id="finalReset" data-text="ui.static.replay">Rejouer</button>
   </div>
   </div>
 </div>
 
 
-  <script src="scripts/loader.js?v=manga-modal-3"></script>
+  <script src="scripts/loader.js?v=match-celebration-1"></script>
 </body>
 </html>

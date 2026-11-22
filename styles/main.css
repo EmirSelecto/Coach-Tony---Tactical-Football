@@ -2752,11 +2752,22 @@
     --card-gradient:linear-gradient(160deg,#451a03 0%,#78350f 45%,#1c1917 100%);
   }
   .controls-panel .choice-category[data-category="pressure"],
-  .controls-panel .choice-category[data-category="coverage"],
-  .controls-panel .choice-category[data-category="run-defense"],
-  .controls-panel button.play-btn.def{
+  .controls-panel button.play-btn.def[data-defense-category="pressure"]{
     --card-accent:#ff007f;
-    --card-gradient:linear-gradient(160deg,#4c0519 0%,#881337 45%,#090d16 100%);
+    --card-gradient:linear-gradient(160deg,#4c0519 0%,#9f1239 50%,#090d16 100%);
+    --defense-glow:rgba(255,0,127,.45);
+  }
+  .controls-panel .choice-category[data-category="coverage"],
+  .controls-panel button.play-btn.def[data-defense-category="coverage"]{
+    --card-accent:#00f0ff;
+    --card-gradient:linear-gradient(160deg,#082f49 0%,#0369a1 50%,#090d16 100%);
+    --defense-glow:rgba(0,240,255,.45);
+  }
+  .controls-panel .choice-category[data-category="run-defense"],
+  .controls-panel button.play-btn.def[data-defense-category="run"]{
+    --card-accent:#facc15;
+    --card-gradient:linear-gradient(160deg,#451a03 0%,#92400e 50%,#090d16 100%);
+    --defense-glow:rgba(250,204,21,.45);
   }
   .controls-panel .choice-category{
     flex-direction:row;
@@ -2773,6 +2784,10 @@
     border-color:var(--card-accent);
     box-shadow:3px 3px 0 #090d16;
     text-shadow:none;
+  }
+  .controls-panel .defense-categories .choice-category,
+  .controls-panel button.play-btn.def{
+    box-shadow:3px 3px 0 #090d16,0 0 9px var(--defense-glow);
   }
   .controls-panel .choice-category svg{
     width:58px;
@@ -2795,6 +2810,12 @@
     border-color:var(--card-accent);
     box-shadow:inset 0 0 0 2px var(--card-accent);
     filter:brightness(1.13);
+  }
+  .controls-panel .defense-categories .choice-category:hover,
+  .controls-panel .defense-categories .choice-category:focus-visible,
+  .controls-panel button.play-btn.def:hover,
+  .controls-panel button.play-btn.def:focus-visible{
+    box-shadow:inset 0 0 0 2px var(--card-accent),0 0 9px var(--defense-glow);
   }
   .controls-panel .pb-copy{ display:contents; }
   .controls-panel .pb-name{
@@ -2853,6 +2874,13 @@
   .controls-panel .pb-card .positive{ color:#a7f3d0; background:#064e3b; }
   .controls-panel .pb-card .negative{ color:#fecaca; background:#7f1d1d; }
   .overlay-drawer{ z-index:41; }
+  @media (min-width:1001px) and (min-height:650px){
+    .controls-panel.playbook-hud{
+      /* Le terrain finit à 77,25 % de la hauteur de la scène 16:9 centrée. */
+      height:max(185px,calc(50dvh - min(28.125vw,50dvh) + min(12.796875vw,22.75dvh) - 4px));
+    }
+    .controls-panel .pb-diagram{ max-height:clamp(68px,8vh,120px); }
+  }
   @media (max-height:500px) and (orientation:landscape){
     .controls-panel.playbook-hud{ height:min(180px,42vh); }
   }
@@ -3040,6 +3068,25 @@
   .conversion-play span:first-child{ min-width:0; overflow-wrap:anywhere; }
   .conversion-diagram{ flex:0 0 76px; }
   .conversion-diagram svg{ display:block; width:100%; height:auto; }
+  .final-card .final-score{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:10px 0 18px;
+    font:800 2rem/1 'Chakra Petch','Rajdhani',sans-serif;
+  }
+  .final-score-team{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .final-score-team img{ width:64px; height:64px; object-fit:contain; }
+  .final-score-team.loser img{ filter:grayscale(1) brightness(.65); }
+  .final-score-team.winner img{ animation:finalWinnerCelebration 1.15s ease-in-out infinite; }
+  @keyframes finalWinnerCelebration{
+    0%,100%{ transform:translateX(0) scale(1); }
+    25%{ transform:translateX(-6px) scale(1.13) rotate(-5deg); }
+    50%{ transform:translateX(6px) scale(1.25) rotate(5deg); }
+    75%{ transform:translateX(-4px) scale(1.1) rotate(-3deg); }
+  }
+  @media (prefers-reduced-motion:reduce){ .final-score-team.winner img{ animation:none; } }
   @media (max-width:420px){
     .modal-frame .final-card button.action-btn.conversion-play{ flex-direction:column; text-align:center; font-size:.72rem; }
     .conversion-diagram{ flex:0 0 auto; width:70px; max-width:100%; }
