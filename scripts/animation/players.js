@@ -185,52 +185,110 @@ function renderTacticalCanvas(){
   context.clearRect(0, 0, bounds.width, bounds.height);
 
   const width = bounds.width, height = bounds.height;
-  const endzoneWidth = width / 12;
+  const endzoneWidth = width / 11.6;
   const teams = game && game.teams;
   const playerTeam = teams && teams.player;
   const aiTeam = teams && teams.ai;
   const drawEndzone = (x, team, onLeft) => {
     if(!team) return;
-    const color = team.color;
-    context.globalAlpha = 0.72;
+    const centerX = x + endzoneWidth / 2;
+    const inward = onLeft ? 1 : -1;
+    const mascotTextCenterX = centerX + inward * endzoneWidth * 0.17;
+    const cityTextCenterX = centerX - inward * endzoneWidth * 0.14;
+    const logoCenterY = height * 0.18;
+    const nameParts = team.name.toUpperCase().split(/\s+/);
+    const city = team.name === 'Aurora Northern Lights' ? nameParts[0] : nameParts.slice(0, -1).join(' ');
+    const mascot = team.name === 'Aurora Northern Lights' ? nameParts.slice(1).join(' ') : nameParts[nameParts.length - 1];
+    const rgb = team.color.match(/^#([0-9a-f]{6})$/i);
+    if(!rgb) throw new Error(`Couleur d’équipe invalide pour l’end zone : "${team.color}".`);
+    const hex = rgb[1];
+    const darkColor = `#${[0,2,4].map(index =>
+      Math.round(parseInt(hex.slice(index, index + 2), 16) * 0.48).toString(16).padStart(2, '0')
+    ).join('')}`;
+    const background = context.createLinearGradient(x, 0, x, height);
+    background.addColorStop(0, team.color);
+    background.addColorStop(1, darkColor);
+    context.save();
     context.globalCompositeOperation = 'source-over';
-    context.fillStyle = color;
+    context.globalAlpha = 0.88;
+    context.fillStyle = background;
     context.fillRect(x, 0, endzoneWidth, height);
+
+    context.globalAlpha = 0.14;
+    context.strokeStyle = '#FFFFFF';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.rect(x, 0, endzoneWidth, height);
+    context.clip();
+    context.beginPath();
+    for(let offset = -height; offset < endzoneWidth + height; offset += 14){
+      context.moveTo(x + offset, 0);
+      context.lineTo(x + offset + height, height);
+    }
+    context.stroke();
+    context.restore();
+
+    context.save();
     context.globalAlpha = 1;
     context.strokeStyle = '#FFFFFF';
-    context.lineWidth = Math.max(1.5, width * 0.0024);
-    context.strokeRect(x + 2, 2, endzoneWidth - 4, height - 4);
-    context.lineWidth = Math.max(1, width * 0.0014);
-    context.strokeRect(x + 5, 5, endzoneWidth - 10, height - 10);
+    context.lineWidth = 3;
+    const frameInsetY = height * 0.025;
+    context.strokeRect(x + 3, frameInsetY, endzoneWidth - 6, height - frameInsetY * 2);
+    context.restore();
 
     const logo = window.TeamArt.getTeamLogoCanvas(team.name);
-    const logoSize = endzoneWidth * 1.05;
+    const logoSize = endzoneWidth * 1.15;
     context.save();
-    context.globalAlpha = 0.35;
-    context.drawImage(logo, x + (endzoneWidth - logoSize) / 2, height * 0.14 - logoSize / 2, logoSize, logoSize);
+    context.globalAlpha = 0.96;
+    context.shadowColor = '#FFFFFF';
+    context.shadowBlur = 10;
+    context.drawImage(logo, centerX - logoSize / 2, logoCenterY - logoSize / 2, logoSize, logoSize);
     context.restore();
 
-    context.save();
-    context.translate(x + endzoneWidth / 2, height / 2);
-    context.rotate(onLeft ? -Math.PI / 2 : Math.PI / 2);
-    const name = team.name.toUpperCase();
-    let fontSize = Math.max(9, Math.min(endzoneWidth * 0.48, height * 0.075));
-    context.font = `700 ${fontSize}px "Chakra Petch", Impact, sans-serif`;
-    const maxNameLength = height * 0.76;
-    const measuredNameWidth = context.measureText(name).width;
-    if(measuredNameWidth > 0) fontSize *= Math.min(1, maxNameLength / measuredNameWidth);
-    context.font = `700 ${fontSize}px "Chakra Petch", Impact, sans-serif`;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.lineJoin = 'round';
-    context.lineWidth = Math.max(2, fontSize * 0.16);
-    context.strokeStyle = team.secondaryColor || '#102033';
-    context.shadowColor = 'rgba(0,0,0,0.82)';
-    context.shadowBlur = width * 0.006;
-    context.strokeText(name, 0, 0, maxNameLength);
-    context.fillStyle = '#FFFFFF';
-    context.fillText(name, 0, 0, maxNameLength);
-    context.restore();
+    const lowerTextStart = Math.max(height * 0.32, logoCenterY + logoSize / 2 + height * 0.018);
+    const lowerTextEnd = height - frameInsetY - height * 0.025;
+    const textAngle = onLeft ? -Math.PI / 2 : Math.PI / 2;
+    let mascotFontSize = Math.min(endzoneWidth * 0.52, height * 0.16);
+    context.font = `italic 900 ${mascotFontSize}px "Chakra Petch", Impact, sans-serif`;
+    let mascotWidth = context.measureText(mascot).width;
+    const availableTextLength = Math.min((lowerTextEnd - lowerTextStart) * 0.9, height * 0.58);
+    if(mascotWidth > availableTextLength){
+      mascotFontSize *= availableTextLength / mascotWidth;
+      context.font = `italic 900 ${mascotFontSize}px "Chakra Petch", Impact, sans-serif`;
+      mascotWidth = context.measureText(mascot).width;
+    }
+    let cityFontSize = Math.min(endzoneWidth * 0.13, height * 0.025);
+    context.font = `italic 900 ${cityFontSize}px "Chakra Petch", Impact, sans-serif`;
+    let cityWidth = context.measureText(city).width;
+    const cityMaxLength = mascotWidth * 0.9;
+    if(cityWidth > cityMaxLength){
+      cityFontSize *= cityMaxLength / cityWidth;
+      context.font = `italic 900 ${cityFontSize}px "Chakra Petch", Impact, sans-serif`;
+      cityWidth = context.measureText(city).width;
+    }
+    context.font = `italic 900 ${mascotFontSize}px "Chakra Petch", Impact, sans-serif`;
+    const drawVerticalLabel = (label, fontSize, centerY, maxLength, textCenterX) => {
+      context.save();
+      context.translate(textCenterX, centerY);
+      context.rotate(textAngle);
+      context.font = `italic 900 ${fontSize}px "Chakra Petch", Impact, sans-serif`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.lineJoin = 'round';
+      context.lineWidth = fontSize > 12 ? 8 : Math.max(2, fontSize * 0.24);
+      context.strokeStyle = '#090D16';
+      context.strokeText(label, 0, 0, maxLength);
+      context.lineWidth = fontSize > 12 ? 4 : Math.max(1, fontSize * 0.12);
+      context.strokeStyle = team.secondaryColor || '#090D16';
+      context.strokeText(label, 0, 0, maxLength);
+      context.fillStyle = '#FFFFFF';
+      context.fillText(label, 0, 0, maxLength);
+      context.restore();
+    };
+    const mascotCenter = (lowerTextStart + lowerTextEnd) / 2;
+    const cityCenter = mascotCenter + inward * (mascotWidth - cityWidth) / 2 + (onLeft ? -3 : 3);
+    drawVerticalLabel(city, cityFontSize, cityCenter, cityWidth, cityTextCenterX);
+    drawVerticalLabel(mascot, mascotFontSize, mascotCenter, mascotWidth, mascotTextCenterX);
   };
   drawEndzone(0, playerTeam, true);
   drawEndzone(width - endzoneWidth, aiTeam, false);

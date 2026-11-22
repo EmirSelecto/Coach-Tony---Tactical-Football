@@ -102,6 +102,9 @@ function renderControls(){
   const who = document.getElementById('controlsWho');
   const body = document.getElementById('controlsBody');
   const panel = document.getElementById('controlsPanel');
+  const toolbar = panel.querySelector('.playbook-toolbar');
+  const previousClockControls = toolbar.querySelector('.clock-controls');
+  if(previousClockControls) previousClockControls.remove();
   body.innerHTML = '';
   panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
   if(!game.playLocked && game.phase === 'playing') document.getElementById('playPhaseLabel').textContent =
@@ -113,11 +116,7 @@ function renderControls(){
   who.textContent = playerOnOffense ? teamNameOf('player') : t('ui.playControls.defenseSuffix', {team:teamNameOf('ai')});
   title.title = `${title.textContent.trim()} — ${who.textContent}`;
   title.firstChild ? title.firstChild.textContent = t(playerOnOffense ? 'ui.playControls.offenseTitle' : 'ui.playControls.defenseTitle') + ' ' : null;
-
-  const toolbar = document.createElement('div');
-  toolbar.className = 'playbook-toolbar';
-  toolbar.append(title, buildClockControls(playerOnOffense));
-  body.appendChild(toolbar);
+  toolbar.appendChild(buildClockControls(playerOnOffense));
 
   if(playerOnOffense){
     // 4e tentative : proposer FG / Fake FG / Punt en plus des appels

@@ -1765,7 +1765,7 @@
     box-shadow:0 12px 34px rgba(0,0,0,0.5),0 0 18px rgba(56,189,248,0.12);
     backdrop-filter:blur(10px);
   }
-  .controls-panel > h2{ display:none; }
+  .controls-panel > .playbook-toolbar{ position:relative; }
   #controlsBody{
     display:flex;
     flex:1;
