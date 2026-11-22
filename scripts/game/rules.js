@@ -236,14 +236,15 @@ const TEAM_DB = TEAM_NAMES.map((name, i) => {
   const span = BALANCE.ratings.max - BALANCE.ratings.min;
   const offense = BALANCE.ratings.min + Math.round(rnd() * span);
   const defense = BALANCE.ratings.min + Math.round(rnd() * span);
-  return {id:i, name, color: TEAM_COLORS[i % TEAM_COLORS.length], ratings:{offense, defense, overall: Math.round((offense+defense)/2)}};
+  const art = window.TeamArt.getTeamConfig(name);
+  return {id:i, name, color:art.primary, secondaryColor:art.secondary, ratings:{offense, defense, overall: Math.round((offense+defense)/2)}};
 });
 function teamProfileLabel(r){
   if(r.offense - r.defense >= 6) return t('ui.teamProfile.offensive');
   if(r.defense - r.offense >= 6) return t('ui.teamProfile.defensive');
   return t('ui.teamProfile.balanced');
 }
-function makeTeam(id){ const t = TEAM_DB[id]; return {id: t.id, name: t.name, color: t.color, ratings: {...t.ratings}}; }
+function makeTeam(id){ const t = TEAM_DB[id]; return {id: t.id, name: t.name, color: t.color, secondaryColor:t.secondaryColor, ratings: {...t.ratings}}; }
 function generateMatchTeams(){
   const i1 = randInt(0, TEAM_DB.length - 1);
   let i2 = randInt(0, TEAM_DB.length - 1);
@@ -255,13 +256,25 @@ function teamColorDistance(colorA, colorB){
   const a = rgb(colorA), b = rgb(colorB);
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
+function teamGlowColor(team){
+  const channels = team.color.match(/[a-f\d]{2}/gi).map(channel => parseInt(channel, 16));
+  const brightness = (channels[0] * 299 + channels[1] * 587 + channels[2] * 114) / 1000;
+  return brightness < 118 ? team.secondaryColor : team.color;
+}
 function useContrastUniform(teams){
   return teamColorDistance(teams.player.color, teams.ai.color) < TEAM_COLOR_COLLISION_THRESHOLD;
 }
 function applyTeamColorsToCSS(teams){
+  ['player', 'ai'].forEach(side => {
+    const art = window.TeamArt.getTeamConfig(teams[side].name);
+    teams[side].color = art.primary;
+    teams[side].secondaryColor = art.secondary;
+  });
   const aiUsesContrastUniform = useContrastUniform(teams);
   document.documentElement.style.setProperty('--player-accent', teams.player.color);
   document.documentElement.style.setProperty('--ai-accent', teams.ai.color);
+  document.documentElement.style.setProperty('--player-glow', teamGlowColor(teams.player));
+  document.documentElement.style.setProperty('--ai-glow', teamGlowColor(teams.ai));
   document.documentElement.dataset.aiUniform = aiUsesContrastUniform ? 'white' : 'primary';
   return aiUsesContrastUniform;
 }

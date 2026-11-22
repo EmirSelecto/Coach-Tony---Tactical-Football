@@ -2,6 +2,7 @@ function clearTempPlayers(){
   const field = document.getElementById('field');
   if(!field) return;
   field.querySelectorAll('.temp-player').forEach(el => el.remove());
+  if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
 function placeEl(el, leftPct, topPct){
   el.style.transition = 'none';
@@ -154,6 +155,249 @@ function genDefenseFormation(category){
 // PlayAnimationController : ce sont RÉELLEMENT ces mêmes 22 joueurs qui
 // deviennent les acteurs de l'animation, aucun ne disparaît avant l'action.
 let formationDots = { offense: [], defense: [] };
+let tacticalCanvasFrame = 0;
+
+function refreshTacticalCanvas(){
+  if(tacticalCanvasFrame) return;
+  tacticalCanvasFrame = requestAnimationFrame(() => {
+    tacticalCanvasFrame = 0;
+    renderTacticalCanvas();
+  });
+}
+
+function renderTacticalCanvas(){
+  const field = document.getElementById('field');
+  const canvas = document.getElementById('tacticalCanvas');
+  if(!field || !canvas || !window.TeamArt) return;
+  const bounds = field.getBoundingClientRect();
+  if(!bounds.width || !bounds.height) return;
+
+  const pixelRatio = window.devicePixelRatio || 1;
+  const pixelWidth = Math.round(bounds.width * pixelRatio);
+  const pixelHeight = Math.round(bounds.height * pixelRatio);
+  if(canvas.width !== pixelWidth || canvas.height !== pixelHeight){
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const context = canvas.getContext('2d');
+  if(!context) throw new Error('Impossible de dessiner le canvas tactique.');
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  context.clearRect(0, 0, bounds.width, bounds.height);
+
+  const width = bounds.width, height = bounds.height;
+  const endzoneWidth = width / 12;
+  const teams = game && game.teams;
+  const playerTeam = teams && teams.player;
+  const aiTeam = teams && teams.ai;
+  const drawEndzone = (x, team, onLeft) => {
+    if(!team) return;
+    const color = team.color;
+    context.globalAlpha = 0.72;
+    context.globalCompositeOperation = 'source-over';
+    context.fillStyle = color;
+    context.fillRect(x, 0, endzoneWidth, height);
+    context.globalAlpha = 1;
+    context.strokeStyle = '#FFFFFF';
+    context.lineWidth = Math.max(1.5, width * 0.0024);
+    context.strokeRect(x + 2, 2, endzoneWidth - 4, height - 4);
+    context.lineWidth = Math.max(1, width * 0.0014);
+    context.strokeRect(x + 5, 5, endzoneWidth - 10, height - 10);
+
+    const logo = window.TeamArt.getTeamLogoCanvas(team.name);
+    const logoSize = endzoneWidth * 1.05;
+    context.save();
+    context.globalAlpha = 0.35;
+    context.drawImage(logo, x + (endzoneWidth - logoSize) / 2, height * 0.14 - logoSize / 2, logoSize, logoSize);
+    context.restore();
+
+    context.save();
+    context.translate(x + endzoneWidth / 2, height / 2);
+    context.rotate(onLeft ? -Math.PI / 2 : Math.PI / 2);
+    const name = team.name.toUpperCase();
+    let fontSize = Math.max(9, Math.min(endzoneWidth * 0.48, height * 0.075));
+    context.font = `700 ${fontSize}px "Chakra Petch", Impact, sans-serif`;
+    const maxNameLength = height * 0.76;
+    const measuredNameWidth = context.measureText(name).width;
+    if(measuredNameWidth > 0) fontSize *= Math.min(1, maxNameLength / measuredNameWidth);
+    context.font = `700 ${fontSize}px "Chakra Petch", Impact, sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.lineJoin = 'round';
+    context.lineWidth = Math.max(2, fontSize * 0.16);
+    context.strokeStyle = team.secondaryColor || '#102033';
+    context.shadowColor = 'rgba(0,0,0,0.82)';
+    context.shadowBlur = width * 0.006;
+    context.strokeText(name, 0, 0, maxNameLength);
+    context.fillStyle = '#FFFFFF';
+    context.fillText(name, 0, 0, maxNameLength);
+    context.restore();
+  };
+  drawEndzone(0, playerTeam, true);
+  drawEndzone(width - endzoneWidth, aiTeam, false);
+
+  const firstDown = document.getElementById('firstDownMarker');
+  const scrimmage = document.getElementById('scrimmageLine');
+  const drawLine = (element, color, glow) => {
+    if(!element || !element.style.left) return;
+    const x = parseFloat(element.style.left) / 100 * width;
+    context.save();
+    context.strokeStyle = color;
+    context.lineWidth = Math.max(1.5, width * 0.0022);
+    context.shadowColor = glow;
+    context.shadowBlur = width * 0.012;
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x, height);
+    context.stroke();
+    context.restore();
+  };
+  drawLine(firstDown, '#FFD45E', 'rgba(255,195,52,0.9)');
+  drawLine(scrimmage, '#6DE4FF', 'rgba(44,211,255,0.95)');
+
+  const setup = typeof PlayAnimationController !== 'undefined' && PlayAnimationController._setup;
+  const actors = setup && Array.isArray(setup.actors)
+    ? setup.actors
+    : [...formationDots.offense, ...formationDots.defense].map((actor, index) => ({
+      id:`formation-${index}`,
+      role:actor.role,
+      x:actor.formX,
+      y:actor.y,
+      element:actor.el
+    }));
+  const activeCarrierId = typeof ballState !== 'undefined' && ballState.visible
+    ? ballState.carrierId
+    : null;
+  if(setup && Number.isFinite(setup.frameProgress)){
+    const progress = setup.frameProgress;
+    const isRouteActor = actor => actor.team === 'offense'
+      ? ['QB', 'RB', 'FB', 'WR', 'TE'].includes(actor.role)
+      : ['CB', 'S', 'LB'].includes(actor.role);
+    setup.actors.filter(actor => actor.path && actor.path.length > 1 && isRouteActor(actor))
+      .forEach(actor => {
+        const route = actor.path.filter(point => point.t <= progress);
+        const position = {x:actor.x, y:actor.y};
+        if(!route.length) route.push(actor.path[0]);
+        const last = route[route.length - 1];
+        if(Math.hypot(last.x - position.x, last.y - position.y) > 0.05) route.push(position);
+        if(route.length < 2) return;
+        const color = actor.team === 'offense' ? '#D9FBFF' : '#74DFFF';
+        context.save();
+        context.strokeStyle = color;
+        context.fillStyle = color;
+        context.lineWidth = Math.max(1.5, width * 0.0024);
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.shadowColor = color;
+        context.shadowBlur = width * 0.012;
+        context.beginPath();
+        route.forEach((point, index) => {
+          const x = point.x / 100 * width, y = point.y / 100 * height;
+          if(index === 0) context.moveTo(x, y);
+          else context.lineTo(x, y);
+        });
+        context.stroke();
+        const end = route[route.length - 1], before = route[route.length - 2];
+        const endX = end.x / 100 * width, endY = end.y / 100 * height;
+        const angle = Math.atan2((end.y - before.y) * height / 100, (end.x - before.x) * width / 100);
+        const arrowSize = Math.max(5, width * 0.008);
+        context.beginPath();
+        context.moveTo(endX, endY);
+        context.lineTo(endX - arrowSize * Math.cos(angle - Math.PI / 6), endY - arrowSize * Math.sin(angle - Math.PI / 6));
+        context.lineTo(endX - arrowSize * Math.cos(angle + Math.PI / 6), endY - arrowSize * Math.sin(angle + Math.PI / 6));
+        context.closePath();
+        context.fill();
+        context.restore();
+      });
+  }
+
+  const now = performance.now();
+  const pulse = 0.5 + 0.5 * Math.sin(now / 230);
+  actors.forEach(actor => {
+    const element = actor.element || actor.el;
+    if(!element || !Number.isFinite(actor.x) || !Number.isFinite(actor.y)) return;
+    const isPlayer = element.classList.contains('team-player');
+    const team = playerTeam && aiTeam ? (isPlayer ? playerTeam : aiTeam) : null;
+    const isDefense = element.classList.contains('defense');
+    const radius = Math.max(8, Math.min(20, width * 0.019));
+    const x = actor.x / 100 * width, y = actor.y / 100 * height;
+    const isQuarterback = actor.role === 'QB';
+    const isCarrier = actor.id === activeCarrierId || element.classList.contains('carrier');
+    const accent = isDefense ? '#54DCFF' : team ? teamGlowColor(team) : '#F350CE';
+    const glow = isDefense ? 'rgba(70,213,255,0.9)' : team ? `${accent}E6` : '#F350CE';
+    if(element.classList.contains('breakaway')){
+      const direction = element.dataset.direction === 'left' ? -1 : 1;
+      context.save();
+      context.strokeStyle = '#FFE38B';
+      context.lineWidth = Math.max(1.5, radius * 0.18);
+      context.lineCap = 'round';
+      context.shadowColor = '#FFC94F';
+      context.shadowBlur = radius * 0.8;
+      for(let trail=0;trail<3;trail++){
+        const trailY = y + (trail - 1) * radius * 0.45;
+        context.globalAlpha = 0.8 - trail * 0.16;
+        context.beginPath();
+        context.moveTo(x - direction * radius * (0.5 + trail * 0.15), trailY);
+        context.lineTo(x - direction * radius * (1.4 + trail * 0.15), trailY);
+        context.stroke();
+      }
+      context.restore();
+    }
+    if(isCarrier || isQuarterback){
+      context.save();
+      context.strokeStyle = '#FFD56A';
+      context.lineWidth = Math.max(2, radius * 0.14);
+      context.shadowColor = '#FFB938';
+      context.shadowBlur = 12 + pulse * 8;
+      context.globalAlpha = 0.68 + pulse * 0.32;
+      context.beginPath();
+      context.arc(x, y, radius + 4 + pulse * 3, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+    context.save();
+    const gradient = context.createRadialGradient(x - radius * 0.3, y - radius * 0.36, radius * 0.12, x, y, radius);
+    gradient.addColorStop(0, '#24334C');
+    gradient.addColorStop(1, '#0F172A');
+    context.fillStyle = gradient;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = accent;
+    context.lineWidth = Math.max(2, Math.min(3, radius * 0.18));
+    context.shadowColor = glow;
+    context.shadowBlur = 12;
+    context.beginPath();
+    context.arc(x, y, radius - context.lineWidth / 2, 0, Math.PI * 2);
+    context.stroke();
+    const number = actor.id.match(/\d+$/);
+    const label = isQuarterback ? 'QB' : isCarrier ? actor.role : actor.role || (number ? number[0] : '');
+    context.shadowBlur = 0;
+    context.fillStyle = '#FFFFFF';
+    context.font = `700 ${Math.max(8, radius * (label.length > 2 ? 0.78 : 0.94))}px "Chakra Petch", sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(label, x, y + 0.5, radius * 1.72);
+    context.restore();
+  });
+
+  const football = window.TeamArt.getSpriteCanvas('football');
+  if(typeof ballState !== 'undefined' && ballState.visible && setup){
+    const ballX = ballState.x / 100 * width, ballY = ballState.y / 100 * height;
+    context.drawImage(football, ballX - 8, ballY - 4, 16, 8);
+  } else if(teams && game){
+    const ballX = Number.isFinite(game.visualBallX) ? game.visualBallX : 50;
+    context.save();
+    context.shadowColor = 'rgba(255,215,112,0.85)';
+    context.shadowBlur = width * 0.008;
+    context.drawImage(football, ballX / 100 * width - 8, height / 2 - 4, 16, 8);
+    context.restore();
+  }
+  if(!setup && game && game.playLocked && formationDots.offense.length){
+    setTimeout(refreshTacticalCanvas, 80);
+  }
+}
+window.addEventListener('resize', refreshTacticalCanvas);
+document.fonts.ready.then(refreshTacticalCanvas);
 
 function matchManCoverage(defenders, receivers){
   const assignDefenders = defenders.length <= receivers.length;
@@ -238,6 +482,7 @@ function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
   } else {
     formationDots.defense = [];
   }
+  refreshTacticalCanvas();
 }
 
 function beginPreSnap(offPlay, defPlay, isPlayerOffense, resolveFn){

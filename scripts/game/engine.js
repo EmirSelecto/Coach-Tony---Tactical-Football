@@ -840,6 +840,15 @@ function applyTeamNamesToUI(teams){
   document.getElementById('historyLabel').textContent = t('ui.static.playHistory', {team:teams.player.name});
   document.getElementById('tossTeamPlayerName').textContent = teams.player.name;
   document.getElementById('tossTeamAIName').textContent = teams.ai.name;
+  document.getElementById('scoreLogoPlayer').src = window.TeamArt.getTeamLogoCanvas(teams.player.name).toDataURL();
+  document.getElementById('scoreLogoPlayer').alt = `${teams.player.name} — logo`;
+  document.getElementById('scoreLogoAI').src = window.TeamArt.getTeamLogoCanvas(teams.ai.name).toDataURL();
+  document.getElementById('scoreLogoAI').alt = `${teams.ai.name} — logo`;
+  document.querySelector('.commentator-portrait').src =
+    window.TeamArt.getCommentatorCanvas('neutral').toDataURL('image/png');
+  document.documentElement.style.setProperty('--player-secondary', teams.player.secondaryColor);
+  document.documentElement.style.setProperty('--ai-secondary', teams.ai.secondaryColor);
+  if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
 
 function showPregameScreen(){
@@ -882,7 +891,7 @@ function renderTeamPicker(){
   const pid = game.teams.player.id, aid = game.teams.ai.id;
   wrap.innerHTML = `<table class="team-table"><thead><tr><th>${t('ui.teamPicker.team')}</th><th title="${t('ui.teamPicker.offenseTitle')}">${t('ui.teamPicker.offense')}</th><th title="${t('ui.teamPicker.defenseTitle')}">${t('ui.teamPicker.defense')}</th><th title="${t('ui.teamPicker.overallTitle')}">${t('ui.teamPicker.overall')}</th><th>${t('ui.teamPicker.profile')}</th><th></th></tr></thead><tbody>${
     list.map(t => `<tr class="${t.id===pid?'is-player':''} ${t.id===aid?'is-ai':''}">
-      <td><span class="tdot" style="background:${t.color}"></span>${t.name}</td>
+      <td><img class="team-picker-logo" src="${window.TeamArt.getTeamLogoCanvas(t.name).toDataURL()}" alt=""><span class="tdot" style="background:${t.color}"></span>${t.name}</td>
       <td>${t.ratings.offense}</td><td>${t.ratings.defense}</td><td><b>${t.ratings.overall}</b></td>
       <td class="prof">${teamProfileLabel(t.ratings)}</td>
       <td class="pick"><button class="mini-btn ${t.id===pid?'on':''}" data-side="player" data-id="${t.id}">${TEXTS.ui.teamPicker.you}</button><button class="mini-btn ai ${t.id===aid?'on':''}" data-side="ai" data-id="${t.id}">${TEXTS.ui.teamPicker.ai}</button></td>

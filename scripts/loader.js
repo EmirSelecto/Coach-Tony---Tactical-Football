@@ -9,6 +9,7 @@
     'teams'
   ];
   const scripts = [
+    'scripts/teamsConfig.js',
     'scripts/game/rules.js',
     'scripts/services/save.js',
     'scripts/game/engine.js',
@@ -17,6 +18,7 @@
     'scripts/animation/players.js',
     'scripts/animation/timeline.js',
     'scripts/game/plays.js',
+    'scripts/ui/playDiagrams.js',
     'scripts/ui/interface.js',
     'scripts/app.js',
     'scripts/services/inline-edit-bridge.js'
@@ -66,6 +68,14 @@
         script.onerror = () => reject(new Error(`Impossible de charger ${src}.`));
         document.body.appendChild(script);
       });
+      if(src === 'scripts/teamsConfig.js'){
+        await window.TeamArt.ready;
+        const configuredNames = Object.keys(window.TeamArt.teams);
+        if(configuredNames.length !== window.GAME_TEXTS.teams.names.length ||
+           window.GAME_TEXTS.teams.names.some(name => !window.TeamArt.teams[name])){
+          throw new Error('La configuration des logos doit correspondre aux 40 équipes de json/teams.json.');
+        }
+      }
     }
   } catch(error){
     console.error('Échec du chargement des textes ou des scripts du jeu.', error);

@@ -6,13 +6,17 @@
 <title data-text="ui.static.documentTitle">Coach Tony - Tactical Football</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
 <div class="wrap game-shell">
   <div class="field-outer" id="fieldOuter">
+    <div class="stadium-team-tints" aria-hidden="true"></div>
+    <div class="stadium-flashes" aria-hidden="true"></div>
     <div class="field" id="field">
+      <canvas class="tactical-canvas" id="tacticalCanvas" aria-hidden="true"></canvas>
       <div class="endzone left" id="endzoneLeft">COMÈTES</div>
       <div class="endzone right" id="endzoneRight">LOUPS</div>
       <div class="field-markings" id="fieldMarkings"></div>
@@ -33,6 +37,7 @@
 
     <div class="scoreboard">
       <div class="team-score player">
+        <img class="team-logo" id="scoreLogoPlayer" alt="">
         <div class="name" id="scoreNamePlayer" data-text="ui.static.playerTeam" data-text-values='{"team":"Comètes"}'>Comètes (vous)</div>
         <div class="val" id="scorePlayer">0</div>
         <div class="timeouts" id="toPlayer" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
@@ -43,6 +48,7 @@
         <div class="clock-state" id="clockState"></div>
       </div>
       <div class="team-score ai">
+        <img class="team-logo" id="scoreLogoAI" alt="">
         <div class="name" id="scoreNameAI" data-text="ui.static.aiTeam" data-text-values='{"team":"Loups de Fer"}'>Loups de Fer (IA)</div>
         <div class="val" id="scoreAI">0</div>
         <div class="timeouts" id="toAI" data-title="ui.static.timeoutTitle" title="Temps morts restants"></div>
@@ -62,7 +68,7 @@
     </div>
 
     <div class="situation">
-      <div><span class="poss-tag" id="possTag">—</span> <b id="downDistance">1st &amp; 10</b><span class="spot-separator"> · </span><span class="spot-caption">ballon à</span> <b id="ballSpotLabel">--</b></div>
+      <div class="situation-main"><span class="poss-tag" id="possTag">—</span><b id="downStatus">1st DOWN</b><b id="downDistance">10 YDS TO GO</b><span class="spot-separator"> · </span><span class="spot-caption">ballon à</span> <b id="ballSpotLabel">--</b></div>
       <div id="situationExtra"></div>
     </div>
     <div class="phase-indicator" id="playPhaseBar" aria-live="polite" tabindex="-1">

@@ -162,6 +162,7 @@ function freezePathsAtTackle(actors, tackleTime){
 function renderActor(actor){
   actor.element.style.left = fx(actor.x) + '%';
   actor.element.style.top = actor.y + '%';
+  if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
 
 function selectPlayFamily(offPlay, outcome){
@@ -2002,6 +2003,7 @@ const PlayAnimationController = {
   },
 
   _applyFrame(setup, t){
+    setup.frameProgress = t;
     setup.actors.forEach(actor => {
       const p = evalPath(actor.path, t);
       actor.x = p.x; actor.y = p.y;
@@ -3038,5 +3040,20 @@ function setResult(headline, explain, commentary){
     c.textContent = '';
     c.classList.remove('show');
     box.classList.remove('has-commentary');
+  }
+  const resultText = `${headline} ${explain} ${commentary || ''}`;
+  const expression = /interception|intercept|fumble|perte de balle|sack/i.test(resultText)
+    ? 'shocked'
+    : /touchdown|touché|marque|score|big play|gros gain|explos|bravo|magnifique|s'échappe/i.test(resultText)
+      ? 'hyped'
+      : commentary ? 'smirking' : 'neutral';
+  document.querySelector('.commentator-portrait').src =
+    window.TeamArt.getCommentatorCanvas(expression).toDataURL('image/png');
+  document.getElementById('fieldOuter').classList.remove('action-flash');
+  void document.getElementById('fieldOuter').offsetWidth;
+  if(/touchdown|interception|intercept|fumble|échapp|sack|big play|gros gain/i.test(resultText)){
+    const fieldOuter = document.getElementById('fieldOuter');
+    fieldOuter.classList.add('action-flash');
+    setTimeout(() => fieldOuter.classList.remove('action-flash'), 720);
   }
 }

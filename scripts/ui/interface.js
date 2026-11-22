@@ -23,9 +23,10 @@ function render(){
   cs.textContent = game.phase !== 'playing' ? '' : t(running ? 'ui.status.clockRunning' : 'ui.status.clockStopped');
   cs.className = 'clock-state' + (running ? ' running' : '');
 
-  const downNames = {1:t('ui.status.downFirst'), 2:t('ui.status.downSecond'), 3:t('ui.status.downThird'), 4:t('ui.status.downFourth')};
-  document.getElementById('downDistance').textContent = game.phase === 'conversion' ? t('ui.status.conversion')
-    : `${downNames[game.down]} tentative & ${game.distance}`;
+  const downNames = {1:'1st DOWN', 2:'2nd DOWN', 3:'3rd DOWN', 4:'4th DOWN'};
+  document.getElementById('downStatus').textContent = game.phase === 'conversion' ? 'TRY' : downNames[game.down];
+  document.getElementById('downDistance').textContent = game.phase === 'conversion'
+    ? 'CONVERSION' : `${game.distance} YDS TO GO`;
   const downLabel = game.phase === 'conversion' ? 'TRY'
     : ({1:'1st DOWN', 2:'2nd DOWN', 3:'3rd DOWN', 4:'4th DOWN'}[game.down] || '1st DOWN');
   const downMarker = document.getElementById('firstDownMarker');
@@ -56,6 +57,7 @@ function render(){
   document.getElementById('ballMarker').style.left = fx(game.visualBallX) + '%';
   document.getElementById('scrimmageLine').style.left = fx(game.visualBallX) + '%';
   document.getElementById('firstDownMarker').style.left = fx(game.visualFirstDownX) + '%';
+  if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 
   renderTendencies();
   renderControls();
@@ -109,9 +111,13 @@ function renderControls(){
 
   const playerOnOffense = game.possession === 'player';
   who.textContent = playerOnOffense ? teamNameOf('player') : t('ui.playControls.defenseSuffix', {team:teamNameOf('ai')});
+  title.title = `${title.textContent.trim()} — ${who.textContent}`;
   title.firstChild ? title.firstChild.textContent = t(playerOnOffense ? 'ui.playControls.offenseTitle' : 'ui.playControls.defenseTitle') + ' ' : null;
 
-  body.appendChild(buildClockControls(playerOnOffense));
+  const toolbar = document.createElement('div');
+  toolbar.className = 'playbook-toolbar';
+  toolbar.append(title, buildClockControls(playerOnOffense));
+  body.appendChild(toolbar);
 
   if(playerOnOffense){
     // 4e tentative : proposer FG / Fake FG / Punt en plus des appels
@@ -262,7 +268,7 @@ function renderDefenseButtons(container, onPick){
   const groups = [
     {key:'pressure', label:t('ui.playControls.pressureCategory'), icon:'pressure'},
     {key:'coverage', label:t('ui.playControls.coverageCategory'), icon:'coverage'},
-    {key:'run', label:t('ui.playControls.runDefenseCategory'), icon:'run'}
+    {key:'run', label:t('ui.playControls.runDefenseCategory'), icon:'run-defense'}
   ];
   const chooser = document.createElement('div');
   chooser.className = 'play-chooser';
@@ -283,11 +289,22 @@ function createChoiceCategory(label, icon, onClick){
   button.className = 'choice-category';
   button.addEventListener('click', onClick);
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-  use.setAttribute('href', `assets/images/ui-icons.svg#${icon}`);
-  svg.appendChild(use);
+  if(icon === 'run'){
+    svg.setAttribute('viewBox', '0 0 48 36');
+    svg.innerHTML = '<defs><marker id="runArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="currentColor"/></marker></defs><path d="M5 26H24Q30 26 36 13H43" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#runArrow)"/><ellipse cx="14" cy="13" rx="8" ry="5" transform="rotate(-25 14 13)" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 13L17 13M14 11L14 15" stroke="currentColor" stroke-width="1"/>';
+  }else if(icon === 'pass'){
+    svg.setAttribute('viewBox', '0 0 48 36');
+    svg.innerHTML = '<defs><marker id="passArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="currentColor"/></marker></defs><circle cx="7" cy="26" r="3" fill="currentColor"/><path d="M10 25Q25 23 36 9H43" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-dasharray="2 2" marker-end="url(#passArrow)"/><path d="M20 17L26 14" stroke="currentColor" stroke-width="1.6"/>';
+  }else if(icon === 'run-defense'){
+    svg.setAttribute('viewBox', '0 0 48 36');
+    svg.innerHTML = '<path d="M4 13H44" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M10 7L15 12M15 7L10 12M22 7L27 12M27 7L22 12M34 7L39 12M39 7L34 12" stroke="currentColor" stroke-width="2"/><path d="M13 16V28M24 16V28M35 16V28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+  }else{
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `assets/images/ui-icons.svg#${icon}`);
+    svg.appendChild(use);
+  }
   const text = document.createElement('span');
   text.textContent = label;
   button.append(svg, text);
@@ -302,7 +319,7 @@ function renderOffenseCategory(chooser, type, onPick){
         const displayName = playLabel(play.name);
         const label = play.directions.length > 1 ? `${displayName} (${dirLabel(direction)})` : displayName;
         const card = offenseCardText(play.name, {type:play.type, direction});
-        const btn = createPlayButton(label, card, type);
+        const btn = createPlayButton(label, card, type, play.name, direction);
         btn.onclick = () => onPick({name:play.name, type:play.type, depth:play.depth, direction});
         chooser.querySelector('.play-buttons').appendChild(btn);
       });
@@ -319,7 +336,7 @@ function renderDefenseCategory(chooser, category, onPick){
   renderPlayCategory(chooser, t(`ui.playControls.${category === 'run' ? 'runDefenseCategory' : category === 'pressure' ? 'pressureCategory' : 'coverageCategory'}`),
     plays, list => list.forEach(play => {
       const card = defenseCardText(play.name);
-      const btn = createPlayButton(playLabel(play.name), card, 'def');
+      const btn = createPlayButton(playLabel(play.name), card, 'def', play.name);
       btn.onclick = () => onPick({...play});
       chooser.querySelector('.play-buttons').appendChild(btn);
     }));
@@ -355,18 +372,31 @@ function renderPlayCategory(chooser, label, plays, renderButtons){
   (firstPlay || back).focus();
 }
 
-function createPlayButton(label, card, type){
+function createPlayButton(label, card, type, playName, direction){
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `play-btn ${type}`;
+  button.setAttribute('aria-label', `${label}. ${card}`);
+  const content = document.createElement('span');
+  content.className = 'pb-copy';
   const name = document.createElement('span');
   name.className = 'pb-name';
   name.textContent = label;
   const details = document.createElement('span');
   details.className = 'pb-card';
-  details.textContent = card;
+  card.split('\n').filter(Boolean).forEach(line => {
+    const tag = document.createElement('span');
+    tag.className = /^\s*\+/.test(line) ? 'positive' : /^\s*[−-]/.test(line) ? 'negative' : '';
+    tag.textContent = line;
+    details.appendChild(tag);
+  });
+  content.append(name, details);
+  const diagram = document.createElement('span');
+  diagram.className = 'pb-diagram';
+  diagram.setAttribute('aria-hidden', 'true');
+  diagram.innerHTML = window.PlayDiagrams.forPlay(playName, type, direction);
   button.title = `${label}\n${card}`;
-  button.append(name, details);
+  button.append(content, diagram);
   return button;
 }
 
