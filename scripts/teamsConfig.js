@@ -76,6 +76,7 @@
   const canvasCache = new Map();
   const teamLogoCache = new Map();
   const tintedCache = new Map();
+  const logoGrid = {left:51, top:32, cellWidth:210, cellHeight:200};
 
   function makeCanvas(width, height){
     const canvas = document.createElement('canvas');
@@ -139,68 +140,32 @@
     if(teamLogoCache.has(teamName)) return teamLogoCache.get(teamName);
     const team = getTeamConfig(teamName);
     const key = team.batch === 1 ? 'logos1' : 'logos2';
-    const cellWidth = 1152 / 5, cellHeight = 864 / 4;
-    const neighborInset = teamName === 'Grand Mesa Mustangs' ? cellWidth * 0.075 : 0;
-    const source = extract(key, team.col * cellWidth, team.row * cellHeight,
-      cellWidth - neighborInset, cellHeight, 256, 240);
-    if(teamName !== 'Grand Mesa Mustangs'){
-      teamLogoCache.set(teamName, source);
-      return source;
-    }
-
+    const source = extract(key,
+      logoGrid.left + team.col * logoGrid.cellWidth,
+      logoGrid.top + team.row * logoGrid.cellHeight,
+      logoGrid.cellWidth, logoGrid.cellHeight, 256, 240);
     const sourceContext = source.getContext('2d', {willReadFrequently:true});
-    if(!sourceContext) throw new Error('Impossible de lire le logo de Grand Mesa Mustangs.');
+    if(!sourceContext) throw new Error(`Impossible de lire le logo de ${teamName}.`);
     const imageData = sourceContext.getImageData(0, 0, source.width, source.height);
     const pixels = imageData.data;
-    const pixelCount = source.width * source.height;
-    const visited = new Uint8Array(pixelCount);
-    const queue = new Int32Array(pixelCount);
-    let largestComponent = new Int32Array(0);
-    for(let start = 0; start < pixelCount; start++){
-      if(visited[start] || pixels[start * 4 + 3] <= 24) continue;
-      let read = 0, write = 0;
-      queue[write++] = start;
-      visited[start] = 1;
-      while(read < write){
-        const index = queue[read++];
-        const x = index % source.width, y = Math.floor(index / source.width);
-        for(let dy = -1; dy <= 1; dy++){
-          for(let dx = -1; dx <= 1; dx++){
-            const nx = x + dx, ny = y + dy;
-            if((dx === 0 && dy === 0) || nx < 0 || nx >= source.width || ny < 0 || ny >= source.height) continue;
-            const neighbor = ny * source.width + nx;
-            if(visited[neighbor] || pixels[neighbor * 4 + 3] <= 24) continue;
-            visited[neighbor] = 1;
-            queue[write++] = neighbor;
-          }
-        }
-      }
-      if(write > largestComponent.length) largestComponent = queue.slice(0, write);
-    }
-    const keep = new Uint8Array(pixelCount);
-    largestComponent.forEach(index => { keep[index] = 1; });
     let left = source.width, top = source.height, right = -1, bottom = -1;
-    for(let index = 0; index < pixelCount; index++){
-      if(pixels[index * 4 + 3] <= 24) continue;
-      if(!keep[index]){
-        pixels[index * 4 + 3] = 0;
-        continue;
+    for(let y = 0; y < source.height; y++){
+      for(let x = 0; x < source.width; x++){
+        if(pixels[(y * source.width + x) * 4 + 3] <= 24) continue;
+        left = Math.min(left, x); top = Math.min(top, y);
+        right = Math.max(right, x); bottom = Math.max(bottom, y);
       }
-      const x = index % source.width, y = Math.floor(index / source.width);
-      left = Math.min(left, x); top = Math.min(top, y);
-      right = Math.max(right, x); bottom = Math.max(bottom, y);
     }
-    sourceContext.putImageData(imageData, 0, 0);
-    if(right < left || bottom < top) throw new Error('Le logo de Grand Mesa Mustangs est vide après détourage.');
+    if(right < left || bottom < top) throw new Error(`Le logo de ${teamName} est vide après détourage.`);
     const paddingX = Math.max(4, (right - left + 1) * 0.06);
     const paddingY = Math.max(4, (bottom - top + 1) * 0.06);
     left = Math.max(0, left - paddingX); top = Math.max(0, top - paddingY);
     right = Math.min(source.width - 1, right + paddingX);
     bottom = Math.min(source.height - 1, bottom + paddingY);
     const cropWidth = right - left + 1, cropHeight = bottom - top + 1;
-    const scale = Math.min(230 / cropWidth, 216 / cropHeight);
+    const scale = Math.min(224 / cropWidth, 208 / cropHeight);
     const width = cropWidth * scale, height = cropHeight * scale;
-    const {canvas, context} = makeCanvas(256, 240);
+    const {canvas, context} = makeCanvas(source.width, source.height);
     context.drawImage(source, left, top, cropWidth, cropHeight,
       (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
     teamLogoCache.set(teamName, canvas);
