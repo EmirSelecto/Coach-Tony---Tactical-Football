@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=manga-playbook-3">
+  <link rel="stylesheet" href="styles/main.css?v=manga-modal-3">
 </head>
 <body>
 <div class="wrap game-shell">
@@ -187,48 +187,56 @@
 </div>
 
 <div class="final-overlay hidden" id="pregameOverlay">
-  <div class="final-card" style="max-width:640px;max-height:92vh;overflow:auto;">
+  <div class="modal-frame pregame-frame">
+  <span class="modal-texture" aria-hidden="true"></span>
+  <div class="final-card">
     <h2 data-text="ui.static.pregameTitle">Présentation du match</h2>
-    <div id="pregameBody" style="margin:14px 0;color:var(--ink);font-size:0.9rem;"></div>
+    <div id="pregameBody"></div>
     <div class="action-row" style="justify-content:center;">
       <button class="action-btn secondary" id="teamPickerToggle" data-text="ui.static.chooseTeams" onclick="toggleTeamPicker()">Choisir les équipes</button>
       <button class="action-btn" id="pregameStartBtn" data-text="ui.static.startCoinToss">Lancer le coin toss</button>
     </div>
-    <div id="teamPicker" class="hidden" style="margin-top:12px;text-align:left;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-        <label style="font-size:0.8rem;color:var(--ink-dim);"><span data-text="ui.static.sortTeams">Trier par</span>
-          <select id="teamSortSelect" onchange="renderTeamPicker()" style="margin-left:4px;">
+    <div id="teamPicker" class="hidden">
+      <div class="team-picker-toolbar">
+        <label class="team-sort-label"><span data-text="ui.static.sortTeams">Trier par</span>
+          <select id="teamSortSelect" onchange="renderTeamPicker()">
             <option value="overall" data-text="ui.static.sortOverall">Note globale</option><option value="offense" data-text="ui.static.sortOffense">Attaque</option>
             <option value="defense" data-text="ui.static.sortDefense">Défense</option><option value="name" data-text="ui.static.sortName">Nom</option>
           </select></label>
-        <button class="action-btn secondary" data-text="ui.static.randomTeams" style="padding:4px 10px;font-size:0.78rem;" onclick="randomizeTeams()">Tirage aléatoire</button>
+        <button class="action-btn secondary team-random" data-text="ui.static.randomTeams" onclick="randomizeTeams()">Tirage aléatoire</button>
       </div>
       <div id="teamPickerList" class="team-picker-list"></div>
-      <div data-text="ui.static.teamPickerHint" style="font-size:0.75rem;color:var(--ink-dim);margin-top:6px;">« Vous » choisit votre équipe, « IA » celle de l'adversaire. Choisir la même équipe des deux côtés échange les rôles.</div>
+      <div class="team-picker-hint" data-text="ui.static.teamPickerHint">« Vous » choisit votre équipe, « IA » celle de l'adversaire. Choisir la même équipe des deux côtés échange les rôles.</div>
     </div>
+  </div>
   </div>
 </div>
 
 <div class="final-overlay hidden" id="choiceOverlay">
-  <div class="final-card" style="max-width:560px;">
+  <div class="modal-frame choice-frame">
+  <span class="modal-texture" aria-hidden="true"></span>
+  <div class="final-card">
     <h2 id="choiceTitle" data-text="ui.static.choiceDefaultTitle">Choix</h2>
     <div id="choiceBody" style="margin:12px 0 14px;color:var(--ink);font-size:0.9rem;line-height:1.45;"></div>
     <div class="action-row" id="choiceActions" style="justify-content:center;flex-wrap:wrap;"></div>
   </div>
+  </div>
 </div>
 
 <div class="final-overlay hidden" id="tossOverlay">
-  <div class="final-card" id="tossCard" style="max-width:460px;">
+  <div class="modal-frame toss-frame">
+  <span class="modal-texture" aria-hidden="true"></span>
+  <div class="final-card" id="tossCard">
     <h2 id="tossTitle" data-text="ui.static.coinTossTitle">Coin Toss</h2>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
-      <div style="text-align:center;flex:1;">
-        <div style="width:14px;height:14px;border-radius:50%;background:var(--player-accent);margin:0 auto 6px;"></div>
-        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);" id="tossTeamPlayerName" data-text="ui.static.playerTeamName">Comètes</div>
+    <div class="toss-matchup">
+      <div class="toss-team">
+        <img class="toss-team-logo" id="tossTeamPlayerLogo" alt="">
+        <div id="tossTeamPlayerName" data-text="ui.static.playerTeamName">Comètes</div>
       </div>
-      <div id="coinEl" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-dim));display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;color:#2a1c08;font-weight:700;font-size:1.1rem;flex-shrink:0;">?</div>
-      <div style="text-align:center;flex:1;">
-        <div style="width:14px;height:14px;border-radius:50%;background:var(--ai-accent);margin:0 auto 6px;"></div>
-        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);" id="tossTeamAIName" data-text="ui.static.aiTeamName">Loups de Fer</div>
+      <div id="coinEl">?</div>
+      <div class="toss-team">
+        <img class="toss-team-logo" id="tossTeamAILogo" alt="">
+        <div id="tossTeamAIName" data-text="ui.static.aiTeamName">Loups de Fer</div>
       </div>
     </div>
     <div id="tossBody" style="color:var(--ink);font-size:0.92rem;margin-bottom:14px;min-height:1.4em;"></div>
@@ -238,6 +246,7 @@
       <button class="action-btn music-toggle music-toggle-prominent" id="musicToggleToss" type="button" aria-pressed="false" data-text="ui.static.musicEnable">Activer la musique</button>
     </div>
   </div>
+  </div>
 </div>
 
 <div class="drive-summary hidden" id="driveSummaryPanel">
@@ -246,14 +255,17 @@
 </div>
 
 <div class="final-overlay hidden" id="finalOverlay">
+  <div class="modal-frame final-frame">
+  <span class="modal-texture" aria-hidden="true"></span>
   <div class="final-card">
     <h2 id="finalTitle" data-text="ui.static.finalTitle">Fin du match</h2>
     <div class="score" id="finalScore">0 – 0</div>
     <button class="action-btn" id="finalReset" data-text="ui.static.replay">Rejouer</button>
   </div>
+  </div>
 </div>
 
 
-  <script src="scripts/loader.js?v=manga-playbook-3"></script>
+  <script src="scripts/loader.js?v=manga-modal-3"></script>
 </body>
 </html>

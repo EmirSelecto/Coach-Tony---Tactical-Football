@@ -163,7 +163,7 @@
     "patAdviceOne": "assurer le point",
     "patOption": "Transformation : 1 pt ({chance} %)",
     "twoPointOption": "2 pts : {play}",
-    "playerChoiceTitle": "Transformation",
+    "playerChoiceTitle": "Transformation // Extra Point",
     "playerChoiceBody": "Écart actuel : <b>{diff}</b>. Conseil du coordinateur : {advice}.<br><span style=\"color:var(--ink-dim);font-size:0.8rem;\">La conversion à 2 points se joue en une action depuis les 2 yards : il faut atteindre la zone d'en-but.</span>",
     "aiChoiceTitle": "Conversion à 2 points",
     "aiChoiceBody": "Les {team} tentent la conversion à 2 points (écart pour eux : {diff}). Choisissez votre défense :",

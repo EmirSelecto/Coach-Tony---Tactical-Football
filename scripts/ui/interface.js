@@ -186,7 +186,7 @@ function buildClockControls(onOffense){
     return b;
   };
   const n = game.timeouts ? game.timeouts.player : 0;
-  const to = mk(t('ui.clock.timeoutButton', {count:n}), 'action-btn secondary', playerCallTimeout,
+  const to = mk(t('ui.clock.timeoutButton', {count:n}), 'action-btn secondary timeout-control', playerCallTimeout,
     !game.clockRunning ? t('ui.clock.alreadyStopped') : (n <= 0 ? t('ui.clock.noneLeft') : t('ui.clock.stopClock')));
   to.disabled = !game.clockRunning || n <= 0;
   details.appendChild(to);
@@ -337,9 +337,12 @@ function renderOffenseCategory(chooser, type, onPick, focusPlay){
   renderPlayCategory(chooser, t(`ui.playControls.${labelKey}`), OFFENSE_PLAYS.filter(play => play.type === type), plays => {
     plays.forEach(play => {
       const direction = play.directions.length === 1 ? play.directions[0] : undefined;
-      const card = direction
-        ? offenseCardText(play.name, {type:play.type, direction})
-        : t('ui.playControls.chooseDirection');
+      let card = offenseCardText(play.name, {type:play.type, direction});
+      if(!direction && play.directions.some(dir =>
+        offenseCardText(play.name, {type:play.type, direction:dir}) !== card
+      )){
+        card += ` ${t('ui.playControls.dependsOnDirection')}`;
+      }
       const btn = createPlayButton(playLabel(play.name), card, type, play.name, direction);
       btn.dataset.playName = play.name;
       btn.onclick = direction
@@ -358,8 +361,10 @@ function renderOffenseDirections(chooser, play, onPick){
       const card = offenseCardText(play.name, {type:play.type, direction});
       const btn = createPlayButton(label, card, play.type, play.name, direction);
       const diagram = btn.querySelector('.pb-diagram');
-      diagram.className += ' direction-label';
-      diagram.textContent = dirLabel(direction);
+      const caption = document.createElement('span');
+      caption.className = 'direction-caption';
+      caption.textContent = dirLabel(direction);
+      diagram.appendChild(caption);
       btn.onclick = () => onPick({name:play.name, type:play.type, depth:play.depth, direction});
       chooser.querySelector('.play-buttons').appendChild(btn);
     });

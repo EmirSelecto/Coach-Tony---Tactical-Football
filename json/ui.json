@@ -184,7 +184,7 @@
     "backToCategories": "Retour aux catégories",
     "backToPlays": "Retour aux tactiques",
     "choosePlay": "Choisissez votre tactique",
-    "chooseDirection": "Choisir une direction",
+    "dependsOnDirection": "(selon la direction)",
     "directionForPlay": "{play} — choisissez une direction",
     "noHistory": "Aucun appel pour l'instant"
   },

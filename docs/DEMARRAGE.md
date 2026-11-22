@@ -98,6 +98,10 @@ sélectionné ; les annonces de phase et de résultat sont exposées aux lecteur
 d’écran.
 En attaque, choisissez la catégorie course/passe puis la tactique ; les tactiques
 avec plusieurs directions proposent ensuite leurs directions disponibles.
+Leurs fiches affichent les forces et faiblesses générales ; lorsqu'elles
+varient selon la direction, les fiches suivantes présentent les valeurs propres
+à chaque direction. Chaque carte comporte un schéma tactique ; les variantes
+directionnelles affichent leur tracé correspondant.
 En 4e tentative, le punt est proposé à côté des deux catégories offensives.
 En défense, les appels sont regroupés par pression, couverture ou défense contre
 la course. Les cartes défilent horizontalement ; la barre de commandes défile

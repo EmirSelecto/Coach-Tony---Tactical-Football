@@ -14,7 +14,8 @@ function createHarness(){
       this.className = '';
       this.textContent = '';
     }
-    set innerHTML(value){ this.children = []; }
+    set innerHTML(value){ this._innerHTML = value; this.children = []; }
+    get innerHTML(){ return this._innerHTML || ''; }
     appendChild(child){ this.children.push(child); return child; }
     append(...children){ children.forEach(child => this.appendChild(child)); }
     setAttribute(name, value){ this.attributes[name] = value; }
@@ -102,6 +103,21 @@ test('vertical wheel scrolls overflowing playbook rows without intercepting othe
   assert.equal(wheel({deltaY:-10}), false);
 });
 
+test('play selection shows strengths and weaknesses before direction-specific choices', () => {
+  const {context, chooser} = createHarness();
+  context.offenseCardText = (name, play) =>
+    `+ ${name}\n− ${name === 'QB Keeper' && play.direction === 'middle' ? 'centre' : 'extérieur'}`;
+  context.renderOffenseCategory(chooser, 'run', () => assert.fail('A play was selected'));
+  const button = chooser.querySelectorAll('.play-btn').find(item => item.dataset.playName === 'QB Keeper');
+  assert.match(button.title, /\+ QB Keeper/);
+  assert.match(button.title, /− extérieur \(selon la direction\)/);
+  assert.doesNotMatch(button.title, /Choisir une direction/);
+  button.click();
+  const choices = chooser.querySelectorAll('.play-btn');
+  assert.match(choices[1].title, /− centre/);
+  assert.doesNotMatch(choices[1].title, /selon la direction/);
+});
+
 test('every offensive play offers exactly its available directions before selecting a variant', () => {
   const {context, chooser, plays} = createHarness();
   for(const type of ['run', 'pass']){
@@ -138,6 +154,24 @@ test('returning from the direction chooser restores focus to the selected play',
   navigation.querySelector('.chooser-back').click();
   assert.equal(document.activeElement.dataset.playName, 'Screen Pass');
   assert.equal(chooser.querySelectorAll('.play-btn').length, 10);
+});
+
+test('direction cards retain the SVG and pass each selected direction to the diagram renderer', () => {
+  const {context, chooser} = createHarness();
+  const calls = [];
+  context.window.PlayDiagrams.forPlay = (name, type, direction) => {
+    calls.push({name, type, direction});
+    return '<svg viewBox="0 0 120 72"></svg>';
+  };
+  context.renderOffenseCategory(chooser, 'pass', () => assert.fail('A play was selected'));
+  calls.length = 0;
+  chooser.querySelectorAll('.play-btn').find(button => button.dataset.playName === 'Screen Pass').click();
+  assert.deepEqual(calls.map(call => call.direction), ['left', 'middle', 'right']);
+  chooser.querySelectorAll('.play-btn').forEach(button => {
+    const diagram = button.querySelector('.pb-diagram');
+    assert.match(diagram.innerHTML, /<svg/);
+    assert.ok(diagram.querySelector('.direction-caption'));
+  });
 });
 
 test('defensive cards retain their category and selected play', () => {

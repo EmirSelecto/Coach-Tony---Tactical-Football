@@ -854,6 +854,8 @@ function applyTeamNamesToUI(teams){
   document.getElementById('scoreLogoPlayer').alt = `${teams.player.name} — logo`;
   document.getElementById('scoreLogoAI').src = window.TeamArt.getTeamLogoCanvas(teams.ai.name).toDataURL();
   document.getElementById('scoreLogoAI').alt = `${teams.ai.name} — logo`;
+  document.getElementById('tossTeamPlayerLogo').src = document.getElementById('scoreLogoPlayer').src;
+  document.getElementById('tossTeamAILogo').src = document.getElementById('scoreLogoAI').src;
   window.setCommentatorExpression('neutral');
   document.documentElement.style.setProperty('--player-secondary', teams.player.secondaryColor);
   document.documentElement.style.setProperty('--ai-secondary', teams.ai.secondaryColor);
@@ -900,30 +902,37 @@ function renderTeamPicker(){
   const pid = game.teams.player.id, aid = game.teams.ai.id;
   wrap.innerHTML = `<table class="team-table"><thead><tr><th>${t('ui.teamPicker.team')}</th><th title="${t('ui.teamPicker.offenseTitle')}">${t('ui.teamPicker.offense')}</th><th title="${t('ui.teamPicker.defenseTitle')}">${t('ui.teamPicker.defense')}</th><th title="${t('ui.teamPicker.overallTitle')}">${t('ui.teamPicker.overall')}</th><th>${t('ui.teamPicker.profile')}</th><th></th></tr></thead><tbody>${
     list.map(t => `<tr class="${t.id===pid?'is-player':''} ${t.id===aid?'is-ai':''}">
-      <td><img class="team-picker-logo" src="${window.TeamArt.getTeamLogoCanvas(t.name).toDataURL()}" alt=""><span class="tdot" style="background:${t.color}"></span>${t.name}</td>
+      <td><span class="team-picker-team"><img class="team-picker-logo" src="${window.TeamArt.getTeamLogoCanvas(t.name).toDataURL()}" alt=""><span>${t.name}</span></span></td>
       <td>${t.ratings.offense}</td><td>${t.ratings.defense}</td><td><b>${t.ratings.overall}</b></td>
       <td class="prof">${teamProfileLabel(t.ratings)}</td>
-      <td class="pick"><button class="mini-btn ${t.id===pid?'on':''}" data-side="player" data-id="${t.id}">${TEXTS.ui.teamPicker.you}</button><button class="mini-btn ai ${t.id===aid?'on':''}" data-side="ai" data-id="${t.id}">${TEXTS.ui.teamPicker.ai}</button></td>
+      <td class="pick"><button class="mini-btn ${t.id===pid?'on':''}" data-side="player" data-id="${t.id}" aria-label="${TEXTS.ui.teamPicker.you} : ${t.name}" aria-pressed="${t.id===pid}">${TEXTS.ui.teamPicker.you}</button><button class="mini-btn ai ${t.id===aid?'on':''}" data-side="ai" data-id="${t.id}" aria-label="${TEXTS.ui.teamPicker.ai} : ${t.name}" aria-pressed="${t.id===aid}">${TEXTS.ui.teamPicker.ai}</button></td>
     </tr>`).join('')}</tbody></table>`;
-  wrap.querySelectorAll('button.mini-btn').forEach(b => b.onclick = () => selectTeam(b.dataset.side, Number(b.dataset.id)));
+  wrap.querySelectorAll('button.mini-btn').forEach(b => b.onclick = () => {
+    const {side, id} = b.dataset;
+    selectTeam(side, Number(id));
+    const replacement = wrap.querySelector(`button[data-side="${side}"][data-id="${id}"]`);
+    if(replacement) replacement.focus({preventScroll:true});
+  });
 }
 function renderPregameBody(){
   const teams = game.teams;
   const body = document.getElementById('pregameBody');
+  const teamCard = (team, side, label) => `
+    <div class="matchup-team ${side}">
+      <img class="matchup-logo" src="${window.TeamArt.getTeamLogoCanvas(team.name).toDataURL()}" alt="">
+      <div class="matchup-name">${team.name}</div>
+      <div class="matchup-side">${label}</div>
+      <div class="matchup-ratings">
+        <span title="${TEXTS.ui.teamPicker.offenseTitle}">${TEXTS.ui.teamPicker.offense} ${team.ratings.offense}</span>
+        <span title="${TEXTS.ui.teamPicker.defenseTitle}">${TEXTS.ui.teamPicker.defense} ${team.ratings.defense}</span>
+        <span title="${TEXTS.ui.teamPicker.overallTitle}">${TEXTS.ui.teamPicker.overall} ${team.ratings.overall}</span>
+      </div>
+    </div>`;
   body.innerHTML = `
-    <div style="display:flex;justify-content:space-between;gap:14px;">
-      <div style="text-align:center;flex:1;">
-        <div style="width:16px;height:16px;border-radius:50%;background:${teams.player.color};margin:0 auto 8px;"></div>
-        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);font-size:1.05rem;">${teams.player.name}</div>
-        <div style="font-size:0.75rem;color:var(--ink-dim);margin-top:2px;">(${TEXTS.ui.teamPicker.yourTeam})</div>
-        <div style="margin-top:8px;font-size:0.82rem;">${t('ui.teamPicker.ratings', {offense:teams.player.ratings.offense, defense:teams.player.ratings.defense, overall:teams.player.ratings.overall})}</div>
-      </div>
-      <div style="text-align:center;flex:1;">
-        <div style="width:16px;height:16px;border-radius:50%;background:${teams.ai.color};margin:0 auto 8px;"></div>
-        <div style="font-family:'Oswald',sans-serif;color:var(--chalk);font-size:1.05rem;">${teams.ai.name}</div>
-        <div style="font-size:0.75rem;color:var(--ink-dim);margin-top:2px;">(${TEXTS.ui.teamPicker.ai})</div>
-        <div style="margin-top:8px;font-size:0.82rem;">${t('ui.teamPicker.ratings', {offense:teams.ai.ratings.offense, defense:teams.ai.ratings.defense, overall:teams.ai.ratings.overall})}</div>
-      </div>
+    <div class="matchup">
+      ${teamCard(teams.player, 'player', TEXTS.ui.teamPicker.yourTeam)}
+      <span class="matchup-vs">VS</span>
+      ${teamCard(teams.ai, 'ai', TEXTS.ui.teamPicker.ai)}
     </div>`;
 }
 

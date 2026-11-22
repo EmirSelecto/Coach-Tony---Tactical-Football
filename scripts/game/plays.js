@@ -121,19 +121,19 @@ function runConversion(){
   render();
   if(team === 'player'){
     const advice = aiConversionChoice('player') === 'two' ? t('game.conversion.patAdviceTwo') : t('game.conversion.patAdviceOne');
-    const opts = [{label:t('game.conversion.patOption', {chance:Math.round(BALANCE.conversion.patChance*100)}), primary:true, onClick: () => finishConversion('player', 'pat')}];
-    TWO_POINT_OFFENSE_OPTIONS.forEach(pl => opts.push({label:t('game.conversion.twoPointOption', {play:playLabel(pl.name)}), onClick: () => {
+    const opts = [{label:t('game.conversion.patOption', {chance:Math.round(BALANCE.conversion.patChance*100)}), primary:true, pat:true, onClick: () => finishConversion('player', 'pat')}];
+    TWO_POINT_OFFENSE_OPTIONS.forEach(pl => opts.push({label:t('game.conversion.twoPointOption', {play:playLabel(pl.name)}), play:pl, onClick: () => {
       const ctx = conversionContext('player');
       const defPlay = chooseAIDefensivePlay(ctx, calculatePredictability(game.offensivePlayHistoryPlayer, ctx), game.offensivePlayHistoryPlayer);
       finishConversion('player', 'two', {...pl}, defPlay);
     }}));
-    showChoice(t('game.conversion.playerChoiceTitle'), t('game.conversion.playerChoiceBody', {diff:fmtDiff(scoreDiffFor('player')), advice}), opts);
+    showChoice(t('game.conversion.playerChoiceTitle'), t('game.conversion.playerChoiceBody', {diff:fmtDiff(scoreDiffFor('player')), advice}), opts, {conversionTeam:team});
   } else {
     if(aiConversionChoice('ai') === 'pat'){ scheduleForGame(() => finishConversion('ai', 'pat'), 700); return; }
     const ctx = conversionContext('ai');
     const offPlay = chooseAIOffensivePlay(ctx, calculatePredictability(game.defensivePlayHistoryPlayer, ctx), game.defensivePlayHistoryPlayer);
     const opts = TWO_POINT_DEFENSE_OPTIONS.map(n => ({label:playLabel(n), onClick: () => finishConversion('ai', 'two', offPlay, {...DEFENSE_PLAYS.find(d => d.name === n)})}));
-    showChoice(t('game.conversion.aiChoiceTitle'), t('game.conversion.aiChoiceBody', {team:teamNameOf('ai'), diff:fmtDiff(scoreDiffFor('ai'))}), opts);
+    showChoice(t('game.conversion.aiChoiceTitle'), t('game.conversion.aiChoiceBody', {team:teamNameOf('ai'), diff:fmtDiff(scoreDiffFor('ai'))}), opts, {conversionTeam:team});
   }
 }
 function finishConversion(team, choice, offPlay, defPlay){
@@ -214,19 +214,43 @@ function finishConversion(team, choice, offPlay, defPlay){
     yards: res.success ? Math.max(2, r.yards) : r.yards, visualBallX: preSnapSpot, visualMarkerX: goalX};
   runPlayAnimation(animCfg, done);
 }
-function showChoice(title, bodyHtml, options){
-  document.getElementById('choiceTitle').textContent = title;
+function showChoice(title, bodyHtml, options, {conversionTeam} = {}){
+  const overlay = document.getElementById('choiceOverlay');
+  const heading = document.getElementById('choiceTitle');
+  heading.textContent = title;
+  overlay.classList.toggle('conversion-choice', Boolean(conversionTeam));
+  if(conversionTeam){
+    const team = game.teams[conversionTeam];
+    const logo = document.createElement('img');
+    logo.className = 'conversion-logo';
+    logo.src = window.TeamArt.getTeamLogoCanvas(team.name).toDataURL();
+    logo.alt = team.name;
+    heading.prepend(logo);
+  }
   document.getElementById('choiceBody').innerHTML = bodyHtml;
   const actions = document.getElementById('choiceActions');
   actions.innerHTML = '';
+  actions.classList.toggle('conversion-offense', options.some(o => o.play));
   options.forEach(o => {
     const b = document.createElement('button');
     b.className = 'action-btn' + (o.primary ? '' : ' secondary');
-    b.textContent = o.label;
+    if(o.pat) b.classList.add('conversion-pat');
+    if(o.play){
+      b.classList.add('conversion-play', o.play.type);
+      const label = document.createElement('span');
+      label.textContent = o.label;
+      const diagram = document.createElement('span');
+      diagram.className = 'conversion-diagram';
+      diagram.setAttribute('aria-hidden', 'true');
+      diagram.innerHTML = window.PlayDiagrams.forPlay(o.play.name, o.play.type, o.play.direction);
+      b.append(label, diagram);
+    } else {
+      b.textContent = o.label;
+    }
     b.onclick = o.onClick;
     actions.appendChild(b);
   });
-  document.getElementById('choiceOverlay').classList.remove('hidden');
+  overlay.classList.remove('hidden');
 }
 function hideChoice(){ const el = document.getElementById('choiceOverlay'); if(el) el.classList.add('hidden'); }
 
