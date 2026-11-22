@@ -2500,6 +2500,11 @@
     border-radius:3px;
   }
   .controls-panel .pb-diagram svg{ display:block; width:64px; height:48px; }
+  .controls-panel .pb-diagram.direction-label{
+    color:#e7f6ff;
+    font:700 0.65rem/1.1 'Chakra Petch','Rajdhani',sans-serif;
+    text-align:center;
+  }
   .controls-panel .action-row{ gap:5px; }
   .controls-panel .action-btn,.controls-panel button.play-btn{ font-family:'Rajdhani',sans-serif; }
   @media (max-width:760px){
@@ -2534,6 +2539,277 @@
   }
   @media (prefers-reduced-motion:reduce){
     .controls-panel button.play-btn,.controls-panel .choice-category{ transition:none; }
+  }
+
+  /* Manga playbook */
+  .controls-panel.playbook-hud{
+    position:fixed;
+    right:14px;
+    bottom:14px;
+    z-index:40;
+    width:min(55vw,820px,calc(100% - 28px));
+    height:min(170px,max(120px,calc(max(0px,50dvh - 28.125vw) + min(22.75dvh,12.796875vw) - 14px)));
+    max-height:none;
+    padding:10px 12px 8px;
+    gap:4px;
+    overflow:visible;
+    isolation:isolate;
+    background:none;
+    border:0;
+    border-radius:0;
+    clip-path:none;
+    box-shadow:none;
+    backdrop-filter:none;
+    perspective:750px;
+    transform:perspective(750px) rotateY(-12deg) rotateZ(0.8deg) skewX(6deg);
+    transform-origin:right bottom;
+  }
+  .playbook-frame{
+    position:absolute;
+    z-index:-1;
+    inset:0;
+    pointer-events:none;
+    filter:drop-shadow(-5px 5px 0 #090d16);
+  }
+  .playbook-frame::before,.playbook-frame::after,.playbook-halftone{
+    content:"";
+    position:absolute;
+    inset:0;
+  }
+  .playbook-frame::before{
+    background:linear-gradient(120deg,#00f0ff,#3b82f6);
+    clip-path:polygon(4% 0%,100% 8%,100% 100%,0% 100%);
+  }
+  .playbook-frame::after,.playbook-halftone{
+    clip-path:polygon(calc(4% + 4px) 5px,calc(100% - 5px) calc(8% + 4px),calc(100% - 4px) calc(100% - 4px),5px calc(100% - 4px));
+  }
+  .playbook-frame::after{ background:#0b1222; }
+  .playbook-halftone{
+    z-index:1;
+    background:
+      radial-gradient(rgba(0,0,0,0.35) 1.5px,transparent 1.6px) 0 0 / 6px 6px,
+      radial-gradient(rgba(255,255,255,0.28) 1.6px,transparent 1.7px) 3px 3px / 6px 6px;
+    -webkit-mask-image:linear-gradient(to left,#000,rgba(0,0,0,0.4) 45%,transparent 80%);
+    mask-image:linear-gradient(to left,#000,rgba(0,0,0,0.4) 45%,transparent 80%);
+  }
+  .controls-panel .playbook-toolbar{
+    flex:none;
+    justify-content:flex-start;
+    gap:6px;
+    min-height:28px;
+    margin-top:-18px;
+    padding:2px 3px 4px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+    scrollbar-color:#00f0ff #090d16;
+  }
+  .playbook-toolbar h2,.playbook-label{
+    flex:none;
+    width:auto;
+    overflow:visible;
+    padding:3px 7px;
+    color:#fff;
+    background:#090d16;
+    border:2px solid #00f0ff;
+    font:italic 800 0.68rem/1 'Chakra Petch','Rajdhani',sans-serif;
+    white-space:nowrap;
+    transform:skewX(18deg);
+  }
+  .playbook-label{
+    color:#090d16;
+    background:#00f0ff;
+    font-weight:900;
+  }
+  .playbook-toolbar .clock-controls{ flex:none; margin-left:auto; }
+  .playbook-navigation{ flex:none; }
+  .playbook-toolbar .clock-controls .action-row{ flex-wrap:nowrap; }
+  .playbook-toolbar .fourth-down-actions{
+    display:flex;
+    flex:none;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:5px;
+    margin:0;
+  }
+  .playbook-toolbar .fourth-down-info{ display:flex; flex:none; gap:8px; }
+  .playbook-toolbar .fourth-down-actions .action-btn{
+    flex:none;
+    min-height:25px;
+    padding:3px 6px;
+    font-size:0.62rem;
+    white-space:nowrap;
+  }
+  .playbook-toolbar .fourth-down-note,.playbook-toolbar .coach-note{
+    flex:none;
+    margin:0;
+    color:#e7f6ff;
+    font-size:0.65rem;
+    white-space:nowrap;
+  }
+  .controls-panel #controlsBody{
+    flex:1 1 0;
+    min-height:0;
+    overflow:hidden;
+  }
+  .controls-panel .play-chooser{
+    display:flex;
+    flex:1 1 0;
+    min-height:0;
+    flex-direction:column;
+  }
+  .controls-panel .chooser-heading{
+    flex:none;
+    min-height:19px;
+    margin:0;
+  }
+  .controls-panel .chooser-back{ min-height:22px; }
+  .controls-panel .chooser-heading h3{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .controls-panel .play-group{
+    flex:1 1 0;
+    min-height:0;
+    max-height:none;
+    overflow:visible;
+  }
+  .controls-panel .playbook-cards-row{
+    display:flex;
+    flex:1 1 0;
+    flex-flow:row nowrap;
+    align-items:stretch;
+    gap:10px;
+    width:100%;
+    height:100%;
+    min-height:0;
+    padding:4px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+    scrollbar-color:#00f0ff #090d16;
+  }
+  .controls-panel .choice-category,
+  .controls-panel button.play-btn{
+    --card-accent:#00f0ff;
+    flex:0 0 calc((100% - 30px) / 4);
+    min-width:155px;
+    min-height:0;
+    height:100%;
+    padding:4px 5px;
+    overflow:hidden;
+    color:#fff;
+    background:
+      radial-gradient(rgba(255,255,255,0.08) 1px,transparent 1.1px) 0 0 / 6px 6px,
+      #0f172a;
+    border:2px solid #090d16;
+    border-top:5px solid var(--card-accent);
+    border-radius:0;
+    clip-path:none;
+    box-shadow:3px 3px 0 #090d16;
+    text-shadow:none;
+  }
+  .controls-panel .offense-categories .choice-category{ flex-basis:calc((100% - 10px) / 2); min-width:0; }
+  .controls-panel .choice-category[data-category="run"],
+  .controls-panel .choice-category[data-category="run-defense"],
+  .controls-panel button.play-btn.run,
+  .controls-panel button.play-btn[data-defense-category="run"]{ --card-accent:#facc15; }
+  .controls-panel .choice-category[data-category="pressure"],
+  .controls-panel button.play-btn[data-defense-category="pressure"]{ --card-accent:#ff007f; }
+  .controls-panel .choice-category{
+    flex-direction:row;
+    justify-content:center;
+    gap:10px;
+    color:#fff;
+    font:italic 800 0.78rem/1.2 'Chakra Petch','Rajdhani',sans-serif;
+    letter-spacing:0;
+    text-transform:uppercase;
+  }
+  .controls-panel .choice-category:first-child,
+  .controls-panel .choice-category:nth-child(2){
+    color:#fff;
+    border-color:#090d16;
+    border-top-color:var(--card-accent);
+    box-shadow:3px 3px 0 #090d16;
+    text-shadow:none;
+  }
+  .controls-panel .choice-category svg{
+    width:58px;
+    height:44px;
+    color:var(--card-accent);
+    stroke:var(--card-accent);
+  }
+  .controls-panel button.play-btn{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"name" "diagram" "details";
+    align-items:center;
+    gap:2px;
+    text-align:left;
+  }
+  .controls-panel button.play-btn:hover,.controls-panel button.play-btn:focus-visible,
+  .controls-panel .choice-category:hover,.controls-panel .choice-category:focus-visible{
+    transform:none;
+    border-color:#090d16;
+    border-top-color:var(--card-accent);
+    box-shadow:inset 0 0 0 2px var(--card-accent);
+    filter:brightness(1.13);
+  }
+  .controls-panel .pb-copy{ display:contents; }
+  .controls-panel .pb-name{
+    grid-area:name;
+    font:italic 800 0.78rem/1.05 'Chakra Petch','Rajdhani',sans-serif;
+    text-transform:uppercase;
+    -webkit-line-clamp:1;
+  }
+  .controls-panel .pb-diagram{
+    grid-area:diagram;
+    justify-self:center;
+    width:auto;
+    height:100%;
+    min-height:0;
+    max-height:62px;
+    aspect-ratio:4 / 3;
+    background:none;
+    border:0;
+    border-radius:0;
+  }
+  .controls-panel .pb-diagram svg{ width:auto; height:100%; max-width:100%; }
+  .controls-panel .pb-diagram.direction-label{ color:var(--card-accent); font-size:0.75rem; }
+  .controls-panel .pb-card{
+    grid-area:details;
+    flex-wrap:nowrap;
+    min-width:0;
+    overflow:hidden;
+    gap:2px;
+    font:700 0.58rem/1.1 'Rajdhani',sans-serif;
+  }
+  .controls-panel .pb-card span{
+    flex:1 1 0;
+    min-width:0;
+    overflow:hidden;
+    padding:1px 3px;
+    border-radius:999px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .controls-panel .pb-card .positive{ color:#a7f3d0; background:#064e3b; }
+  .controls-panel .pb-card .negative{ color:#fecaca; background:#7f1d1d; }
+  .overlay-drawer{ z-index:41; }
+  @media (max-height:500px) and (orientation:landscape){
+    .controls-panel.playbook-hud{ height:150px; }
+  }
+  @media (max-width:760px) and (orientation:portrait){
+    .controls-panel.playbook-hud{
+      position:fixed;
+      right:12px;
+      bottom:calc(18px + max(18vh,22vw));
+      width:calc(100vw - 24px);
+      height:150px;
+    }
   }
 
   #anime-cutin-overlay{

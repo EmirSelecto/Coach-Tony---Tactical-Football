@@ -29,7 +29,10 @@ function toggleHudPanel(id, button){
   }
 }
 document.getElementById('settingsToggle').addEventListener('click', event => toggleHudPanel('settingsPanel', event.currentTarget));
-document.getElementById('controlsBody').addEventListener('click', event => {
+document.querySelector('.playbook-toolbar').addEventListener('focusin', event => {
+  if(event.target.matches('button')) event.target.scrollIntoView({block:'nearest', inline:'nearest'});
+});
+document.getElementById('controlsPanel').addEventListener('click', event => {
   const button = event.target.closest('#trendsToggle');
   if(button) toggleHudPanel('trendsPanel', button);
 });

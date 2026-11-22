@@ -1,5 +1,6 @@
 (async function loadGame(){
   const scoreboardVersion = '?v=manga-commentator-1';
+  const playbookVersion = '?v=manga-playbook-1';
   const catalogs = [
     'ui',
     'game',
@@ -29,7 +30,7 @@
 
   try{
     const loadedCatalogs = await Promise.all(catalogs.map(async name => {
-      const response = await fetch(`json/${name}.json${name === 'ui' ? scoreboardVersion : ''}`);
+      const response = await fetch(`json/${name}.json${name === 'ui' ? playbookVersion : ''}`);
       if(!response.ok) throw new Error(`Impossible de charger json/${name}.json (${response.status}).`);
       const catalog = await response.json();
       if(!catalog || typeof catalog !== 'object' || Array.isArray(catalog)){
@@ -65,7 +66,8 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/ui/interface.js', 'scripts/game/engine.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js'].includes(src) ? scoreboardVersion : '');
+        script.src = src + (['scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
+          ['scripts/game/engine.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js'].includes(src) ? scoreboardVersion : '');
         script.async = false;
         script.onload = resolve;
         script.onerror = () => reject(new Error(`Impossible de charger ${src}.`));

@@ -96,8 +96,11 @@ focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lo
 la fermeture des panneaux. Le choix du tempo est annoncé comme un état
 sélectionné ; les annonces de phase et de résultat sont exposées aux lecteurs
 d’écran.
-En attaque, les appels sont choisis par catégorie course/passe ; en défense,
-par pression, couverture ou défense contre la course.
+En attaque, choisissez la catégorie course/passe puis la tactique ; les tactiques
+avec plusieurs directions proposent ensuite leurs directions disponibles. En
+défense, les appels sont regroupés par pression, couverture ou défense contre
+la course. Les cartes défilent horizontalement ; la barre de commandes défile
+également si l'écran est trop étroit, notamment en 4e tentative.
 
 Les textes statiques de la page sont associés à leurs entrées de `ui.json` par
 les attributs `data-text` et `data-title` dans `index.html`.

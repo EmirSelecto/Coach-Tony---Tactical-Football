@@ -113,6 +113,11 @@ function renderControls(){
   const toolbar = panel.querySelector('.playbook-toolbar');
   const previousClockControls = toolbar.querySelector('.clock-controls');
   if(previousClockControls) previousClockControls.remove();
+  const previousFourthDown = toolbar.querySelector('.fourth-down-actions');
+  if(previousFourthDown) previousFourthDown.remove();
+  const previousFourthDownInfo = toolbar.querySelector('.fourth-down-info');
+  if(previousFourthDownInfo) previousFourthDownInfo.remove();
+  document.getElementById('playbookNavigation').innerHTML = '';
   body.innerHTML = '';
   panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
   window.resetCommentatorForChoice();
@@ -135,7 +140,7 @@ function renderControls(){
       const fromGoal = context.ballOn;
       const kickDistance = computeKickDistance(context);
       const row = document.createElement('div');
-      row.className = 'action-row';
+      row.className = 'action-row fourth-down-actions';
       if(kickDistance <= BALANCE.fieldGoal.availableMaxDistance){
         const chance = Math.round(getFieldGoalSuccessChance(kickDistance) * 100);
         const fg = document.createElement('button');
@@ -151,15 +156,17 @@ function renderControls(){
       punt.className = 'action-btn secondary'; punt.textContent = t('ui.playControls.punt');
       punt.onclick = playerAttemptPunt;
       row.appendChild(punt);
-      body.appendChild(row);
       const note = document.createElement('div');
-      note.style.cssText = 'font-size:0.8rem;color:var(--ink-dim);margin:6px 0 10px;';
+      note.className = 'fourth-down-note';
       note.textContent = t('ui.playControls.goForItNote');
-      body.appendChild(note);
       const coach = document.createElement('div');
       coach.className = 'coach-note';
       coach.innerHTML = t('ui.playControls.coachAdvice', {advice:fourthDownAdviceText(context)});
-      body.appendChild(coach);
+      const info = document.createElement('div');
+      info.className = 'fourth-down-info';
+      info.append(note, coach);
+      toolbar.insertBefore(row, toolbar.querySelector('.clock-controls'));
+      toolbar.appendChild(info);
     }
     renderOffenseButtons(body, playerCallOffense);
   } else {
@@ -262,7 +269,7 @@ function renderOffenseButtons(container, onPick){
   const chooser = document.createElement('div');
   chooser.className = 'play-chooser';
   const categories = document.createElement('div');
-  categories.className = 'choice-categories';
+  categories.className = 'choice-categories playbook-cards-row offense-categories';
   categories.setAttribute('role', 'group');
   categories.setAttribute('aria-label', t('ui.playControls.chooseYourPlay'));
   categories.append(
@@ -282,7 +289,7 @@ function renderDefenseButtons(container, onPick){
   const chooser = document.createElement('div');
   chooser.className = 'play-chooser';
   const categories = document.createElement('div');
-  categories.className = 'choice-categories';
+  categories.className = 'choice-categories playbook-cards-row defense-categories';
   categories.setAttribute('role', 'group');
   categories.setAttribute('aria-label', t('ui.playControls.chooseDefense'));
   groups.forEach(group => categories.appendChild(
@@ -296,6 +303,7 @@ function createChoiceCategory(label, icon, onClick){
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'choice-category';
+  button.dataset.category = icon;
   button.addEventListener('click', onClick);
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('aria-hidden', 'true');
@@ -320,19 +328,40 @@ function createChoiceCategory(label, icon, onClick){
   return button;
 }
 
-function renderOffenseCategory(chooser, type, onPick){
+function renderOffenseCategory(chooser, type, onPick, focusPlay){
   const labelKey = type === 'run' ? 'runs' : 'passes';
   renderPlayCategory(chooser, t(`ui.playControls.${labelKey}`), OFFENSE_PLAYS.filter(play => play.type === type), plays => {
     plays.forEach(play => {
-      play.directions.forEach(direction => {
-        const displayName = playLabel(play.name);
-        const label = play.directions.length > 1 ? `${displayName} (${dirLabel(direction)})` : displayName;
-        const card = offenseCardText(play.name, {type:play.type, direction});
-        const btn = createPlayButton(label, card, type, play.name, direction);
-        btn.onclick = () => onPick({name:play.name, type:play.type, depth:play.depth, direction});
-        chooser.querySelector('.play-buttons').appendChild(btn);
-      });
+      const direction = play.directions.length === 1 ? play.directions[0] : undefined;
+      const card = direction
+        ? offenseCardText(play.name, {type:play.type, direction})
+        : t('ui.playControls.chooseDirection');
+      const btn = createPlayButton(playLabel(play.name), card, type, play.name, direction);
+      btn.dataset.playName = play.name;
+      btn.onclick = direction
+        ? () => onPick({name:play.name, type:play.type, depth:play.depth, direction})
+        : () => renderOffenseDirections(chooser, play, onPick);
+      chooser.querySelector('.play-buttons').appendChild(btn);
     });
+  }, {focusPlay});
+}
+
+function renderOffenseDirections(chooser, play, onPick){
+  const displayName = playLabel(play.name);
+  renderPlayCategory(chooser, t('ui.playControls.directionForPlay', {play:displayName}), play.directions, directions => {
+    directions.forEach(direction => {
+      const label = `${displayName} (${dirLabel(direction)})`;
+      const card = offenseCardText(play.name, {type:play.type, direction});
+      const btn = createPlayButton(label, card, play.type, play.name, direction);
+      const diagram = btn.querySelector('.pb-diagram');
+      diagram.className += ' direction-label';
+      diagram.textContent = dirLabel(direction);
+      btn.onclick = () => onPick({name:play.name, type:play.type, depth:play.depth, direction});
+      chooser.querySelector('.play-buttons').appendChild(btn);
+    });
+  }, {
+    backLabel:t('ui.playControls.backToPlays'),
+    onBack:() => renderOffenseCategory(chooser, play.type, onPick, play.name)
   });
 }
 
@@ -346,24 +375,27 @@ function renderDefenseCategory(chooser, category, onPick){
     plays, list => list.forEach(play => {
       const card = defenseCardText(play.name);
       const btn = createPlayButton(playLabel(play.name), card, 'def', play.name);
+      btn.dataset.defenseCategory = category;
       btn.onclick = () => onPick({...play});
       chooser.querySelector('.play-buttons').appendChild(btn);
     }));
 }
 
-function renderPlayCategory(chooser, label, plays, renderButtons){
+function renderPlayCategory(chooser, label, plays, renderButtons, options = {}){
   chooser.innerHTML = '';
+  const navigation = document.getElementById('playbookNavigation');
+  navigation.innerHTML = '';
   const header = document.createElement('div');
   header.className = 'chooser-heading';
   const back = document.createElement('button');
   back.type = 'button';
   back.className = 'chooser-back';
-  back.textContent = `‹ ${t('ui.playControls.backToCategories')}`;
-  back.onclick = () => {
+  back.textContent = `‹ ${options.backLabel || t('ui.playControls.backToCategories')}`;
+  back.onclick = options.onBack || (() => {
     renderControls();
     const category = document.querySelector('#controlsBody .choice-category');
     if(category) category.focus();
-  };
+  });
   const title = document.createElement('h3');
   title.textContent = label;
   header.append(back, title);
@@ -373,12 +405,14 @@ function renderPlayCategory(chooser, label, plays, renderButtons){
   group.setAttribute('role', 'group');
   group.setAttribute('aria-labelledby', title.id);
   const row = document.createElement('div');
-  row.className = 'play-buttons';
+  row.className = 'play-buttons playbook-cards-row';
   group.appendChild(row);
-  chooser.append(header, group);
+  navigation.appendChild(header);
+  chooser.appendChild(group);
   renderButtons(plays);
-  const firstPlay = row.querySelector('.play-btn');
-  (firstPlay || back).focus();
+  const focusPlay = options.focusPlay && Array.from(row.querySelectorAll('.play-btn'))
+    .find(button => button.dataset.playName === options.focusPlay);
+  (focusPlay || row.querySelector('.play-btn') || back).focus();
 }
 
 function createPlayButton(label, card, type, playName, direction){
