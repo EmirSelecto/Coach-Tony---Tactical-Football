@@ -52,6 +52,15 @@ adaptation ne nécessite aucune annonce pendant le toss.
 
 Les classes `.icon-button`, `.overlay-panel`, `.choice-category` et
 `.commentator-bubble` servent de base aux prochaines étapes de l’interface.
+Les annonces du match utilisent le cut-in anime. Pour le tester dans la console
+du navigateur, utilisez par exemple
+`showAnimeCutin('touchdown', 'Touchdown', 'Grand jeu', 'Grand Mesa Mustangs')`.
+Les types disponibles sont `touchdown`, `fieldgoal`, `turnover`, `impact` et
+`firstdown` ; le dernier argument doit être le nom exact d'une équipe.
+Les événements successifs sont affichés dans l'ordre ; la sélection d'un nouveau
+play efface les annonces en attente. Le portrait suit l'événement affiché, puis
+revient à l'expression neutre lorsque le choix suivant est disponible.
+Les tests ciblés du cut-in se lancent avec `node --test tests/animeCutin.test.js`.
 Les pictogrammes vectoriels réutilisables sont dans
 `assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
 est une création originale destinée à accompagner les commentaires.
@@ -120,6 +129,12 @@ Cette chronologie ne recalcule ni ne modifie le résultat sportif. Le panneau
 **Mode debug (animation)** affiche les événements prévus, leur progression et
 ceux déjà déclenchés.
 
+Pendant le choix tactique, une formation neutre présente les 22 joueurs autour
+de la ligne de scrimmage, sans révéler les appels choisis. Elle est remplacée
+par les formations propres aux jeux au début de la séquence pré-snap.
+Les pions et leurs trajectoires lumineuses reprennent la couleur principale de
+leur équipe, que celle-ci soit en attaque ou en défense.
+
 Les joueurs suivent des courbes cubiques qui traversent leurs points de passage
 avec une vitesse continue, plutôt que de ralentir à chaque point. Les délais de
 départ restent déterministes et varient selon le joueur ; ils ne changent ni les
@@ -132,10 +147,12 @@ sack.
 Les moments forts ont des effets visuels renforcés et ciblés : impact au point
 du sack, flash et onde de choc au turnover, traînées brèves derrière le porteur
 lors d'une échappée, et lumière concentrée sur la zone d'en-but au touchdown.
-Les touchdowns conservent leurs confettis et gerbes spectaculaires ; ils ne
-modifient jamais le résultat sportif. Si le système demande une réduction des
-animations, les célébrations animées sont supprimées et les bannières restent
-affichées sans mouvement pour garder l'événement compréhensible.
+Les touchdowns et field goals déclenchent des traînées d'énergie depuis la zone
+d'en-but atteinte, avec un flash dans les gradins. Les fumbles, interceptions
+et sacks produisent une onde de choc à l'endroit de l'action. Ces effets sont
+synchronisés avec les bannières, sans modifier le résultat sportif. Si le
+système demande une réduction des animations, ils sont supprimés et les
+bannières restent affichées sans mouvement.
 
 En mode debug animation, les assignments sont séparés entre attaque et défense.
 Les défenseurs en marquage individuel conservent leur receveur désigné comme

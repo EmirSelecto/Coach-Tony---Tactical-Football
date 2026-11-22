@@ -1917,7 +1917,7 @@ const PlayAnimationController = {
     game.skipAnimRequested = false;
     setPlayPhase(t('animation.phaseLabels.snap'));
 
-    if(!formationDots.offense || formationDots.offense.length === 0){
+    if(choiceFormationKey || !formationDots.offense.length || !formationDots.defense.length){
       renderFormation(cfg.offPlay, (cfg.defPlay && cfg.defPlay.name) ? cfg.defPlay : {name:'Base 4-3'}, cfg.preSnapSpot, cfg.offenseSide);
     }
 
@@ -2182,19 +2182,21 @@ const PlayAnimationController = {
       triggerTurnoverFlash();
       if(event.kind !== 'downs'){
         this._triggerCameraShake('heavy');
-        triggerTackleImpact(ballState.x, ballState.y, 'turnover');
       }
-      showEventBanner(
-        event.kind === 'fumble' ? t('game.banners.fumble') : t('game.banners.turnover'),
-        'turnover',
-        undefined,
-        event.kind === 'fumble' ? t('game.banners.fumbleTurnoverSubtitle') : undefined
-      );
+      const defenseSide = setup.offenseSide === 'player' ? 'ai' : 'player';
+      const impactActor = event.kind === 'fumble' ? setup.actorsById[setup.carrierId]
+        : event.kind === 'interception' ? setup.actorsById[setup.interceptorId] : null;
+      const impactPoint = impactActor
+        ? evalPath(impactActor.path, event.kind === 'fumble' ? setup.turnoverFrac : event.time) : null;
+      showMatchCutin(event.kind === 'downs' ? 'impact' : 'turnover',
+        t(event.kind === 'fumble' ? 'game.banners.fumble'
+          : event.kind === 'interception' ? 'game.banners.interception' : 'game.banners.fourthDownStop'),
+        defenseSide, '', event.kind === 'downs' ? null : 'shocked',
+        impactPoint ? {vfx:{type:event.kind.toUpperCase(), x:fx(impactPoint.x), y:impactPoint.y}} : {});
       AudioManager.play(userLostPossession ? 'booing' : 'turnover');
     }
     if(name === 'fumble'){
       this._triggerCameraShake('light');
-      triggerTackleImpact(ballState.x, ballState.y, 'turnover');
     }
     if(name === 'tackle'){
       AudioManager.play('tackle');
@@ -2202,10 +2204,16 @@ const PlayAnimationController = {
         this._triggerCameraShake(setup.outcome === 'sack' || setup.yards <= 0 ? 'heavy' : 'light');
       }
       const carrierActor = setup.actorsById[ballState.carrierId] || setup.actorsById[setup.carrierId];
-      if(carrierActor){
-        triggerTackleImpact(carrierActor.x, carrierActor.y, setup.outcome === 'sack' ? 'sack' : 'standard');
+      if(carrierActor && setup.outcome !== 'sack'){
+        triggerTackleImpact(carrierActor.x, carrierActor.y, 'standard');
       }
-      if(setup.outcome === 'sack') triggerSackImpact();
+      if(setup.outcome === 'sack'){
+        triggerSackImpact();
+        const defenseSide = setup.offenseSide === 'player' ? 'ai' : 'player';
+        const impactPoint = evalPath(setup.actorsById[setup.carrierId].path, event.time);
+        showMatchCutin('impact', t('game.banners.sack'), defenseSide, '', 'shocked',
+          {vfx:{type:'SACK', x:fx(impactPoint.x), y:impactPoint.y}});
+      }
 
       // Le porteur tombe : c'est SEULEMENT maintenant que la ligne de scrimmage,
       // la ligne à gagner et le ballon posé rejoignent leur position finale —
@@ -2233,23 +2241,23 @@ const PlayAnimationController = {
       }
       if(setup.type === 'fieldGoal' && setup.made && !setup.suppressFieldGoalFeedback){
         triggerScoreCelebration(setup.offenseSide);
-        showEventBanner(t('game.banners.fieldGoal'), 'score');
-        celebrate('fieldGoal', setup.offenseSide);
+        showMatchCutin('fieldgoal', t('game.banners.fieldGoal'), setup.offenseSide, '', 'hyped',
+          {vfx:scoringVFX('FIELD GOAL', setup.offenseSide)});
       }
       if(setup.feedback && setup.feedback.kind === 'fakeFieldGoal'){
         const {success, advType, scorer} = setup.feedback;
         if(advType === 'touchdown'){
           triggerScoreCelebration(scorer);
           triggerTouchdownImpact(scorer);
-          showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
-          celebrate('touchdown', scorer);
+          showMatchCutin('touchdown', t('game.banners.touchdown'), scorer, '', 'hyped',
+            {vfx:scoringVFX('TOUCHDOWN', scorer)});
           AudioManager.play('touchdown');
         } else if(success){
           showEventBanner(t('game.banners.fakeFieldGoal'), 'bigPlay');
           AudioManager.play('bigPlay');
           if(advType === 'firstdown'){
             flashFirstDownMarker();
-            showEventBanner(t('game.banners.firstDown'), 'firstdown');
+            showMatchCutin('firstdown', t('game.banners.firstDown'), scorer, '', 'hyped');
             AudioManager.play('firstDown');
           }
         }
@@ -2288,6 +2296,8 @@ const PlayAnimationController = {
     const haloCount = setup.actors.filter(a => a.element.classList.contains('carrier')).length;
     animDebugAssert(haloCount <= 1, 'le ballon semble porté par plusieurs acteurs à la fois (' + haloCount + ')');
 
+    this._setup = null;
+    ballState.visible = false;
     clearTempPlayers();
     formationDots = { offense: [], defense: [] };
     setPlayPhase(t('animation.phaseLabels.result'));
@@ -2370,6 +2380,7 @@ function runKickPlayAnimation(cfg, onComplete){
     ctrl._finished = true;
     if(ctrl._raf) cancelAnimationFrame(ctrl._raf);
     ctrl._raf = null;
+    ctrl._setup = null;
     ballState.visible = false;
     renderBall();
     clearTempPlayers();
@@ -3042,16 +3053,9 @@ function setResult(headline, explain, commentary){
     box.classList.remove('has-commentary');
   }
   const resultText = `${headline} ${explain} ${commentary || ''}`;
-  const expression = /interception|intercept|fumble|perte de balle|sack/i.test(resultText)
-    ? 'shocked'
-    : /touchdown|touché|marque|score|big play|gros gain|explos|bravo|magnifique|s'échappe/i.test(resultText)
-      ? 'hyped'
-      : commentary ? 'smirking' : 'neutral';
-  document.querySelector('.commentator-portrait').src =
-    window.TeamArt.getCommentatorCanvas(expression).toDataURL('image/png');
   document.getElementById('fieldOuter').classList.remove('action-flash');
   void document.getElementById('fieldOuter').offsetWidth;
-  if(/touchdown|interception|intercept|fumble|échapp|sack|big play|gros gain/i.test(resultText)){
+  if(/big play|gros gain/i.test(resultText)){
     const fieldOuter = document.getElementById('fieldOuter');
     fieldOuter.classList.add('action-flash');
     setTimeout(() => fieldOuter.classList.remove('action-flash'), 720);

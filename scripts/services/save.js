@@ -122,7 +122,8 @@ function restoreGame(data){
   game.animSpeed = Storage.get('animSpeed', game.animSpeed || BALANCE.animation.defaultSpeed);
   ['pregameOverlay','tossOverlay','finalOverlay','driveSummaryPanel'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
   hideChoice();
-  document.getElementById('eventBannerLayer').innerHTML = '';
+  window.cancelAnimeCutins();
+  window.clearAnimeVFX();
   document.getElementById('celebrationLayer').innerHTML = '';
   buildFieldMarkings();
   applyTeamColorsToCSS(game.teams);

@@ -747,6 +747,8 @@ function startSecondHalfKickoff(){
    ========================================================================= */
 let game = null;
 function newGame(){
+  window.cancelAnimeCutins();
+  window.clearAnimeVFX();
   const teams = generateMatchTeams();
   game = {
     phase: 'pregame', // 'pregame' | 'coinToss' | 'flipping' | 'tossResult' | 'deferChoice' | 'kickoff' | 'playing'
@@ -809,7 +811,6 @@ function newGame(){
   clearTempPlayers();
   document.getElementById('finalOverlay').classList.add('hidden');
   document.getElementById('driveSummaryPanel').classList.add('hidden');
-  document.getElementById('eventBannerLayer').innerHTML = '';
   document.getElementById('celebrationLayer').innerHTML = '';
   hideChoice();
   buildFieldMarkings();
@@ -844,8 +845,7 @@ function applyTeamNamesToUI(teams){
   document.getElementById('scoreLogoPlayer').alt = `${teams.player.name} — logo`;
   document.getElementById('scoreLogoAI').src = window.TeamArt.getTeamLogoCanvas(teams.ai.name).toDataURL();
   document.getElementById('scoreLogoAI').alt = `${teams.ai.name} — logo`;
-  document.querySelector('.commentator-portrait').src =
-    window.TeamArt.getCommentatorCanvas('neutral').toDataURL('image/png');
+  window.setCommentatorExpression('neutral');
   document.documentElement.style.setProperty('--player-secondary', teams.player.secondaryColor);
   document.documentElement.style.setProperty('--ai-secondary', teams.ai.secondaryColor);
   if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
@@ -1209,6 +1209,8 @@ function announceTimeout(side){
 // Juste avant chaque snap (joueur ou IA) : temps mort éventuel de l'IA, temps
 // écoulé avant le snap, avertissement des 2 minutes, fin de période.
 function preSnapGate(offenseSide, tempo){
+  window.cancelAnimeCutins();
+  window.setCommentatorExpression('neutral');
   game.snapTempo = tempo === 'hurry' ? 'hurry' : 'normal';
   if(game.clockRunning && aiTimeoutDecision('ai') && useTimeout('ai')) announceTimeout('ai');
   const res = startSnapClock(tempo);
@@ -1350,36 +1352,37 @@ function pickTacticalMessage(ctx){
 }
 
 // ---- 2/3/5. Feedback visuel (bannières, pulsations, flash, marqueur) ----
+function showMatchCutin(type, text, side, subtitle = '', expression = null, options = {}){
+  const {vfx, ...cutinOptions} = options;
+  const team = vfx ? window.TeamArt.getTeamConfig(teamNameOf(side)) : null;
+  window.showAnimeCutin(type, text, subtitle, teamNameOf(side), {
+    ...cutinOptions,
+    queue:true,
+    onStart:() => {
+      if(expression) window.setCommentatorExpression(expression);
+      if(vfx) window.triggerAnimeVFX(vfx.type, vfx.x, vfx.y,
+        {primary:team.primary, secondary:team.secondary});
+    }
+  });
+}
+function scoringVFX(type, side){
+  const halfEndzone = ENDZONE_WIDTH_RATIO * 50;
+  return {type, x:side === 'player' ? 100 - halfEndzone : halfEndzone, y:50};
+}
 function showEventBanner(text, variant, durationMs, subtitle){
-  const layer = document.getElementById('eventBannerLayer');
-  if(!layer) return;
-  const ms = durationMs || BALANCE.eventBanner.durationMs;
-  const el = document.createElement('div');
-  el.className = 'event-banner ' + variant;
-  if(subtitle){
-    el.classList.add('has-subtitle');
-    const title = document.createElement('span');
-    title.className = 'event-banner-title';
-    title.textContent = text;
-    const detail = document.createElement('span');
-    detail.className = 'event-banner-subtitle';
-    detail.textContent = subtitle;
-    el.append(title, detail);
-  } else {
-    el.textContent = text;
-  }
-  el.style.setProperty('--banner-ms', ms + 'ms');
-  layer.appendChild(el);
-  setTimeout(() => el.remove(), ms + 150);
+  const type = variant === 'score' || variant === 'touchdown' ? 'touchdown'
+    : variant === 'turnover' ? 'turnover' : variant === 'firstdown' ? 'firstdown' : 'impact';
+  showMatchCutin(type, text, game.possession, subtitle || '', null, {
+    durationMs:durationMs || BALANCE.eventBanner.durationMs,
+    shake:false
+  });
 }
 function triggerScoreCelebration(side){
   const el = document.getElementById(side === 'player' ? 'scorePlayer' : 'scoreAI');
   if(!el) return;
   el.classList.remove('score-pulse'); void el.offsetWidth; el.classList.add('score-pulse');
 }
-// ---- Célébrations (Phase 3) : confettis aux couleurs de l'équipe, gerbes de
-// feux d'artifice dans la zone d'en-but, ballons qui tournoient. Purement
-// décoratif (Web Animations API), allégé si l'utilisateur réduit les animations.
+// Célébration décorative des gros gains, désactivée si les animations sont réduites.
 function celebrate(kind, side, xYards){
   const layer = document.getElementById('celebrationLayer');
   if(!layer || !game || !game.teams || !layer.animate) return;
@@ -1422,28 +1425,10 @@ function celebrate(kind, side, xYards){
       anim.onfinish = () => el.remove();
     }
   };
-  if(kind === 'touchdown'){
-    const n = 120;
-    const ezX = (fx(side === 'player' ? 105 : -5) / 100) * W;
-    for(let i=0;i<n;i++){
-      const x = clamp(ezX + (Math.random()-0.5)*W*0.18, 0, W);
-      const el = spawn('confetti', x, -12, pick());
-      const drift = (Math.random()*2-1)*80;
-      const anim = el.animate([
-        {transform:'translate(0,0) rotate(0deg)', opacity:1},
-        {transform:`translate(${drift}px, ${H + 30}px) rotate(${360 + Math.random()*720}deg)`, opacity:0.85}
-      ], {duration: 1800 + Math.random()*1600, easing:'linear', delay: Math.random()*900});
-      anim.onfinish = () => el.remove();
-    }
-    [0, 380, 760].forEach((delay, k) => setTimeout(() => burst(ezX + (k-1)*W*0.03, H*(0.3 + 0.2*k), 28, 90, true), delay));
-    footballs(3, ezX, H*0.6);
-  } else if(kind === 'bigPlay'){
+  if(kind === 'bigPlay'){
     const cx = (fx(xYards !== undefined ? xYards : 50) / 100) * W;
     burst(cx, H*0.5, 40, 110, false);
     footballs(1, cx, H*0.5);
-  } else if(kind === 'fieldGoal'){
-    const gx = (fx(side === 'player' ? 109 : -9) / 100) * W;
-    burst(gx, H*0.5, 30, 80, true);
   }
 }
 function restartFieldOuterAnimation(className){
@@ -1520,26 +1505,33 @@ function applyEventFeedback(offenseSide, context, tactical){
       showEventBanner(t('game.banners.safety'), 'score');
     } else {
       triggerTouchdownImpact(scoringSide);
-      showEventBanner(t('game.banners.touchdown'), 'touchdown', 2400);
-      if(result && result.outcome === 'interception') setTimeout(() => showEventBanner(t('game.banners.pickSix'), 'bigPlay'), 500);
-      celebrate('touchdown', scoringSide);
+      showMatchCutin('touchdown', t('game.banners.touchdown'), scoringSide,
+        result && result.outcome === 'interception' ? t('game.banners.pickSix') : '', 'hyped',
+        {vfx:scoringVFX('TOUCHDOWN', scoringSide)});
     }
     AudioManager.play(advType === 'safety' ? 'whistle' : 'touchdown');
   } else if(eventLevel === 'clutch'){
-    showEventBanner(t('game.banners.clutch'), 'clutch');
+    showMatchCutin('impact', t('game.banners.clutch'), offenseSide, '',
+      result.yards >= BALANCE.eventThresholds.bigPlay.minYards ? 'smirking' : null,
+      {durationMs:BALANCE.eventBanner.durationMs, shake:false});
   } else if(eventLevel === 'bigPlay'){
     triggerBigPlayPulse();
-    showEventBanner(t('game.banners.bigPlay'), 'bigPlay');
+    if(result.outcome !== 'sack'){
+      showMatchCutin('impact', t('game.banners.bigPlay'), offenseSide, '',
+        result.yards >= BALANCE.eventThresholds.bigPlay.minYards ? 'smirking' : null,
+        {durationMs:BALANCE.eventBanner.durationMs, shake:false});
+    }
     celebrate('bigPlay', offenseSide, game.visualBallX);
     AudioManager.play('bigPlay');
   } else if(eventLevel === 'positive'){
-    if(advType === 'firstdown'){
-      flashFirstDownMarker();
-      showEventBanner(t('game.banners.firstDown'), 'firstdown');
-      AudioManager.play('firstDown');
-    } else {
+    if(advType !== 'firstdown'){
       flashPositiveResult();
     }
+  }
+  if(advType === 'firstdown'){
+    flashFirstDownMarker();
+    showMatchCutin('firstdown', t('game.banners.firstDown'), offenseSide, '', 'hyped');
+    AudioManager.play('firstDown');
   }
   // 'normal' : résultat sobre, aucun effet ajouté — volontairement discret.
 

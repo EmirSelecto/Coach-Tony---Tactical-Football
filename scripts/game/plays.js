@@ -65,7 +65,10 @@ function executeKneel(side){
   logMatch(t('game.match.kneelLog', {team:who, period:periodLabel(game.quarter), clock:fmtClock(game.clock)}));
   render();
   handleClockEvents(ev);
-  if(adv.type === 'turnoverOnDowns') showDriveSummaryPanel(game.lastFinishedDrive, 'turnoverOnDowns');
+  if(adv.type === 'turnoverOnDowns'){
+    showMatchCutin('impact', t('game.banners.fourthDownStop'), side === 'player' ? 'ai' : 'player');
+    showDriveSummaryPanel(game.lastFinishedDrive, 'turnoverOnDowns');
+  }
   scheduleForGame(() => { game.playLocked = false; render(); afterPlayResolved(); }, 700);
 }
 function playerKneel(){

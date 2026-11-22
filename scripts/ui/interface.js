@@ -107,11 +107,13 @@ function renderControls(){
   if(previousClockControls) previousClockControls.remove();
   body.innerHTML = '';
   panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
+  window.resetCommentatorForChoice();
   if(!game.playLocked && game.phase === 'playing') document.getElementById('playPhaseLabel').textContent =
     game.possession === 'player' ? t('ui.playControls.chooseYourPlay') : t('ui.playControls.chooseDefense');
 
   if(game.gameOver || game.phase !== 'playing' || game.playLocked) return;
 
+  ensureChoiceFormation();
   const playerOnOffense = game.possession === 'player';
   who.textContent = playerOnOffense ? teamNameOf('player') : t('ui.playControls.defenseSuffix', {team:teamNameOf('ai')});
   title.title = `${title.textContent.trim()} — ${who.textContent}`;

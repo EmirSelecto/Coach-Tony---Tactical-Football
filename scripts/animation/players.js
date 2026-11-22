@@ -2,6 +2,7 @@ function clearTempPlayers(){
   const field = document.getElementById('field');
   if(!field) return;
   field.querySelectorAll('.temp-player').forEach(el => el.remove());
+  choiceFormationKey = null;
   if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
 function placeEl(el, leftPct, topPct){
@@ -155,7 +156,20 @@ function genDefenseFormation(category){
 // PlayAnimationController : ce sont RÉELLEMENT ces mêmes 22 joueurs qui
 // deviennent les acteurs de l'animation, aucun ne disparaît avant l'action.
 let formationDots = { offense: [], defense: [] };
+let choiceFormationKey = null;
 let tacticalCanvasFrame = 0;
+const ENDZONE_WIDTH_RATIO = 1 / 11.6;
+
+function playerPalette(color){
+  if(!/^#[0-9a-f]{6}$/i.test(color)) throw new Error(`Couleur de joueur invalide : "${color}".`);
+  const channels = [1,3,5].map(index => parseInt(color.slice(index, index + 2), 16));
+  const scale = Math.max(1, 220 / (Math.max(...channels) || 1));
+  const rgb = values => `rgb(${values.map(value => Math.round(value)).join(',')})`;
+  return {
+    primary:color,
+    glow:rgb(channels.map(value => Math.min(255, value * scale)))
+  };
+}
 
 function refreshTacticalCanvas(){
   if(tacticalCanvasFrame) return;
@@ -185,10 +199,16 @@ function renderTacticalCanvas(){
   context.clearRect(0, 0, bounds.width, bounds.height);
 
   const width = bounds.width, height = bounds.height;
-  const endzoneWidth = width / 11.6;
+  const endzoneWidth = width * ENDZONE_WIDTH_RATIO;
   const teams = game && game.teams;
   const playerTeam = teams && teams.player;
   const aiTeam = teams && teams.ai;
+  const palettes = {
+    player:playerPalette(playerTeam ? playerTeam.color : '#54DCFF'),
+    ai:playerPalette(aiTeam ? aiTeam.color : '#54DCFF')
+  };
+  const paletteForActor = actor =>
+    palettes[(actor.element || actor.el).classList.contains('team-player') ? 'player' : 'ai'];
   const drawEndzone = (x, team, onLeft) => {
     if(!team) return;
     const centerX = x + endzoneWidth / 2;
@@ -208,7 +228,23 @@ function renderTacticalCanvas(){
     const background = context.createLinearGradient(x, 0, x, height);
     background.addColorStop(0, team.color);
     background.addColorStop(1, darkColor);
+    const frameInsetX = 3;
+    const frameInsetY = height * 0.025;
+    const frameLineWidth = 3;
+    const goalLineX = onLeft ? x + endzoneWidth : x;
+    const outerFrameX = onLeft ? x + frameInsetX : x + endzoneWidth - frameInsetX;
+    const frameLeft = Math.min(goalLineX, outerFrameX);
+    const frameRight = Math.max(goalLineX, outerFrameX);
+    const pylonGap = Math.max(6, frameLineWidth * 2);
     context.save();
+    context.beginPath();
+    context.rect(
+      frameLeft + frameLineWidth / 2,
+      frameInsetY + frameLineWidth / 2,
+      frameRight - frameLeft - frameLineWidth,
+      height - (frameInsetY + frameLineWidth / 2) * 2
+    );
+    context.clip();
     context.globalCompositeOperation = 'source-over';
     context.globalAlpha = 0.88;
     context.fillStyle = background;
@@ -217,9 +253,6 @@ function renderTacticalCanvas(){
     context.globalAlpha = 0.14;
     context.strokeStyle = '#FFFFFF';
     context.lineWidth = 1;
-    context.beginPath();
-    context.rect(x, 0, endzoneWidth, height);
-    context.clip();
     context.beginPath();
     for(let offset = -height; offset < endzoneWidth + height; offset += 14){
       context.moveTo(x + offset, 0);
@@ -231,9 +264,26 @@ function renderTacticalCanvas(){
     context.save();
     context.globalAlpha = 1;
     context.strokeStyle = '#FFFFFF';
-    context.lineWidth = 3;
-    const frameInsetY = height * 0.025;
-    context.strokeRect(x + 3, frameInsetY, endzoneWidth - 6, height - frameInsetY * 2);
+    context.lineWidth = frameLineWidth;
+    const topY = frameInsetY, bottomY = height - frameInsetY;
+    context.beginPath();
+    if(goalLineX - pylonGap > frameLeft){
+      context.moveTo(frameLeft, topY);
+      context.lineTo(goalLineX - pylonGap, topY);
+      context.moveTo(frameLeft, bottomY);
+      context.lineTo(goalLineX - pylonGap, bottomY);
+    }
+    if(goalLineX + pylonGap < frameRight){
+      context.moveTo(goalLineX + pylonGap, topY);
+      context.lineTo(frameRight, topY);
+      context.moveTo(goalLineX + pylonGap, bottomY);
+      context.lineTo(frameRight, bottomY);
+    }
+    context.moveTo(frameLeft, topY);
+    context.lineTo(frameLeft, bottomY);
+    context.moveTo(goalLineX, topY + pylonGap);
+    context.lineTo(goalLineX, bottomY - pylonGap);
+    context.stroke();
     context.restore();
 
     const logo = window.TeamArt.getTeamLogoCanvas(team.name);
@@ -338,25 +388,25 @@ function renderTacticalCanvas(){
         const last = route[route.length - 1];
         if(Math.hypot(last.x - position.x, last.y - position.y) > 0.05) route.push(position);
         if(route.length < 2) return;
-        const color = actor.team === 'offense' ? '#D9FBFF' : '#74DFFF';
+        const palette = paletteForActor(actor);
         context.save();
-        context.strokeStyle = color;
-        context.fillStyle = color;
+        context.strokeStyle = palette.primary;
+        context.fillStyle = palette.primary;
         context.lineWidth = Math.max(1.5, width * 0.0024);
         context.lineCap = 'round';
         context.lineJoin = 'round';
-        context.shadowColor = color;
+        context.shadowColor = palette.glow;
         context.shadowBlur = width * 0.012;
         context.beginPath();
         route.forEach((point, index) => {
-          const x = point.x / 100 * width, y = point.y / 100 * height;
+          const x = fx(point.x) / 100 * width, y = point.y / 100 * height;
           if(index === 0) context.moveTo(x, y);
           else context.lineTo(x, y);
         });
         context.stroke();
         const end = route[route.length - 1], before = route[route.length - 2];
-        const endX = end.x / 100 * width, endY = end.y / 100 * height;
-        const angle = Math.atan2((end.y - before.y) * height / 100, (end.x - before.x) * width / 100);
+        const endX = fx(end.x) / 100 * width, endY = end.y / 100 * height;
+        const angle = Math.atan2((end.y - before.y) * height / 100, (fx(end.x) - fx(before.x)) * width / 100);
         const arrowSize = Math.max(5, width * 0.008);
         context.beginPath();
         context.moveTo(endX, endY);
@@ -373,22 +423,18 @@ function renderTacticalCanvas(){
   actors.forEach(actor => {
     const element = actor.element || actor.el;
     if(!element || !Number.isFinite(actor.x) || !Number.isFinite(actor.y)) return;
-    const isPlayer = element.classList.contains('team-player');
-    const team = playerTeam && aiTeam ? (isPlayer ? playerTeam : aiTeam) : null;
-    const isDefense = element.classList.contains('defense');
-    const radius = Math.max(8, Math.min(20, width * 0.019));
-    const x = actor.x / 100 * width, y = actor.y / 100 * height;
+    const palette = paletteForActor(actor);
+    const radius = Math.max(3, Math.min(20, width * 0.015, height * 0.035));
+    const x = fx(actor.x) / 100 * width, y = actor.y / 100 * height;
     const isQuarterback = actor.role === 'QB';
     const isCarrier = actor.id === activeCarrierId || element.classList.contains('carrier');
-    const accent = isDefense ? '#54DCFF' : team ? teamGlowColor(team) : '#F350CE';
-    const glow = isDefense ? 'rgba(70,213,255,0.9)' : team ? `${accent}E6` : '#F350CE';
     if(element.classList.contains('breakaway')){
       const direction = element.dataset.direction === 'left' ? -1 : 1;
       context.save();
-      context.strokeStyle = '#FFE38B';
+      context.strokeStyle = palette.primary;
       context.lineWidth = Math.max(1.5, radius * 0.18);
       context.lineCap = 'round';
-      context.shadowColor = '#FFC94F';
+      context.shadowColor = palette.glow;
       context.shadowBlur = radius * 0.8;
       for(let trail=0;trail<3;trail++){
         const trailY = y + (trail - 1) * radius * 0.45;
@@ -420,10 +466,10 @@ function renderTacticalCanvas(){
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
-    context.strokeStyle = accent;
-    context.lineWidth = Math.max(2, Math.min(3, radius * 0.18));
-    context.shadowColor = glow;
-    context.shadowBlur = 12;
+    context.strokeStyle = palette.primary;
+    context.lineWidth = Math.min(3, Math.max(1, radius * 0.3));
+    context.shadowColor = palette.glow;
+    context.shadowBlur = 10;
     context.beginPath();
     context.arc(x, y, radius - context.lineWidth / 2, 0, Math.PI * 2);
     context.stroke();
@@ -431,7 +477,7 @@ function renderTacticalCanvas(){
     const label = isQuarterback ? 'QB' : isCarrier ? actor.role : actor.role || (number ? number[0] : '');
     context.shadowBlur = 0;
     context.fillStyle = '#FFFFFF';
-    context.font = `700 ${Math.max(8, radius * (label.length > 2 ? 0.78 : 0.94))}px "Chakra Petch", sans-serif`;
+    context.font = `700 ${Math.max(5, radius * (label.length > 2 ? 0.78 : 0.94))}px "Chakra Petch", sans-serif`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(label, x, y + 0.5, radius * 1.72);
@@ -440,16 +486,17 @@ function renderTacticalCanvas(){
 
   const football = window.TeamArt.getSpriteCanvas('football');
   if(typeof ballState !== 'undefined' && ballState.visible && setup){
-    const ballX = ballState.x / 100 * width, ballY = ballState.y / 100 * height;
+    const ballX = fx(ballState.x) / 100 * width, ballY = ballState.y / 100 * height;
     context.drawImage(football, ballX - 8, ballY - 4, 16, 8);
   } else if(teams && game){
     const ballX = Number.isFinite(game.visualBallX) ? game.visualBallX : 50;
     context.save();
     context.shadowColor = 'rgba(255,215,112,0.85)';
     context.shadowBlur = width * 0.008;
-    context.drawImage(football, ballX / 100 * width - 8, height / 2 - 4, 16, 8);
+    context.drawImage(football, fx(ballX) / 100 * width - 8, height / 2 - 4, 16, 8);
     context.restore();
   }
+  if(window.renderAnimeVFX(bounds, now)) refreshTacticalCanvas();
   if(!setup && game && game.playLocked && formationDots.offense.length){
     setTimeout(refreshTacticalCanvas, 80);
   }
@@ -541,6 +588,14 @@ function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
     formationDots.defense = [];
   }
   refreshTacticalCanvas();
+}
+
+function ensureChoiceFormation(){
+  const key = `${game.possession}:${game.fieldPosition}`;
+  if(choiceFormationKey === key && formationDots.offense.length === 11 && formationDots.defense.length === 11) return;
+  renderFormation({name:'Quick Slant', type:'pass', direction:'middle'},
+    {name:'Base 4-3', type:'balanced'}, game.fieldPosition, game.possession);
+  choiceFormationKey = key;
 }
 
 function beginPreSnap(offPlay, defPlay, isPlayerOffense, resolveFn){

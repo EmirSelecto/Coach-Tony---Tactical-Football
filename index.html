@@ -6,7 +6,7 @@
 <title data-text="ui.static.documentTitle">Coach Tony - Tactical Football</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/main.css">
 </head>
@@ -15,16 +15,28 @@
   <div class="field-outer" id="fieldOuter">
     <div class="stadium-team-tints" aria-hidden="true"></div>
     <div class="stadium-flashes" aria-hidden="true"></div>
+    <canvas class="anime-vfx-canvas" id="animeVfxCanvas" aria-hidden="true"></canvas>
     <div class="field" id="field">
       <canvas class="tactical-canvas" id="tacticalCanvas" aria-hidden="true"></canvas>
+      <div class="celebration-layer" id="celebrationLayer"></div>
       <div class="endzone left" id="endzoneLeft">COMÈTES</div>
       <div class="endzone right" id="endzoneRight">LOUPS</div>
       <div class="field-markings" id="fieldMarkings"></div>
       <div class="marker" id="firstDownMarker" role="img" aria-label="Ligne à gagner"></div>
       <div class="los-line" id="scrimmageLine" role="img" aria-label="Ligne de scrimmage"></div>
       <div class="ball" id="ballMarker"></div>
-      <div class="celebration-layer" id="celebrationLayer"></div>
-      <div class="event-banner-layer" id="eventBannerLayer"></div>
+    </div>
+  </div>
+
+  <div id="anime-cutin-overlay" aria-hidden="true">
+    <div class="cutin-banner">
+      <div class="cutin-content">
+        <img class="cutin-logo" alt="">
+        <div class="cutin-copy">
+          <div class="cutin-title"></div>
+          <div class="cutin-subtitle"></div>
+        </div>
+      </div>
     </div>
   </div>
 

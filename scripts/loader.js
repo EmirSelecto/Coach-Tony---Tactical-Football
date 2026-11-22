@@ -15,10 +15,12 @@
     'scripts/game/engine.js',
     'scripts/services/audio.js',
     'scripts/game/runtime.js',
+    'scripts/animation/animeVFX.js',
     'scripts/animation/players.js',
     'scripts/animation/timeline.js',
     'scripts/game/plays.js',
     'scripts/ui/playDiagrams.js',
+    'scripts/ui/animeCutin.js',
     'scripts/ui/interface.js',
     'scripts/app.js',
     'scripts/services/inline-edit-bridge.js'

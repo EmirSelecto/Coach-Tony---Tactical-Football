@@ -167,8 +167,6 @@
   .mini-football{ position:absolute; top:0; left:0; width:20px; height:12px; margin:-6px 0 0 -10px; border-radius:50%;
     background: radial-gradient(ellipse at 40% 35%, #a5602d, #6b3a1c 70%); border:1px solid #2c1608; will-change: transform, opacity; }
   .mini-football::after{ content:''; position:absolute; left:6px; right:6px; top:5px; height:1px; background:#f4f6f2; box-shadow: 0 -2px 0 -0.5px transparent; }
-  .event-banner.touchdown{ border-color: var(--gold); color: var(--gold); font-size:2rem; letter-spacing:0.14em; padding:10px 28px;
-    box-shadow: 0 0 26px rgba(226,166,64,0.55); text-shadow: 0 0 12px rgba(226,166,64,0.6); }
   .field .marker{
     position:absolute; top:0; bottom:0; width:3px;
     background:var(--gold);
@@ -399,36 +397,6 @@
     0%{ transform:scale(1); text-shadow:none; }
     30%{ transform:scale(1.35); text-shadow:0 0 14px var(--gold); }
     100%{ transform:scale(1); text-shadow:none; }
-  }
-
-  /* Bannières d'événement (BIG PLAY / TURNOVER / SCORE / CLUTCH / FIRST DOWN / lecture tactique) */
-  .event-banner-layer{
-    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:8px; pointer-events:none; z-index:20; overflow:hidden;
-  }
-  .event-banner{
-    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:0.06em;
-    padding:8px 22px; border-radius:6px; font-size:1.15rem; color:var(--chalk);
-    background: rgba(10,16,12,0.82); border:1px solid rgba(255,255,255,0.25);
-    opacity:0; transform: translateY(-8px) scale(0.92);
-    animation: bannerPop var(--banner-ms, 1.6s) ease forwards;
-    text-align:center; white-space:nowrap;
-  }
-  .event-banner.bigPlay{ border-color: var(--gold); color: var(--gold); }
-  .event-banner.turnover{ border-color: var(--danger); color: #ff8a8a; }
-  .event-banner.has-subtitle{ display:flex; flex-direction:column; gap:2px; white-space:normal; }
-  .event-banner-subtitle{ font-size:0.62em; font-weight:500; letter-spacing:0.03em; opacity:0.9; text-transform:none; }
-  .event-banner.nocatch{ border-color: var(--danger); background: rgba(190,32,32,0.88); color:#fff; font-size:1.5rem; letter-spacing:0.12em; }
-  .event-banner.score{ border-color: var(--success); color: #8fe39c; font-size:1.35rem; }
-  .event-banner.clutch{ border-color: #d9b23f; color:#f2d27a; box-shadow:0 0 18px rgba(217,178,63,0.35); }
-  .event-banner.firstdown{ border-color: var(--gold); color: var(--gold); font-size:1rem; }
-  .event-banner.tactical{ font-size:0.85rem; color:var(--ink); border-color:var(--border); font-weight:600; letter-spacing:0.03em; }
-  @keyframes bannerPop{
-    0%{ opacity:0; transform:translateY(-8px) scale(0.9); }
-    12%{ opacity:1; transform:translateY(0) scale(1.04); }
-    20%{ transform:translateY(0) scale(1); }
-    82%{ opacity:1; }
-    100%{ opacity:0; transform:translateY(-6px) scale(0.97); }
   }
 
   /* Récapitulatif de drive */
@@ -1318,7 +1286,6 @@
   @media (prefers-reduced-motion: reduce){
     .result-box.has-commentary{ animation:none; }
     .icon-button,.choice-category,.chooser-back,button.play-btn,button.action-btn{ transition:none; }
-    .event-banner{ animation:none; opacity:1; transform:none; }
   }
 
   /* Modern anime broadcast stage */
@@ -1373,6 +1340,14 @@
     mask-image:radial-gradient(ellipse 68% 54% at 50% 50%,transparent 0 54%,#000 76%);
   }
   .stadium-flashes{ z-index:1; }
+  .anime-vfx-canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:3;
+    pointer-events:none;
+  }
   .stadium-flashes::before{
     content:"";
     position:absolute;
@@ -1386,7 +1361,8 @@
       radial-gradient(circle at 10% 86%,rgba(255,242,208,0.85),transparent 1.2%),
       radial-gradient(circle at 89% 84%,rgba(200,236,255,0.9),transparent 1.4%);
   }
-  .field-outer.action-flash .stadium-flashes::before{ animation:stadiumFlash 700ms ease-out; }
+  .field-outer.action-flash .stadium-flashes::before,
+  .stadium-flashes.anime-vfx-flash::before{ animation:stadiumFlash 700ms ease-out; }
   @keyframes stadiumFlash{
     0%,100%{ opacity:0; }
     12%,24%{ opacity:0.7; }
@@ -1428,7 +1404,12 @@
   .hud-brand{
     top:2.5%;
     left:2%;
-    max-width:23%;
+    max-width:20%;
+    padding:8px 14px;
+    background:rgba(11,17,32,0.82);
+    backdrop-filter:blur(8px);
+    border-left:3px solid #38bdf8;
+    clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);
     text-shadow:0 2px 12px rgba(0,0,0,0.95);
   }
   .hud-brand .brand{ color:#AFC6DB; font-size:clamp(0.52rem,0.72vw,0.78rem); letter-spacing:0.14em; text-transform:uppercase; }
@@ -1616,9 +1597,9 @@
     bottom:2.5%;
     display:flex;
     gap:clamp(8px,1vw,14px);
-    width:min(29%,500px);
+    width:min(calc(29% + clamp(78px,8.5vw,110px)),610px);
     min-width:0;
-    padding:clamp(9px,1vw,14px) clamp(9px,1vw,14px) clamp(9px,1vw,14px) clamp(72px,7vw,100px);
+    padding:clamp(9px,1vw,14px);
     color:#EAF3FF;
     background:transparent;
     border:0;
@@ -1640,10 +1621,10 @@
     position:absolute;
     z-index:2;
     display:block;
-    left:clamp(-18px,-1vw,-10px);
-    bottom:-2px;
-    width:clamp(78px,8.5vw,110px);
-    height:clamp(100px,10vw,128px);
+    left:clamp(-24px,-1.5vw,-16px);
+    bottom:calc(100% - 2px);
+    width:clamp(156px,17vw,220px);
+    height:clamp(200px,20vw,256px);
     object-fit:contain;
     object-position:center bottom;
     background:transparent;
@@ -1698,7 +1679,7 @@
     object-fit:contain;
   }
   @media (max-width:760px){
-    .hud-brand{ max-width:18%; }
+    .hud-brand{ max-width:18%; padding:4px 8px; }
     .hud-brand .team-line,.hud-brand .tag{ display:none; }
     .scoreboard{ width:55%; padding:5px 8px; }
     .team-score{ grid-template-columns:36px minmax(0,1fr); gap:0 4px; }
@@ -1712,7 +1693,8 @@
     .controls-panel .choice-category{ min-height:42px; padding:6px; gap:6px; }
     .controls-panel .choice-category svg{ width:20px; height:20px; }
     .controls-panel .play-buttons{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .result-box{ width:min(35%,360px); }
+    .result-box{ width:min(35%,360px); padding:8px; }
+    .commentator-portrait{ left:-10px; }
     .overlay-drawer{ top:8%; width:min(360px,70%); max-height:84%; }
   }
   @media (max-width:460px){
@@ -1728,8 +1710,8 @@
     .controls-panel h2{ margin-bottom:4px; }
     .controls-panel .choice-category{ min-height:34px; font-size:0.58rem; }
     .controls-panel .action-btn,.controls-panel button.play-btn{ min-height:32px; padding:4px; font-size:0.55rem; }
-    .result-box{ left:1.5%; bottom:1.5%; width:34%; padding:5px 5px 5px 45px; gap:5px; }
-    .commentator-portrait{ left:-8px; width:54px; height:68px; }
+    .result-box{ left:1.5%; bottom:1.5%; width:34%; padding:5px; gap:5px; }
+    .commentator-portrait{ width:108px; height:136px; }
     .result-box .headline{ font-size:0.54rem; }
     .result-box .explain,.result-box .commentary{ font-size:0.46rem; }
   }
@@ -1742,8 +1724,12 @@
     .team-score.ai{ grid-template-columns:minmax(0,1fr) 30px; }
     .hud-tools .icon-button{ width:26px; height:26px; }
   }
+  @media (max-width:760px) and (orientation:portrait){
+    .result-box{ position:fixed; left:12px; bottom:12px; width:min(60vw,300px); }
+  }
   @media (prefers-reduced-motion:reduce){
-    .field-outer.action-flash .stadium-flashes::before{ animation:none; }
+    .field-outer.action-flash .stadium-flashes::before,
+    .stadium-flashes.anime-vfx-flash::before{ animation:none; }
   }
 
   /* Compact anime playbook HUD */
@@ -2036,4 +2022,121 @@
   }
   @media (prefers-reduced-motion:reduce){
     .controls-panel button.play-btn,.controls-panel .choice-category{ transition:none; }
+  }
+
+  #anime-cutin-overlay{
+    position:absolute;
+    inset:0;
+    z-index:50;
+    display:none;
+    align-items:center;
+    pointer-events:none;
+    background:radial-gradient(circle,transparent 30%,rgba(5,8,17,0.65) 100%);
+  }
+  #anime-cutin-overlay.is-active{ display:flex; }
+  .game-overlay{ z-index:51; }
+  .cutin-banner{
+    position:relative;
+    width:100%;
+    height:clamp(110px,22%,190px);
+    overflow:hidden;
+    clip-path:polygon(0 18%,100% 4%,100% 82%,0 96%);
+    background:var(--cutin-accent);
+    filter:drop-shadow(0 0 9px var(--cutin-accent));
+    animation:cutinSlideIn 0.18s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .cutin-banner::after{
+    content:"";
+    position:absolute;
+    inset:4px;
+    clip-path:polygon(0 18%,100% 4%,100% 82%,0 96%);
+    background:linear-gradient(110deg,var(--cutin-start),var(--cutin-end));
+  }
+  .cutin-banner::before{
+    content:"";
+    position:absolute;
+    z-index:1;
+    inset:-30% -100%;
+    opacity:0.35;
+    background:repeating-linear-gradient(175deg,transparent 0 10px,rgba(255,255,255,0.35) 11px 12px,transparent 13px 22px);
+    animation:cutinSpeedLines 0.35s linear infinite;
+  }
+  .cutin-content{
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:clamp(12px,2vw,32px);
+    width:100%;
+    height:100%;
+    padding:12px 8%;
+    animation:cutinZoom 2.4s ease-out both;
+  }
+  .cutin-logo{
+    width:clamp(48px,8vw,96px);
+    height:clamp(48px,8vw,96px);
+    flex:none;
+    object-fit:contain;
+    filter:drop-shadow(0 0 10px var(--cutin-accent));
+  }
+  .cutin-copy{ min-width:0; }
+  .cutin-title{
+    color:#fff;
+    font:italic 900 clamp(1.3rem,4vw,3.2rem)/1 'Chakra Petch',Impact,sans-serif;
+    text-transform:uppercase;
+    overflow-wrap:anywhere;
+    -webkit-text-stroke:1px #090d16;
+    paint-order:stroke fill;
+    text-shadow:-2px -2px 0 #090d16,2px -2px 0 #090d16,-2px 2px 0 #090d16,2px 2px 0 #090d16,0 0 5px var(--cutin-accent),0 0 18px var(--cutin-accent);
+  }
+  .cutin-subtitle{
+    display:inline-block;
+    max-width:100%;
+    margin-top:5px;
+    padding:3px 14px;
+    clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+    color:#fff;
+    background:rgba(5,8,17,0.85);
+    border-bottom:2px solid var(--cutin-accent);
+    font:700 clamp(0.65rem,1.3vw,1rem)/1.1 'Chakra Petch',sans-serif;
+    overflow-wrap:anywhere;
+  }
+  .cutin-subtitle[hidden]{ display:none; }
+  .cutin-touchdown,.cutin-fieldgoal{
+    --cutin-start:var(--team-primary);
+    --cutin-end:var(--team-secondary);
+    --cutin-accent:#fbbf24;
+  }
+  .cutin-turnover{ --cutin-start:#dc2626; --cutin-end:#4c1d95; --cutin-accent:#fb4caa; }
+  .cutin-impact{ --cutin-start:#d97706; --cutin-end:#0f172a; --cutin-accent:#fb923c; }
+  .cutin-firstdown{ --cutin-start:#0284c7; --cutin-end:#0f172a; --cutin-accent:#38bdf8; }
+  .cutin-firstdown .cutin-banner{ height:75px; }
+  .cutin-firstdown .cutin-logo{ width:55px; height:55px; }
+  .cutin-firstdown .cutin-title{ font-size:clamp(1.1rem,3vw,2rem); }
+  #anime-cutin-overlay.is-exiting .cutin-banner{ animation:cutinSlideOut 0.2s ease-in both; }
+  #anime-cutin-overlay.is-exiting{ animation:cutinFadeOut 0.2s ease-in both; }
+  .field-outer.screen-shake{ animation:cutinShake 0.35s ease-out; }
+  @keyframes cutinSlideIn{
+    from{ opacity:0; transform:translateX(-100%); }
+    to{ opacity:1; transform:translateX(0); }
+  }
+  @keyframes cutinSlideOut{
+    from{ opacity:1; transform:translateX(0); }
+    to{ opacity:0; transform:translateX(100%); }
+  }
+  @keyframes cutinFadeOut{ to{ opacity:0; } }
+  @keyframes cutinSpeedLines{ to{ transform:translateX(33.333%); } }
+  @keyframes cutinZoom{ from{ transform:scale(1); } to{ transform:scale(1.04); } }
+  @keyframes cutinShake{
+    0%,100%{ transform:translate(0,0); }
+    20%{ transform:translate(-4px,2px); }
+    40%{ transform:translate(4px,-2px); }
+    60%{ transform:translate(-3px,-1px); }
+    80%{ transform:translate(2px,1px); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cutin-banner,.cutin-banner::before,.cutin-content,
+    #anime-cutin-overlay.is-exiting,#anime-cutin-overlay.is-exiting .cutin-banner,
+    .field-outer.screen-shake{ animation:none; }
   }

@@ -1,0 +1,91 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+function createHarness(reduced = false){
+  let now = 0, refreshes = 0, clearCount = 0;
+  const paths = [], classes = new Set();
+  let current;
+  const context = {
+    setTransform(){}, clearRect(){ clearCount++; }, save(){}, restore(){},
+    beginPath(){ current = {}; },
+    moveTo(x, y){ current.from = [x, y]; },
+    lineTo(x, y){ current.to = [x, y]; },
+    arc(x, y, radius){ current.arc = [x, y, radius]; },
+    stroke(){ paths.push({...current, color:this.strokeStyle, blend:this.globalCompositeOperation, blur:this.shadowBlur}); }
+  };
+  const canvas = {
+    width:0, height:0,
+    getContext:() => context,
+    getBoundingClientRect:() => ({left:10, top:20, width:1000, height:600})
+  };
+  const flashes = {offsetWidth:100, classList:{
+    add(name){ classes.add(name); }, remove(name){ classes.delete(name); }
+  }};
+  const window = {devicePixelRatio:2, matchMedia:() => ({matches:reduced})};
+  const sandbox = vm.createContext({
+    window, document:{getElementById:() => canvas, querySelector:() => flashes},
+    performance:{now:() => now}, refreshTacticalCanvas:() => { refreshes++; },
+    setTimeout:() => 1, clearTimeout(){}
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'animeVFX.js'), 'utf8'), sandbox);
+  return {window, paths, classes, canvas, advance(ms){ now += ms; },
+    render(){ paths.length = 0; return window.renderAnimeVFX({left:110, top:120, width:800, height:400}, now); },
+    get refreshes(){ return refreshes; }, get clearCount(){ return clearCount; }};
+}
+
+const colors = {primary:'#123456', secondary:'#abcdef'};
+
+test('score effects draw forty glowing rays from the selected end zone and expire', () => {
+  for(const [type, x] of [['TOUCHDOWN', 4], ['FIELD GOAL', 96]]){
+    const h = createHarness();
+    h.window.triggerAnimeVFX(type, x, 50, colors);
+    assert.equal(h.refreshes, 1);
+    assert.equal(h.classes.has('anime-vfx-flash'), true);
+    h.render();
+    assert.equal(h.paths.length, 40);
+    assert.ok(h.paths.every(p => p.from[0] === 100 + 800 * x / 100 && p.from[1] === 300));
+    assert.ok(h.paths.every(p => p.blend === 'lighter' && p.blur === 12));
+    assert.ok(h.paths.some(p => p.color === colors.primary));
+    assert.ok(h.paths.some(p => p.color === colors.secondary));
+    assert.ok(h.paths.some(p => p.color === '#FFD66B'));
+    h.advance(1200);
+    assert.equal(h.render(), false);
+    assert.equal(h.paths.length, 0);
+  }
+});
+
+test('turnovers and sacks draw two expanding rings at the captured action point', () => {
+  for(const type of ['FUMBLE', 'INTERCEPTION', 'SACK']){
+    const h = createHarness();
+    h.window.triggerAnimeVFX(type, 35, 70, colors);
+    h.advance(200);
+    assert.equal(h.render(), true);
+    const rings = h.paths.filter(p => p.arc);
+    assert.equal(rings.length, 2);
+    assert.deepEqual(rings.map(p => p.arc.slice(0, 2)), [[380, 380], [380, 380]]);
+    assert.ok(rings.every(p => p.arc[2] > 0));
+    assert.ok(rings.every(p => p.color !== colors.primary && p.color !== colors.secondary));
+    assert.equal(h.paths.filter(p => p.from).length, 16);
+    h.advance(450);
+    assert.equal(h.render(), false);
+  }
+});
+
+test('reduced motion, invalid arguments and cancellation do not leave effects running', () => {
+  const reduced = createHarness(true);
+  reduced.window.triggerAnimeVFX('TOUCHDOWN', 50, 50, colors);
+  assert.equal(reduced.refreshes, 0);
+  assert.equal(reduced.render(), false);
+  const h = createHarness();
+  assert.throws(() => h.window.triggerAnimeVFX('UNKNOWN', 0, 0, colors));
+  assert.throws(() => h.window.triggerAnimeVFX('SACK', NaN, 0, colors));
+  assert.throws(() => h.window.triggerAnimeVFX('SACK', 0, 0, {}));
+  h.window.triggerAnimeVFX('TOUCHDOWN', 50, 50, colors);
+  h.window.clearAnimeVFX();
+  assert.equal(h.classes.has('anime-vfx-flash'), false);
+  assert.equal(h.render(), false);
+  assert.ok(h.clearCount > 0);
+});
