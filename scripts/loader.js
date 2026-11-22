@@ -1,6 +1,6 @@
 (async function loadGame(){
   const scoreboardVersion = '?v=manga-commentator-1';
-  const playbookVersion = '?v=manga-playbook-1';
+  const playbookVersion = '?v=manga-playbook-3';
   const catalogs = [
     'ui',
     'game',

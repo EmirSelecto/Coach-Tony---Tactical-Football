@@ -43,6 +43,8 @@ function createHarness(){
   };
   const context = vm.createContext({
     document, t,
+    game:{down:1},
+    playerAttemptPunt:() => { context.puntCalled = true; },
     playLabel:name => playbook.offenseNames[name] || playbook.defenseNames[name],
     dirLabel:direction => playbook.directions[direction],
     offenseCardText:(name, play) => `Fiche ${name} ${play.direction}`,
@@ -56,6 +58,49 @@ function createHarness(){
   const plays = JSON.parse(vm.runInContext('JSON.stringify(OFFENSE_PLAYS)', context));
   return {context, document, navigation, chooser:new Element(), plays};
 }
+
+test('punt appears alongside offensive categories only on fourth down and triggers the punt', () => {
+  const {context, chooser} = createHarness();
+  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'));
+  let buttons = chooser.querySelectorAll('.choice-category');
+  assert.deepEqual(buttons.map(button => button.children[1].textContent), ['JEU AU SOL', 'JEU DE PASSE']);
+
+  chooser.innerHTML = '';
+  context.game.down = 4;
+  context.renderOffenseButtons(chooser, () => assert.fail('A play was selected'));
+  buttons = chooser.querySelectorAll('.choice-category');
+  assert.deepEqual(buttons.map(button => button.children[1].textContent), ['JEU AU SOL', 'JEU DE PASSE', 'Punt']);
+  buttons[2].click();
+  assert.equal(context.puntCalled, true);
+});
+
+test('vertical wheel scrolls overflowing playbook rows without intercepting other gestures', () => {
+  const {context} = createHarness();
+  const row = {scrollWidth:500, clientWidth:200, scrollLeft:0};
+  const wheel = (changes = {}) => {
+    const event = {
+      target:{closest:() => row}, cancelable:true, deltaX:0, deltaY:50, deltaMode:0,
+      preventDefault(){ this.defaultPrevented = true; }, ...changes
+    };
+    context.scrollPlaybookWithWheel(event);
+    return event.defaultPrevented === true;
+  };
+  assert.equal(wheel(), true);
+  assert.equal(row.scrollLeft, 50);
+  assert.equal(wheel({deltaY:-1, deltaMode:1}), true);
+  assert.equal(row.scrollLeft, 34);
+  assert.equal(wheel({deltaY:1, deltaMode:2}), true);
+  assert.equal(row.scrollLeft, 234);
+  assert.equal(wheel({deltaY:100}), true);
+  assert.equal(row.scrollLeft, 300);
+  assert.equal(wheel(), false);
+  assert.equal(wheel({deltaY:-10, ctrlKey:true}), false);
+  assert.equal(wheel({deltaY:-10, shiftKey:true}), false);
+  assert.equal(wheel({deltaY:-10, deltaX:10}), false);
+  assert.equal(row.scrollLeft, 300);
+  row.scrollWidth = row.clientWidth;
+  assert.equal(wheel({deltaY:-10}), false);
+});
 
 test('every offensive play offers exactly its available directions before selecting a variant', () => {
   const {context, chooser, plays} = createHarness();

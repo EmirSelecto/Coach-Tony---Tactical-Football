@@ -32,6 +32,7 @@ document.getElementById('settingsToggle').addEventListener('click', event => tog
 document.querySelector('.playbook-toolbar').addEventListener('focusin', event => {
   if(event.target.matches('button')) event.target.scrollIntoView({block:'nearest', inline:'nearest'});
 });
+document.getElementById('controlsPanel').addEventListener('wheel', scrollPlaybookWithWheel, {passive:false});
 document.getElementById('controlsPanel').addEventListener('click', event => {
   const button = event.target.closest('#trendsToggle');
   if(button) toggleHudPanel('trendsPanel', button);

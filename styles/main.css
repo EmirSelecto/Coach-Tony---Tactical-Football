@@ -2596,7 +2596,7 @@
     flex:none;
     justify-content:flex-start;
     gap:6px;
-    min-height:28px;
+    min-height:38px;
     margin-top:-18px;
     padding:2px 3px 4px;
     overflow-x:auto;
@@ -2608,11 +2608,11 @@
     flex:none;
     width:auto;
     overflow:visible;
-    padding:3px 7px;
+    padding:6px 9px;
     color:#fff;
     background:#090d16;
     border:2px solid #00f0ff;
-    font:italic 800 0.68rem/1 'Chakra Petch','Rajdhani',sans-serif;
+    font:italic 800 0.8rem/1 'Chakra Petch','Rajdhani',sans-serif;
     white-space:nowrap;
     transform:skewX(18deg);
   }
@@ -2624,6 +2624,25 @@
   .playbook-toolbar .clock-controls{ flex:none; margin-left:auto; }
   .playbook-navigation{ flex:none; }
   .playbook-toolbar .clock-controls .action-row{ flex-wrap:nowrap; }
+  .playbook-toolbar .clock-controls .action-btn,
+  .playbook-toolbar .tempo-seg button{
+    min-height:34px;
+    padding:5px 8px;
+    color:#fff;
+    background:#152c43;
+    border-color:#68cde7;
+    font:700 0.8rem/1.1 'Rajdhani',sans-serif;
+  }
+  .playbook-toolbar .clock-controls .action-btn:disabled{ opacity:.65; }
+  .playbook-toolbar .tempo-seg button.on{ color:#061622; background:#67e8f9; border-color:#a5f3fc; }
+  .playbook-toolbar .trends-control{
+    width:34px;
+    height:34px;
+    color:#e7faff;
+    background:#152c43;
+    border-color:#68cde7;
+  }
+  .playbook-toolbar .trends-control svg{ width:20px; height:20px; }
   .playbook-toolbar .fourth-down-actions{
     display:flex;
     flex:none;
@@ -2632,19 +2651,11 @@
     gap:5px;
     margin:0;
   }
-  .playbook-toolbar .fourth-down-info{ display:flex; flex:none; gap:8px; }
   .playbook-toolbar .fourth-down-actions .action-btn{
     flex:none;
-    min-height:25px;
-    padding:3px 6px;
-    font-size:0.62rem;
-    white-space:nowrap;
-  }
-  .playbook-toolbar .fourth-down-note,.playbook-toolbar .coach-note{
-    flex:none;
-    margin:0;
-    color:#e7f6ff;
-    font-size:0.65rem;
+    min-height:34px;
+    padding:5px 8px;
+    font-size:0.8rem;
     white-space:nowrap;
   }
   .controls-panel #controlsBody{
@@ -2663,7 +2674,13 @@
     min-height:19px;
     margin:0;
   }
-  .controls-panel .chooser-back{ min-height:22px; }
+  .controls-panel .chooser-back{
+    min-height:34px;
+    padding:5px 10px;
+    color:#fff;
+    border-color:#68cde7;
+    font:700 0.8rem/1.1 'Rajdhani',sans-serif;
+  }
   .controls-panel .chooser-heading h3{
     min-width:0;
     overflow:hidden;
@@ -2712,6 +2729,7 @@
     text-shadow:none;
   }
   .controls-panel .offense-categories .choice-category{ flex-basis:calc((100% - 10px) / 2); min-width:0; }
+  .controls-panel .fourth-down-categories .choice-category{ flex-basis:calc((100% - 20px) / 3); min-width:120px; }
   .controls-panel .choice-category[data-category="run"],
   .controls-panel .choice-category[data-category="run-defense"],
   .controls-panel button.play-btn.run,
@@ -2723,7 +2741,7 @@
     justify-content:center;
     gap:10px;
     color:#fff;
-    font:italic 800 0.78rem/1.2 'Chakra Petch','Rajdhani',sans-serif;
+    font:italic 800 0.95rem/1.2 'Chakra Petch','Rajdhani',sans-serif;
     letter-spacing:0;
     text-transform:uppercase;
   }
@@ -2810,6 +2828,16 @@
       width:calc(100vw - 24px);
       height:150px;
     }
+  }
+  @media (max-width:460px){
+    .controls-panel .fourth-down-categories .choice-category{
+      flex-direction:column;
+      min-width:80px;
+      gap:3px;
+      font-size:0.78rem;
+      text-align:center;
+    }
+    .controls-panel .fourth-down-categories .choice-category svg{ width:32px; height:24px; }
   }
 
   #anime-cutin-overlay{

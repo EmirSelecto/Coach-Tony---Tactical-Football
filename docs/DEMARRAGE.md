@@ -97,10 +97,12 @@ la fermeture des panneaux. Le choix du tempo est annoncé comme un état
 sélectionné ; les annonces de phase et de résultat sont exposées aux lecteurs
 d’écran.
 En attaque, choisissez la catégorie course/passe puis la tactique ; les tactiques
-avec plusieurs directions proposent ensuite leurs directions disponibles. En
-défense, les appels sont regroupés par pression, couverture ou défense contre
+avec plusieurs directions proposent ensuite leurs directions disponibles.
+En 4e tentative, le punt est proposé à côté des deux catégories offensives.
+En défense, les appels sont regroupés par pression, couverture ou défense contre
 la course. Les cartes défilent horizontalement ; la barre de commandes défile
-également si l'écran est trop étroit, notamment en 4e tentative.
+également si l'écran est trop étroit, notamment en 4e tentative. La molette de
+la souris permet de parcourir horizontalement la rangée survolée.
 
 Les textes statiques de la page sont associés à leurs entrées de `ui.json` par
 les attributs `data-text` et `data-title` dans `index.html`.

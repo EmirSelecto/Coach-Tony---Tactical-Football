@@ -115,8 +115,6 @@ function renderControls(){
   if(previousClockControls) previousClockControls.remove();
   const previousFourthDown = toolbar.querySelector('.fourth-down-actions');
   if(previousFourthDown) previousFourthDown.remove();
-  const previousFourthDownInfo = toolbar.querySelector('.fourth-down-info');
-  if(previousFourthDownInfo) previousFourthDownInfo.remove();
   document.getElementById('playbookNavigation').innerHTML = '';
   body.innerHTML = '';
   panel.classList.toggle('hidden', game.gameOver || game.phase !== 'playing' || game.playLocked);
@@ -134,14 +132,13 @@ function renderControls(){
   toolbar.appendChild(buildClockControls(playerOnOffense));
 
   if(playerOnOffense){
-    // 4e tentative : proposer FG / Fake FG / Punt en plus des appels
+    // 4e tentative : proposer les field goals en plus des appels.
     if(game.down === 4){
       const context = buildContext('player');
-      const fromGoal = context.ballOn;
       const kickDistance = computeKickDistance(context);
-      const row = document.createElement('div');
-      row.className = 'action-row fourth-down-actions';
       if(kickDistance <= BALANCE.fieldGoal.availableMaxDistance){
+        const row = document.createElement('div');
+        row.className = 'action-row fourth-down-actions';
         const chance = Math.round(getFieldGoalSuccessChance(kickDistance) * 100);
         const fg = document.createElement('button');
         fg.className = 'action-btn'; fg.textContent = t('ui.playControls.fieldGoal', {yards:kickDistance, chance});
@@ -151,27 +148,27 @@ function renderControls(){
         fake.className = 'action-btn secondary'; fake.textContent = t('ui.playControls.fakeFieldGoal');
         fake.onclick = attemptFakeFieldGoal;
         row.appendChild(fake);
+        toolbar.appendChild(row);
       }
-      const punt = document.createElement('button');
-      punt.className = 'action-btn secondary'; punt.textContent = t('ui.playControls.punt');
-      punt.onclick = playerAttemptPunt;
-      row.appendChild(punt);
-      const note = document.createElement('div');
-      note.className = 'fourth-down-note';
-      note.textContent = t('ui.playControls.goForItNote');
-      const coach = document.createElement('div');
-      coach.className = 'coach-note';
-      coach.innerHTML = t('ui.playControls.coachAdvice', {advice:fourthDownAdviceText(context)});
-      const info = document.createElement('div');
-      info.className = 'fourth-down-info';
-      info.append(note, coach);
-      toolbar.insertBefore(row, toolbar.querySelector('.clock-controls'));
-      toolbar.appendChild(info);
     }
     renderOffenseButtons(body, playerCallOffense);
   } else {
     renderDefenseButtons(body, playerCallDefense);
   }
+}
+
+function scrollPlaybookWithWheel(event){
+  if(event.defaultPrevented || !event.cancelable || event.ctrlKey || event.metaKey ||
+     event.altKey || event.shiftKey || event.deltaX || !event.deltaY) return;
+  const row = event.target.closest('.playbook-toolbar, .playbook-cards-row');
+  if(!row) return;
+  const maxScroll = row.scrollWidth - row.clientWidth;
+  if(maxScroll <= 0) return;
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? row.clientWidth : 1;
+  const next = Math.max(0, Math.min(maxScroll, row.scrollLeft + event.deltaY * unit));
+  if(next === row.scrollLeft) return;
+  row.scrollLeft = next;
+  event.preventDefault();
 }
 
 // Rangée « gestion du chrono » : temps mort, tempo, spike, genou à terre.
@@ -276,6 +273,10 @@ function renderOffenseButtons(container, onPick){
     createChoiceCategory(t('ui.playControls.runCategory'), 'run', () => renderOffenseCategory(chooser, 'run', onPick)),
     createChoiceCategory(t('ui.playControls.passCategory'), 'pass', () => renderOffenseCategory(chooser, 'pass', onPick))
   );
+  if(game.down === 4){
+    categories.className += ' fourth-down-categories';
+    categories.appendChild(createChoiceCategory(t('ui.playControls.punt'), 'punt', playerAttemptPunt));
+  }
   chooser.appendChild(categories);
   container.appendChild(chooser);
 }
@@ -313,6 +314,9 @@ function createChoiceCategory(label, icon, onClick){
   }else if(icon === 'pass'){
     svg.setAttribute('viewBox', '0 0 48 36');
     svg.innerHTML = '<defs><marker id="passArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="currentColor"/></marker></defs><circle cx="7" cy="26" r="3" fill="currentColor"/><path d="M10 25Q25 23 36 9H43" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-dasharray="2 2" marker-end="url(#passArrow)"/><path d="M20 17L26 14" stroke="currentColor" stroke-width="1.6"/>';
+  }else if(icon === 'punt'){
+    svg.setAttribute('viewBox', '0 0 48 36');
+    svg.innerHTML = '<ellipse cx="12" cy="24" rx="8" ry="5" transform="rotate(-25 12 24)" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 24H15M12 22V26M21 25Q29 19 39 7M33 8L40 6L40 13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
   }else if(icon === 'run-defense'){
     svg.setAttribute('viewBox', '0 0 48 36');
     svg.innerHTML = '<path d="M4 13H44" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M10 7L15 12M15 7L10 12M22 7L27 12M27 7L22 12M34 7L39 12M39 7L34 12" stroke="currentColor" stroke-width="2"/><path d="M13 16V28M24 16V28M35 16V28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
