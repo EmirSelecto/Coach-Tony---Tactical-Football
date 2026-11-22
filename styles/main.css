@@ -1581,12 +1581,13 @@
   .result-box{
     overflow:visible;
     isolation:isolate;
-    left:2%;
-    bottom:2.5%;
+    position:fixed;
+    left:2vw;
+    bottom:4px;
     display:flex;
     align-items:flex-end;
-    gap:8px;
-    width:min(538px,calc(44vw - 20px));
+    gap:10px;
+    width:calc(38vw - 64px);
     min-width:0;
     padding:0;
     color:#EAF3FF;
@@ -1594,7 +1595,6 @@
     border:0;
     box-shadow:none;
     backdrop-filter:none;
-    perspective:750px;
   }
   .commentator-portrait-wrapper,.commentator-dialogue-card{
     position:relative;
@@ -1602,10 +1602,10 @@
     transform-origin:left bottom;
   }
   .commentator-portrait-wrapper{
-    flex:0 0 150px;
-    width:150px;
-    height:175px;
-    transform:rotateY(16deg) rotateZ(-2deg) skewX(-6deg);
+    flex:0 0 clamp(90px,10.5vw,190px);
+    width:clamp(90px,10.5vw,190px);
+    aspect-ratio:150 / 175;
+    transform:perspective(750px) rotateY(16deg) rotateZ(-2deg) skewX(-6deg);
   }
   .commentator-portrait-card{
     position:absolute;
@@ -1613,13 +1613,11 @@
   }
   .commentator-dialogue-card{
     z-index:20;
-    flex:1 1 390px;
-    width:390px;
+    flex:1 1 0;
     min-height:118px;
     min-width:0;
-    padding:16px 20px;
-    margin-left:-10px;
-    transform:rotateY(12deg) rotateZ(-0.8deg) skewX(-8deg);
+    padding:16px 18px;
+    transform:rotateZ(-0.8deg) skewX(-8deg);
   }
   .commentator-card-frame{
     position:absolute;
@@ -1673,14 +1671,14 @@
     background:linear-gradient(90deg,#dc2626 0%,#f97316 45%,#facc15 100%);
     border:2px solid #090d16;
     box-shadow:3px 3px 0 #090d16;
-    font:italic 900 0.82rem/1 'Chakra Petch',sans-serif;
+    font:italic 900 clamp(0.55rem,0.8vw,0.95rem)/1 'Chakra Petch',sans-serif;
     white-space:nowrap;
     transform:skewX(-18deg);
   }
   .result-copy{
     position:relative;
     z-index:1;
-    max-height:min(200px,28vh);
+    max-height:min(200px,25vh);
     overflow-y:auto;
     padding:0;
     transform:skewX(8deg);
@@ -1707,8 +1705,8 @@
     border-radius:0;
     filter:drop-shadow(0 0 6px rgba(56,189,248,0.5));
   }
-  .result-box .headline{ color:#fde047; font:italic 800 1.25rem/1.15 'Chakra Petch','Rajdhani',sans-serif; }
-  .result-box .explain,.result-box .commentary{ color:#fff; font-size:0.95rem; line-height:1.4; }
+  .result-box .headline{ color:#fde047; font:italic 800 clamp(1.05rem,1.15vw,1.35rem)/1.15 'Chakra Petch','Rajdhani',sans-serif; }
+  .result-box .explain,.result-box .commentary{ color:#fff; font-size:clamp(0.78rem,0.85vw,1.05rem); line-height:1.4; }
   .overlay-drawer{
     top:10%;
     right:2%;
@@ -2542,14 +2540,14 @@
   /* Manga playbook */
   .controls-panel.playbook-hud{
     position:fixed;
-    right:-6px;
-    bottom:-4px;
+    right:0;
+    bottom:4px;
     z-index:40;
-    width:56vw;
-    max-width:960px;
-    height:215px;
+    width:60vw;
+    max-width:none;
+    height:clamp(250px,16vw,280px);
     max-height:none;
-    padding:40px 12px 8px;
+    padding:10px 12px 8px;
     gap:2px;
     overflow:visible;
     isolation:isolate;
@@ -2560,7 +2558,7 @@
     box-shadow:none;
     backdrop-filter:none;
     perspective:750px;
-    transform:perspective(750px) rotateY(-10deg) rotateZ(0.6deg) skewX(5deg);
+    transform:skewX(5deg);
     transform-origin:right bottom;
   }
   .playbook-frame{
@@ -2592,10 +2590,7 @@
     mask-image:linear-gradient(to left,#000,rgba(0,0,0,0.4) 45%,transparent 80%);
   }
   .controls-panel .playbook-toolbar{
-    position:absolute;
-    right:22px;
-    bottom:calc(100% - 30px);
-    left:14px;
+    position:relative;
     flex:none;
     flex-wrap:wrap;
     justify-content:flex-start;
@@ -2622,10 +2617,11 @@
     background:#00f0ff;
     font-weight:900;
   }
-  .playbook-toolbar .clock-controls{ flex:none; margin-left:0; }
+  .playbook-toolbar .clock-controls,
+  .playbook-toolbar .clock-controls .action-row,
+  .playbook-toolbar .fourth-down-actions{ display:contents; }
   .playbook-navigation{ flex:0 1 auto; min-width:0; }
   .playbook-navigation .chooser-heading{ min-width:0; }
-  .playbook-toolbar .clock-controls .action-row{ flex-wrap:nowrap; }
   .playbook-toolbar .clock-controls .action-btn,
   .playbook-toolbar .tempo-seg button{
     min-height:34px;
@@ -2662,14 +2658,6 @@
     border-color:#68cde7;
   }
   .playbook-toolbar .trends-control svg{ width:20px; height:20px; }
-  .playbook-toolbar .fourth-down-actions{
-    display:flex;
-    flex:none;
-    flex-wrap:nowrap;
-    align-items:center;
-    gap:5px;
-    margin:0;
-  }
   .playbook-toolbar .fourth-down-actions .action-btn{
     flex:none;
     min-height:34px;
@@ -2677,6 +2665,21 @@
     font-size:0.8rem;
     white-space:nowrap;
   }
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar{ gap:6px; }
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar h2,
+  .controls-panel:has(.fourth-down-actions) .chooser-heading h3,
+  .controls-panel:has(.fourth-down-actions) .chooser-back,
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .action-btn,
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .tempo-seg button{
+    font-size:0.8rem;
+  }
+  .controls-panel:has(.fourth-down-actions) .chooser-back,
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .action-btn,
+  .controls-panel:has(.fourth-down-actions) .playbook-toolbar .tempo-seg button{
+    min-height:34px;
+    padding:5px 8px;
+  }
+  .controls-panel:has(.fourth-down-actions) .trends-control{ width:34px; height:34px; }
   .controls-panel #controlsBody{
     flex:1 1 0;
     min-height:0;
@@ -2707,6 +2710,7 @@
     color:#090d16;
     background:#facc15;
     border:2px solid #090d16;
+    font-size:0.78rem;
     font-weight:800;
     text-overflow:ellipsis;
     white-space:nowrap;
