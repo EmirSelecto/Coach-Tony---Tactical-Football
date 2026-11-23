@@ -14,6 +14,17 @@ function createHarness(){
       this.attributes = {};
       this.className = '';
       this.textContent = '';
+      this.classList = {
+        toggle:name => {
+          const names = this.className.split(' ').filter(Boolean);
+          const index = names.indexOf(name);
+          if(index >= 0) names.splice(index, 1);
+          else names.push(name);
+          this.className = names.join(' ');
+          return index < 0;
+        },
+        contains:name => this.className.split(' ').includes(name)
+      };
     }
     set innerHTML(value){ this._innerHTML = value; this.children = []; }
     get innerHTML(){ return this._innerHTML || ''; }
@@ -63,6 +74,41 @@ function createHarness(){
   const plays = JSON.parse(vm.runInContext('JSON.stringify(OFFENSE_PLAYS)', context));
   return {context, document, navigation, chooser:new Element(), plays};
 }
+
+test('clock menu retains tempo and late-game actions without hiding the timeout', () => {
+  const {context, document} = createHarness();
+  document.getElementById = () => ({classList:{contains:() => true}});
+  Object.assign(context.game, {quarter:2, clock:120, clockRunning:true, down:1, fieldPosition:50,
+    playerTempo:'normal', timeouts:{player:3}});
+  context.isHalfEndQuarter = quarter => quarter === 2;
+  context.aiTempo = () => 'normal';
+  context.tempoLabel = tempo => tempo;
+  context.betweenSnapsRange = () => [17, 29];
+  context.playerCallTimeout = () => {};
+  context.playerSpike = () => {};
+  context.playerKneel = () => {};
+  context.setPlayerTempo = value => { context.selectedTempo = value; };
+
+  const controls = context.buildClockControls(true);
+  const toggle = controls.querySelector('.mobile-clock-toggle');
+  const extra = controls.querySelector('.clock-extra-controls');
+  assert.equal(toggle.hidden, false);
+  assert.equal(toggle.attributes['aria-controls'], extra.id);
+  assert.equal(extra.querySelectorAll('button').length, 5);
+  assert.equal(extra.querySelector('.timeout-control'), null);
+  assert.ok(controls.querySelector('.timeout-control'));
+  toggle.click();
+  assert.equal(toggle.attributes['aria-expanded'], 'true');
+  assert.equal(controls.classList.contains('is-expanded'), true);
+  extra.querySelectorAll('button')[0].click();
+  assert.equal(context.selectedTempo, 'slow');
+  toggle.click();
+  assert.equal(toggle.attributes['aria-expanded'], 'false');
+  assert.equal(controls.classList.contains('is-expanded'), false);
+
+  const defenseControls = context.buildClockControls(false);
+  assert.equal(defenseControls.querySelector('.mobile-clock-toggle').hidden, true);
+});
 
 test('fourth-down choices show the available field goal and punt before offensive categories', () => {
   const {context, chooser} = createHarness();

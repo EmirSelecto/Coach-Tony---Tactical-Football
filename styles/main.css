@@ -2607,7 +2607,8 @@
     font-weight:900;
   }
   .playbook-toolbar .clock-controls,
-  .playbook-toolbar .clock-controls .action-row{ display:contents; }
+  .playbook-toolbar .clock-controls .action-row,
+  .playbook-toolbar .clock-extra-controls{ display:contents; }
   .playbook-navigation{ flex:0 1 auto; min-width:0; }
   .playbook-navigation .chooser-heading{ min-width:0; }
   .playbook-toolbar .clock-controls .action-btn,
@@ -2892,6 +2893,72 @@
   .overlay-drawer{ z-index:41; }
   @media (max-height:500px) and (orientation:landscape){
     .controls-panel.playbook-hud{ height:min(180px,42vh); }
+  }
+  @media (max-height:520px) and (orientation:landscape){
+    .scoreboard{
+      transform:translateX(-50%) scale(0.84);
+      transform-origin:top center;
+    }
+    .situation{
+      top:calc(2.2% + clamp(30.24px,5.712vw,62.16px) + 12px);
+      margin-top:-8px;
+      transform:translateX(-50%) scale(0.86) rotate(-0.5deg);
+      transform-origin:top center;
+    }
+    .phase-indicator{
+      top:calc(2.2% + clamp(30.24px,5.712vw,62.16px) + 30px);
+      padding:2px 10px;
+      font-size:0.7rem;
+    }
+    .result-box{
+      transform:scale(0.88);
+      transform-origin:bottom left;
+    }
+    .controls-panel.playbook-hud{ height:165px; }
+    .controls-panel .playbook-toolbar{
+      flex-wrap:nowrap;
+      gap:6px;
+      min-height:0;
+    }
+    .playbook-toolbar .playbook-label,
+    .playbook-navigation .chooser-heading h3{ display:none !important; }
+    .playbook-toolbar .chooser-back{
+      min-width:0;
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .playbook-toolbar .chooser-back,
+    .playbook-toolbar .timeout-control,
+    .playbook-toolbar .trends-control{ margin-right:3px; }
+    .playbook-toolbar .chooser-back,
+    .playbook-toolbar .clock-controls .action-btn,
+    .playbook-toolbar .trends-control,
+    .playbook-toolbar .tempo-seg button{
+      min-height:0;
+      height:auto;
+      padding:3px 10px;
+      font-size:0.72rem;
+      white-space:nowrap;
+    }
+    .playbook-toolbar .trends-control svg{ width:14px; height:14px; }
+    .playbook-toolbar .mobile-clock-toggle:not([hidden]){ display:inline-flex !important; }
+    .controls-panel .playbook-toolbar .clock-controls.is-expanded .mobile-clock-details{ display:contents; }
+    .playbook-toolbar .clock-extra-controls{ display:none; }
+    .playbook-toolbar .clock-controls.is-expanded .clock-extra-controls{
+      position:absolute;
+      right:4px;
+      bottom:calc(100% + 6px);
+      z-index:1;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      max-width:100%;
+      padding:8px;
+      background:#0b1222;
+      border:2px solid #00f0ff;
+      box-shadow:3px 3px 0 #090d16;
+    }
   }
   @media (max-width:760px) and (orientation:portrait){
     .controls-panel.playbook-hud{

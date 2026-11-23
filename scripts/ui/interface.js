@@ -162,6 +162,9 @@ function buildClockControls(onOffense){
   const details = document.createElement('div');
   details.className = 'mobile-clock-details';
   details.id = 'mobileClockDetails';
+  const extra = document.createElement('div');
+  extra.className = 'clock-extra-controls';
+  extra.id = 'clockExtraControls';
   const mk = (label, cls, fn, title) => {
     const b = document.createElement('button');
     b.className = cls; b.textContent = label; b.onclick = fn; if(title) b.title = title;
@@ -174,14 +177,14 @@ function buildClockControls(onOffense){
   details.appendChild(to);
   const clockToggle = mk(t('ui.clock.mobileControls'), 'action-btn secondary mobile-clock-toggle', null);
   clockToggle.type = 'button';
+  clockToggle.hidden = !onOffense;
   clockToggle.setAttribute('aria-expanded', 'false');
-  clockToggle.setAttribute('aria-controls', details.id);
+  clockToggle.setAttribute('aria-controls', extra.id);
   clockToggle.onclick = () => {
     const expanded = wrap.classList.toggle('is-expanded');
     clockToggle.setAttribute('aria-expanded', String(expanded));
     clockToggle.textContent = t(expanded ? 'ui.clock.mobileControlsHide' : 'ui.clock.mobileControls');
   };
-  row.appendChild(clockToggle);
   const trends = document.createElement('button');
   trends.className = 'icon-button trends-control';
   trends.id = 'trendsToggle';
@@ -214,18 +217,20 @@ function buildClockControls(onOffense){
        button.setAttribute('aria-pressed', String(game.playerTempo === k));
        seg.appendChild(button);
       });
-    details.appendChild(seg);
+    extra.appendChild(seg);
     if(late){
       const sp = mk(t('ui.clock.spike'), 'action-btn secondary', playerSpike, t('ui.clock.spikeHint'));
       sp.disabled = !game.clockRunning || game.down >= 4;
-      details.appendChild(sp);
+      extra.appendChild(sp);
       const kn = mk(t('ui.clock.kneel'), 'action-btn secondary', playerKneel, t('ui.clock.kneelHint'));
       kn.disabled = game.fieldPosition <= 2;
-      details.appendChild(kn);
+      extra.appendChild(kn);
     }
+    details.appendChild(extra);
   }
   row.appendChild(details);
   row.appendChild(trends);
+  row.appendChild(clockToggle);
   wrap.appendChild(row);
   const info = document.createElement('div');
   info.className = 'clock-info';

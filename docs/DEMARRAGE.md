@@ -93,9 +93,12 @@ nouvelle formation avant le snap. En mode mouvement réduit, les déplacements
 sont instantanés après l'attente.
 Le panneau des tendances tactiques est accessible depuis la rangée de gestion
 du play, à côté du temps mort et du tempo.
+Sur les écrans peu hauts en paysage, le Playbook affiche un en-tête compact ;
+en attaque, le bouton « Temps & tempo » ouvre les commandes de tempo, spike et
+genou à terre disponibles selon la situation.
 Les lignes de scrimmage et de 1st Down sont distinguées par leur couleur et
 leur libellé. La ligne de 1st Down est continue. Le jeu est conçu pour un
-affichage desktop en paysage 16:9.
+affichage en paysage, notamment sur desktop au format 16:9.
 Les catégories tactiques et leurs sous-menus sont navigables au clavier ; le
 focus suit l’ouverture d’une catégorie et revient au bouton déclencheur lors de
 la fermeture des panneaux. Le choix du tempo est annoncé comme un état
