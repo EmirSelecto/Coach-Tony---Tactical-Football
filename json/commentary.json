@@ -13,15 +13,21 @@
   "bigGain": [
     "Quelle explosion offensive, la défense est prise de vitesse !",
     "Ça déchire la défense sur une grande portion du terrain !",
-    "Énorme gain ! Le momentum bascule complètement !"
+    "Énorme gain ! Le momentum bascule complètement !",
+    "Le receveur a trouvé un espace énorme et il s'est envolé !",
+    "{yards} yards ! Mais quelle action de folie !"
   ],
   "bigLoss": [
     "Quel sack monumental, la ligne offensive craque !",
-    "Il n'a jamais eu le temps de réagir, plaqué net derrière la ligne !"
+    "Il n'a jamais eu le temps de réagir, plaqué net derrière la ligne !",
+    "Et le plaqueur qui est venu souffler quelques mots à l'oreille du QB !"
   ],
   "interception": [
     "Interceptée ! Le ballon change de mains dans la douleur !",
-    "Mauvaise lecture, et la défense s'en empare !"
+    "Mauvaise lecture, et la défense s'en empare !",
+    "Et le quarterback qui voit son ballon disparaître dans les mains adverses !",
+    "La défense a parfaitement lu le jeu et s'empare du ballon !",
+    "Quelle lecture parfaite de la défense, interception décisive !"
   ],
   "fumble": [
     "Le ballon tombe au sol... et c'est récupéré par l'autre équipe !",

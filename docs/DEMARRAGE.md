@@ -78,7 +78,7 @@ surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
 Les tribunes et les projecteurs prennent les couleurs primaires des deux équipes
 sans teinter la pelouse. Les flashs du public accélèrent pendant deux secondes
 lors des touchdowns et des gros jeux, sauf si les animations sont réduites.
-Le masque des tribunes suit une ouverture rectangulaire arrondie autour du terrain ;
+Le masque des tribunes suit le contour du muret autour de toute l'enceinte verte ;
 cinquante flashs indépendants animent les quatre côtés du stade.
 Le tableau de score adopte un style manga angulaire : bordures polygonales
 asymétriques, ailes en perspective, logos débordants, scores aux couleurs des
