@@ -81,9 +81,10 @@ sans teinter la pelouse. Les flashs du public accélèrent pendant deux secondes
 lors des touchdowns et des gros jeux, sauf si les animations sont réduites.
 Le masque des tribunes suit le contour du muret autour de toute l'enceinte verte ;
 cinquante flashs indépendants animent les quatre côtés du stade.
-Soixante-quatre drapeaux répartis dans les tribunes utilisent les couleurs des
-équipes. Ils accélèrent pendant 2,5 secondes dans le camp concerné par un
-touchdown ou un gros jeu ; ils restent immobiles si les animations sont réduites.
+Cent douze drapeaux répartis dans les tribunes utilisent à parts égales les deux
+couleurs de chaque équipe. Ils accélèrent pendant 2,5 secondes dans le camp
+concerné par un touchdown ou un gros jeu ; ils restent immobiles si les
+animations sont réduites.
 Leurs planches sont `assets/images/flags_pennant.jpg` et
 `assets/images/flags_square.jpg`.
 Le tableau de score adopte un style manga angulaire : bordures polygonales

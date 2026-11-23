@@ -112,34 +112,39 @@
 
   function placeFlags(){
     const groups = [
-      {row:0, side:'player', x:[.24,.47], y:[.08,.13], count:8},
-      {row:0, side:'ai', x:[.53,.76], y:[.08,.13], count:8},
-      {row:1, side:'player', x:[.24,.47], y:[.915,.975], count:8},
-      {row:1, side:'ai', x:[.53,.76], y:[.915,.975], count:8},
-      {row:2, side:'player', x:[.06,.145], y:[.27,.73], count:16},
-      {row:3, side:'ai', x:[.855,.94], y:[.27,.73], count:16}
+      {row:0, side:'player', x:[.20,.47], y:[.08,.13], columns:12, rows:1, bounds:[.19,.48,.055,.16]},
+      {row:0, side:'ai', x:[.53,.80], y:[.08,.13], columns:12, rows:1, bounds:[.52,.81,.055,.16]},
+      {row:0, side:'player', x:[.11,.19], y:[.155,.205], columns:4, rows:1, bounds:[.10,.20,.125,.23]},
+      {row:0, side:'ai', x:[.81,.89], y:[.155,.205], columns:4, rows:1, bounds:[.80,.90,.125,.23]},
+      {row:1, side:'player', x:[.20,.47], y:[.915,.975], columns:12, rows:1, bounds:[.19,.48,.895,1]},
+      {row:1, side:'ai', x:[.53,.80], y:[.915,.975], columns:12, rows:1, bounds:[.52,.81,.895,1]},
+      {row:1, side:'player', x:[.11,.19], y:[.795,.845], columns:4, rows:1, bounds:[.10,.20,.77,.875]},
+      {row:1, side:'ai', x:[.81,.89], y:[.795,.845], columns:4, rows:1, bounds:[.80,.90,.77,.875]},
+      {row:2, side:'player', x:[.06,.18], y:[.25,.75], columns:4, rows:6, bounds:[.05,.19,.23,.77]},
+      {row:3, side:'ai', x:[.82,.94], y:[.25,.75], columns:4, rows:6, bounds:[.81,.95,.23,.77]}
     ];
     for(const group of groups){
-      for(let i = 0; i < group.count; i++){
+      const groupFlags = [];
+      const count = group.columns * group.rows;
+      for(let i = 0; i < count; i++){
         let x, y, valid = false;
         for(let attempt = 0; attempt < 1000 && !valid; attempt++){
-          x = group.x[0] + Math.random() * (group.x[1] - group.x[0]);
-          y = group.y[0] + Math.random() * (group.y[1] - group.y[0]);
+          x = group.x[0] + (i % group.columns + .15 + Math.random() * .7) / group.columns * (group.x[1] - group.x[0]);
+          y = group.y[0] + (Math.floor(i / group.columns) + .15 + Math.random() * .7) / group.rows * (group.y[1] - group.y[0]);
           valid = flags.every(flag => Math.hypot((flag.x - x) * 1493, (flag.y - y) * 640) >= 29);
         }
         if(!valid) throw new Error('Impossible de répartir les drapeaux dans les tribunes.');
-        flags.push({x, y, row:group.row, side:group.side, kind:Math.floor(Math.random() * 2),
+        const flag = {x, y, row:group.row, side:group.side, bounds:group.bounds, kind:Math.floor(Math.random() * 2),
           size:22 + Math.random() * 6, speed:8 + Math.random() * 2, phase:Math.random() * 6,
-          secondary:false, frame:-1});
+          secondary:false, frame:-1};
+        flags.push(flag);
+        groupFlags.push(flag);
       }
-    }
-    for(const side of ['player', 'ai']){
-      const teamFlags = flags.filter(flag => flag.side === side);
-      for(let i = teamFlags.length - 1; i > 0; i--){
+      for(let i = groupFlags.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
-        [teamFlags[i], teamFlags[j]] = [teamFlags[j], teamFlags[i]];
+        [groupFlags[i], groupFlags[j]] = [groupFlags[j], groupFlags[i]];
       }
-      teamFlags.slice(0, 8).forEach(flag => { flag.secondary = true; });
+      groupFlags.slice(0, count / 2).forEach(flag => { flag.secondary = true; });
     }
   }
 
@@ -158,10 +163,7 @@
       const frame = palette[flag.side][flag.secondary ? 1 : 0][flag.kind][flag.row][Math.floor(flag.phase) % 6];
       const scale = Math.min(flag.size, bounds.height * .10) / Math.max(frame.width, frame.height);
       const w = frame.width * scale, h = frame.height * scale;
-      const left = flag.row === 2 ? .05 : flag.row === 3 ? .84 : flag.side === 'player' ? .22 : .52;
-      const right = flag.row === 2 ? .16 : flag.row === 3 ? .95 : flag.side === 'player' ? .48 : .78;
-      const top = flag.row === 0 ? .055 : flag.row === 1 ? .895 : .23;
-      const bottom = flag.row === 0 ? .16 : flag.row === 1 ? 1 : .77;
+      const [left, right, top, bottom] = flag.bounds;
       const x = Math.max(left * bounds.width + w / 2, Math.min(right * bounds.width - w / 2, flag.x * bounds.width));
       const y = Math.max(top * bounds.height + h / 2, Math.min(bottom * bounds.height - h / 2, flag.y * bounds.height));
       context.drawImage(frame, x - w / 2, y - h / 2, w, h);

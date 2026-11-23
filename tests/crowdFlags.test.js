@@ -111,32 +111,60 @@ test('flag sprites remove only connected background and correct the inconsistent
   assert.equal(h.rotations.filter(angle => angle === Math.PI / 2).length, 2);
 });
 
-test('sixty-four flags fit the safe stands, face the field and use each team palette at 75/25', async () => {
+test('more flags cover the stands and use both team colors equally', async () => {
   const h = await createHarness();
-  assert.equal(h.draws.length, 64);
+  assert.equal(h.draws.length, 112);
   for(const flag of h.draws){
     const x = (flag.x + flag.width / 2) / 1493, y = (flag.y + flag.height / 2) / 640;
     assert.ok(flag.width <= 28 && flag.height <= 28);
     assert.ok(x < .48 || x > .52);
-    if(flag.meta.row === 0) assert.ok(flag.y / 640 >= .058 && (flag.y + flag.height) / 640 < .153 && x > .23 && x < .77);
-    if(flag.meta.row === 1) assert.ok(flag.y / 640 > .89 && (flag.y + flag.height) / 640 < 1 && x > .23 && x < .77);
-    if(flag.meta.row === 2) assert.ok((flag.x + flag.width) / 1493 < .21 && y > .23 && y < .77);
-    if(flag.meta.row === 3) assert.ok(flag.x / 1493 > .79 && y > .23 && y < .77);
+    const corner = x < .20 || x > .80;
+    if(flag.meta.row === 0){
+      assert.ok(flag.y / 640 >= (corner ? .125 : .055) - 1e-9);
+      assert.ok((flag.y + flag.height) / 640 <= (corner ? .23 : .16) + 1e-9);
+    }
+    if(flag.meta.row === 1){
+      assert.ok(flag.y / 640 >= (corner ? .77 : .895) - 1e-9);
+      assert.ok((flag.y + flag.height) / 640 <= (corner ? .875 : 1) + 1e-9);
+    }
+    if(flag.meta.row === 2) assert.ok((flag.x + flag.width) / 1493 <= .19 + 1e-9 && y > .23 && y < .77);
+    if(flag.meta.row === 3) assert.ok(flag.x / 1493 >= .81 - 1e-9 && y > .23 && y < .77);
     const colors = x < .48 ? h.teams.player : h.teams.ai;
     assert.ok([colors.color, colors.secondaryColor].includes(flag.color));
   }
   for(const team of [h.teams.player, h.teams.ai]){
-    assert.equal(h.draws.filter(flag => flag.color === team.color).length, 24);
-    assert.equal(h.draws.filter(flag => flag.color === team.secondaryColor).length, 8);
+    assert.equal(h.draws.filter(flag => flag.color === team.color).length, 28);
+    assert.equal(h.draws.filter(flag => flag.color === team.secondaryColor).length, 28);
+    for(const row of [0, 1, team === h.teams.player ? 2 : 3]){
+      const inStand = h.draws.filter(flag => flag.meta.row === row &&
+        [team.color, team.secondaryColor].includes(flag.color));
+      assert.equal(inStand.filter(flag => flag.color === team.color).length, row < 2 ? 8 : 12);
+      assert.equal(inStand.filter(flag => flag.color === team.secondaryColor).length, row < 2 ? 8 : 12);
+    }
+  }
+  for(const row of [0, 1]){
+    for(const start of [.20, .53]){
+      const inStand = h.draws.filter(flag => flag.meta.row === row &&
+        (flag.x + flag.width / 2) / 1493 >= start && (flag.x + flag.width / 2) / 1493 < start + .27);
+      for(let bin = 0; bin < 6; bin++){
+        assert.equal(inStand.filter(flag => Math.floor(((flag.x + flag.width / 2) / 1493 - start) / .27 * 6) === bin).length, 2);
+      }
+    }
+  }
+  for(const row of [2, 3]){
+    const inStand = h.draws.filter(flag => flag.meta.row === row);
+    for(let bin = 0; bin < 6; bin++){
+      assert.equal(inStand.filter(flag => Math.floor(((flag.y + flag.height / 2) / 640 - .25) / .5 * 6) === bin).length, 4);
+    }
   }
   h.resize(1024, 439);
   assert.ok(h.draws.every(flag => flag.x >= 0 && flag.y >= 0 &&
     flag.x + flag.width <= 1024 && flag.y + flag.height <= 439));
-  assert.ok(h.draws.filter(flag => flag.meta.row === 0).every(flag => flag.y >= 439 * .055 - 1e-9));
-  assert.ok(h.draws.filter(flag => flag.meta.row === 1).every(flag => flag.y >= 439 * .895 - 1e-9));
+  assert.ok(h.draws.filter(flag => flag.meta.row === 0).every(flag => flag.y + flag.height <= 439 * .23 + 1e-9));
+  assert.ok(h.draws.filter(flag => flag.meta.row === 1).every(flag => flag.y >= 439 * .77 - 1e-9));
   h.teams.player.color = '#112233';
   h.window.CrowdFlags.setTeams(h.teams);
-  assert.equal(h.draws.filter(flag => flag.color === '#112233').length, 24);
+  assert.equal(h.draws.filter(flag => flag.color === '#112233').length, 28);
   assert.equal(h.draws.filter(flag => flag.color === '#123456').length, 0);
 });
 
@@ -157,14 +185,14 @@ test('only the celebrating team accelerates for 2.5 seconds and reduced motion s
     return counts;
   }
   const boosted = countTransitions(2500);
-  assert.ok(boosted.player >= 32 * 44 && boosted.player <= 32 * 46);
-  assert.ok(boosted.ai >= 32 * 19 && boosted.ai <= 32 * 26);
+  assert.ok(boosted.player >= 56 * 44 && boosted.player <= 56 * 46);
+  assert.ok(boosted.ai >= 56 * 19 && boosted.ai <= 56 * 26);
   const normal = countTransitions(1000);
-  assert.ok(normal.player >= 32 * 7 && normal.player <= 32 * 11);
+  assert.ok(normal.player >= 56 * 7 && normal.player <= 56 * 11);
   h.window.CrowdFlags.celebrate('ai');
   h.window.CrowdFlags.clearCelebrations();
   const cleared = countTransitions(1000);
-  assert.ok(cleared.ai >= 32 * 7 && cleared.ai <= 32 * 11);
+  assert.ok(cleared.ai >= 56 * 7 && cleared.ai <= 56 * 11);
   h.motion.matches = true;
   h.listeners.motion();
   assert.equal(h.callbacks.size, 0);
