@@ -71,8 +71,9 @@ chargement du jeu.
 En cas d'échec de sauvegarde, un avertissement apparaît sous les commandes en
 haut à droite.
 
-L’écran de match utilise le stade comme scène plein écran. Le terrain conserve
-un ratio de 120 par 53,3 (environ 2,25:1) ; les zones restantes représentent les
+L’écran de match utilise le stade ultra-large comme scène plein écran. L'image
+est centrée et recadrée selon le format de la fenêtre ; le terrain et le masque
+des tribunes suivent ce même recadrage. Les zones restantes représentent les
 tribunes et l’enceinte. Le tableau de score et la situation tactique restent en
 surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
 Les tribunes et les projecteurs prennent les couleurs primaires des deux équipes

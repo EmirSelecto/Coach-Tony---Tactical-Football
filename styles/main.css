@@ -1284,21 +1284,27 @@
     font-family:'Chakra Petch','Rajdhani',sans-serif;
   }
   .game-shell{
-    width:min(100vw,177.7778dvh);
-    height:auto;
-    aspect-ratio:16 / 9;
+    width:100vw;
+    height:100dvh;
+    aspect-ratio:auto;
     min-height:0;
-    max-height:100dvh;
+    max-height:none;
     overflow:hidden;
     background:#09131E;
     box-shadow:0 20px 70px rgba(0,0,0,0.55);
   }
   .field-outer{
-    inset:0;
+    inset:auto;
+    top:50%;
+    left:50%;
+    width:max(100vw,233.28125dvh);
+    height:max(100dvh,42.86671vw);
     display:block;
+    padding:0;
     overflow:hidden;
     border:0;
-    background:#0C1C20 url('../assets/images/stadium_base.jpg') center / 100% 100% no-repeat;
+    background:#0C1C20 url('../assets/images/imagesstadium_base_wide.jpg.jpg') center / 100% 100% no-repeat;
+    transform:translate(-50%,-50%);
   }
   .field-outer::before,.field-outer::after{ content:none; }
   .stadium-crowd-tint,.stadium-crowd-glow,.stadium-flashes{
@@ -1309,7 +1315,7 @@
   }
   .stadium-crowd-tint,.stadium-crowd-glow{
     --crowd-gradient:linear-gradient(90deg,var(--home-primary) 0%,var(--home-primary) 46%,transparent 50%,var(--away-primary) 54%,var(--away-primary) 100%);
-    --crowd-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1344 756' preserveAspectRatio='none'%3E%3Cpath fill='white' fill-rule='evenodd' d='M0 0H1344V756H0Z M170 355V214 L189 168 L235 137 L386 115 Q414 110 454 110 H652 V96 H692 V110 H890 Q930 110 958 115 L1109 137 L1155 168 L1174 214 V355 H1208 V402 H1174 V575 L1160 606 L1212 638 L1186 670 L1134 630 L1109 642 L958 671 Q930 676 890 676 H692 V707 H652 V676 H454 Q414 676 386 671 L235 642 L210 630 L158 670 L132 638 L184 606 L170 575 V402 H136 V355 Z'/%3E%3C/svg%3E");
+    --crowd-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1493 640' preserveAspectRatio='none'%3E%3Cpath fill='white' fill-rule='evenodd' d='M0 0H1493V640H0Z M324 301V181 L340 142 L378 116 L506 97 Q529 93 563 93 H729 V81 H763 V93 H930 Q964 93 987 97 L1114 116 L1153 142 L1169 181 V301 H1198 V340 H1169 V487 L1157 513 L1201 540 L1179 567 L1135 533 L1114 543 L987 568 Q964 572 930 572 H763 V599 H729 V572 H563 Q529 572 506 568 L378 543 L357 533 L314 567 L292 540 L335 513 L324 487 V340 H295 V301 Z'/%3E%3C/svg%3E");
     background:var(--crowd-gradient);
     -webkit-mask-image:var(--crowd-mask);
     mask-image:var(--crowd-mask);
@@ -1368,10 +1374,10 @@
   .field{
     position:absolute;
     z-index:3;
-    left:17.04%;
-    top:25.66%;
-    width:65.85%;
-    height:51.59%;
+    left:25.1172%;
+    top:25.625%;
+    width:49.7656%;
+    height:51.71875%;
     aspect-ratio:auto;
     min-width:0;
     border:0;
