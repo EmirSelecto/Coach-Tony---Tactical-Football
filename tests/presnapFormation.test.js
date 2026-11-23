@@ -155,6 +155,17 @@ test('choice formations draw 22 distinct players around the scrimmage for both p
   }
 });
 
+test('Press Coverage labels the central defender LB without changing other nickel formations', () => {
+  const h = createHarness();
+  for(const [name, centralRole] of [['Press Coverage', 'LB'], ['Cover 1', 'CB'], ['Nickel Blitz', 'CB']]){
+    const formation = h.sandbox.formationForPlay(
+      {name:'Power Run', type:'run'}, {name}, 50, 'player').defense;
+    assert.equal(formation.length, 11);
+    assert.equal(formation.find(player => player.formX === 53.5 && player.y === 50).role, centralRole);
+    assert.equal(formation.filter(player => player.role === 'CB').length, name === 'Press Coverage' ? 2 : 3);
+  }
+});
+
 test('moving routes and breakaway trails follow the actual team primary color', () => {
   for(const side of ['player', 'ai']){
     const h = createHarness();
@@ -262,13 +273,49 @@ test('a kickoff changing possession and field position does not replace the play
   h.sandbox.ensureChoiceFormation();
   assert.equal(h.children.length, 22);
   assert.ok(h.children.includes(actors[0].element));
-  assert.equal(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+  assert.equal(vm.runInContext('formationDots.defense[0].formX', h.sandbox), actors[0].x);
+  let groups = vm.runInContext('formationDots', h.sandbox);
+  assert.ok(groups.defense.every(p => ['DL', 'LB', 'CB', 'S'].includes(p.role)));
+  assert.ok(groups.offense.some(p => p.role === 'QB'));
   h.advance(2000);
   h.frame(0);
   h.frame(1000);
-  const groups = vm.runInContext('formationDots', h.sandbox);
+  groups = vm.runInContext('formationDots', h.sandbox);
   assert.ok(groups.offense.every(p => p.el.classList.contains('team-ai')));
   assert.ok(groups.defense.every(p => p.el.classList.contains('team-player')));
+  assert.ok(groups.defense.every(p => ['DL', 'LB', 'CB', 'S'].includes(p.role)));
+});
+
+test('a late kickoff updates both huddles and their roles for either receiving team', () => {
+  for(const receiving of ['ai', 'player']){
+    const h = createHarness();
+    const kicking = receiving === 'ai' ? 'player' : 'ai';
+    h.game.possession = kicking;
+    h.sandbox.ensureChoiceFormation();
+    const previous = vm.runInContext('formationDots', h.sandbox);
+    const actors = ['offense', 'defense'].flatMap(team => previous[team].map(actor => ({
+      team, role:actor.role, element:actor.el, x:actor.formX, y:actor.y
+    })));
+    h.game.phase = 'conversion';
+    h.sandbox.retainPlayersAfterPlay({actors, offenseSide:kicking});
+    h.advance(2000);
+    h.frame(0);
+    h.frame(1000);
+    h.game.phase = 'playing';
+    h.game.possession = receiving;
+    h.game.fieldPosition = receiving === 'ai' ? 75 : 25;
+    h.sandbox.ensureChoiceFormation();
+    h.frame(1000);
+    h.frame(2000);
+    const groups = vm.runInContext('formationDots', h.sandbox);
+    assert.ok(groups.offense.every(p => p.el.classList.contains('team-' + receiving)));
+    assert.ok(groups.defense.every(p => p.el.classList.contains('team-' + kicking)));
+    assert.ok(groups.defense.every(p => ['DL', 'LB', 'CB', 'S'].includes(p.role)));
+    assert.ok(groups.offense.some(p => p.role === 'QB'));
+    const center = groups.offense.reduce((sum, p) => sum + p.formX, 0) / 11;
+    assert.ok(Math.abs(center - (receiving === 'ai' ? 88 : 12)) < 1e-8);
+    assert.equal(h.children.length, 22);
+  }
 });
 
 test('a quick choice cancels the huddle and moves continuously to the selected formation before the snap', () => {

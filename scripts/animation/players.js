@@ -31,6 +31,7 @@ function makeDot(cls, label, teamSide){
    ========================================================================= */
 const OFFENSE_FORMATION_CATEGORY = {
   'Kick Formation':'kick',
+  'Punt Formation':'punt',
   'Inside Zone':'iform', 'Power Run':'iform', 'Dive':'iform', 'QB Sneak':'iform',
   'Outside Zone':'outsideZone', 'Sweep':'iform', 'Toss':'toss', 'Counter Run':'counter',
   'QB Keeper':'outside', 'Read Option':'readOption',
@@ -42,7 +43,7 @@ const OFFENSE_FORMATION_CATEGORY = {
 const DEFENSE_FORMATION_CATEGORY = {
   'Eight-Man Box':'box', 'Bear Front':'box', 'Inside Run Blitz':'box', 'Goal-Line Defense':'box',
   'Edge Contain':'edge', 'Outside Run Stop':'edge',
-  'Press Coverage':'nickelShort', 'Cover 1':'nickelShort', 'Nickel Blitz':'nickelShort',
+  'Press Coverage':'press', 'Cover 1':'nickelShort', 'Nickel Blitz':'nickelShort',
   'Cover 3':'deepShell', 'Cover 4':'deepShell', 'Dime Defense':'deepShell', 'Prevent Defense':'deepShell',
   'Base 4-3':'balanced', 'Base 3-4':'balanced'
 };
@@ -53,6 +54,13 @@ function genOffenseFormation(category, direction){
   // dx=-1.5 : la ligne offensive se tient clairement en retrait de la ligne de
   // scrimmage (côté attaque), pour ne jamais se superposer à la ligne défensive.
   const OL = [34,42,50,58,66].map(y => ({dx:-1.5, y, role:'OL'}));
+  if(category === 'punt'){
+    return [...OL,
+      {dx:-1.5, y:24, role:'OL'}, {dx:-1.5, y:76, role:'OL'},
+      {dx:-1.5, y:6, role:'G'}, {dx:-1.5, y:94, role:'G'},
+      {dx:-5, y:50, role:'PP'}, {dx:-14, y:50, role:'P'}
+    ];
+  }
   if(category === 'kick'){
     return [...OL,
       {dx:-7, y:50, role:'QB', qb:true}, {dx:-3, y:50, role:'RB'},
@@ -139,10 +147,10 @@ function genDefenseFormation(category){
       {dx:12, y:33, role:'S'},  {dx:12,y:67, role:'S'}
     ];
   }
-  if(category === 'nickelShort'){
+  if(category === 'nickelShort' || category === 'press'){
     return [...DL4,
       {dx:6, y:43, role:'LB'}, {dx:6, y:57, role:'LB'},
-      {dx:3.5, y:8, role:'CB'}, {dx:3.5, y:50, role:'CB'}, {dx:3.5, y:92, role:'CB'},
+      {dx:3.5, y:8, role:'CB'}, {dx:3.5, y:50, role:category === 'press' ? 'LB' : 'CB'}, {dx:3.5, y:92, role:'CB'},
       {dx:11, y:33, role:'S'}, {dx:11, y:67, role:'S'}
     ];
   }
@@ -592,6 +600,15 @@ function formationForPlay(offPlay, defPlay, preSnapSpot, offenseSide){
   const offense = genOffenseFormation(offCategory, offPlay.direction)
     .map(p => ({role:p.qb ? 'QB' : p.role, y:p.y, formX:clamp(preSnapSpot + p.dx*offenseDir, -9, 109)}));
   let defense = [];
+  if(offCategory === 'punt'){
+    const receivingSpot = Number.isFinite(offPlay.landing) ? clamp(offPlay.landing, 2, 98) : clamp(preSnapSpot + offenseDir * 40, 2, 98);
+    defense = [
+      ...[12,25,36,45,55,64,75,88].map(y => ({role:'BL', y, formX:clamp(preSnapSpot + 3*offenseDir, -9, 109)})),
+      ...[35,65].map(y => ({role:'BL', y, formX:clamp(preSnapSpot + 11*offenseDir, -9, 109)})),
+      {role:'PR', y:50, formX:receivingSpot}
+    ];
+    return {offense, defense};
+  }
   if(defPlay){
     const defCategory = DEFENSE_FORMATION_CATEGORY[defPlay.name] || 'balanced';
     const defenseFormation = genDefenseFormation(defCategory);
@@ -670,6 +687,43 @@ function moveFormation(targets, duration, onComplete){
   formationMotionFrame = requestAnimationFrame(step);
 }
 
+function syncHuddleTeams(){
+  const allPlayers = [...formationDots.offense, ...formationDots.defense];
+  formationDots = {
+    offense:allPlayers.filter(actor => actor.el.classList.contains('team-' + game.possession)),
+    defense:allPlayers.filter(actor => !actor.el.classList.contains('team-' + game.possession))
+  };
+  if(formationDots.offense.some(actor => !actor.el.classList.contains('offense'))){
+    const roles = formationForPlay({name:'Quick Slant', type:'pass', direction:'middle'},
+      {name:'Base 4-3', type:'balanced'}, game.fieldPosition, game.possession);
+    ['offense', 'defense'].forEach(group => {
+      formationDots[group].forEach((actor, index) => {
+        actor.role = roles[group][index].role;
+        actor.el.classList.remove('offense', 'defense', 'qb');
+        actor.el.classList.add(group);
+        if(actor.role === 'QB') actor.el.classList.add('qb');
+        actor.el.textContent = actor.role === 'QB' ? 'QB' : '';
+      });
+    });
+    refreshTacticalCanvas();
+  }
+}
+
+function movePlayersToHuddle(spot){
+  syncHuddleTeams();
+  choiceFormationKey = `${game.possession}:${game.fieldPosition}`;
+  const direction = game.possession === 'player' ? 1 : -1;
+  const targets = {};
+  ['offense', 'defense'].forEach(group => {
+    const center = clamp(spot + (group === 'offense' ? -13 : 13) * direction, -2, 102);
+    targets[group] = formationDots[group].map((actor, index) => {
+      const angle = 2 * Math.PI * index / formationDots[group].length;
+      return {role:actor.role, formX:center + 6.5 * Math.cos(angle), y:50 + 15 * Math.sin(angle)};
+    });
+  });
+  moveFormation(targets, 1000);
+}
+
 function retainPlayersAfterPlay(setup){
   cancelFormationMotion();
   postPlayHuddleActive = true;
@@ -688,23 +742,8 @@ function retainPlayersAfterPlay(setup){
   huddleTimer = setTimeout(() => {
     huddleTimer = null;
     if(game !== currentGame || game.gameOver || !postPlayHuddleActive) return;
-    const allPlayers = [...formationDots.offense, ...formationDots.defense];
-    formationDots = {
-      offense:allPlayers.filter(actor => actor.el.classList.contains('team-' + game.possession)),
-      defense:allPlayers.filter(actor => !actor.el.classList.contains('team-' + game.possession))
-    };
-    choiceFormationKey = `${game.possession}:${game.fieldPosition}`;
-    const direction = game.possession === 'player' ? 1 : -1;
-    const targets = {};
-    ['offense', 'defense'].forEach(group => {
-      const spot = game.pendingConversion && Number.isFinite(setup.visualBallX) ? setup.visualBallX : game.fieldPosition;
-      const center = clamp(spot + (group === 'offense' ? -13 : 13) * direction, -2, 102);
-      targets[group] = formationDots[group].map((actor, index) => {
-        const angle = 2 * Math.PI * index / formationDots[group].length;
-        return {role:actor.role, formX:center + 6.5 * Math.cos(angle), y:50 + 15 * Math.sin(angle)};
-      });
-    });
-    moveFormation(targets, 1000);
+    const spot = game.pendingConversion && Number.isFinite(setup.visualBallX) ? setup.visualBallX : game.fieldPosition;
+    movePlayersToHuddle(spot);
   }, 2000);
 }
 
@@ -725,8 +764,15 @@ function preparePlayFormation(offPlay, defPlay, spot, offenseSide, duration, onC
 }
 
 function ensureChoiceFormation(){
-  if(postPlayHuddleActive) return;
   const key = `${game.possession}:${game.fieldPosition}`;
+  if(postPlayHuddleActive){
+    syncHuddleTeams();
+    if(choiceFormationKey !== key){
+      choiceFormationKey = key;
+      if(huddleTimer === null) movePlayersToHuddle(game.fieldPosition);
+    }
+    return;
+  }
   if(choiceFormationKey === key && formationDots.offense.length === 11 && formationDots.defense.length === 11) return;
   renderFormation({name:'Quick Slant', type:'pass', direction:'middle'},
     {name:'Base 4-3', type:'balanced'}, game.fieldPosition, game.possession);

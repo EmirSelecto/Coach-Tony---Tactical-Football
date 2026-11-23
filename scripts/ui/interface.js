@@ -622,7 +622,8 @@ function simulateFullGame(){
           const expected = off === 'player' ? 80 : 20;
           if(pnt.newPos !== expected) issues.push(`touchback mal placé (${pnt.newPos})`);
         }
-        switchPossession(pnt.newPos);
+        applyPuntResult(pnt, off);
+        if(pnt.touchdown){ award(def, 6); stats.tds++; }
         countEvents(endSnapClock(randInt(BALANCE.clock.kick[0], BALANCE.clock.kick[1]), true));
         if(game.possession !== def) issues.push('possession incorrecte après punt');
         continue;

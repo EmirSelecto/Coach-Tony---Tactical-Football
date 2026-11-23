@@ -2202,6 +2202,10 @@ const PlayAnimationController = {
       AudioManager.play(setup.made ? 'fieldGoalGood' : 'fieldGoalNoGood');
     }
     if(name === 'catch' || name === 'interception') AudioManager.play('catch');
+    if(name === 'puntTackle'){
+      AudioManager.play('tackle');
+      triggerTackleImpact(setup.returner.x, setup.returner.y, 'standard');
+    }
     if(name === 'turnover'){
       const userLostPossession = setup.offenseSide === 'player'
         && ['interception','fumble'].includes(event.kind);
@@ -2272,6 +2276,14 @@ const PlayAnimationController = {
     }
     if(name === 'whistle'){
       AudioManager.play('whistle');
+      if(setup.type === 'punt' && setup.punt.touchdown){
+        const scoringSide = setup.offenseSide === 'player' ? 'ai' : 'player';
+        triggerScoreCelebration(scoringSide);
+        triggerTouchdownImpact(scoringSide);
+        showMatchCutin('touchdown', t('game.banners.touchdown'), scoringSide, '', 'hyped',
+          {vfx:scoringVFX('TOUCHDOWN', scoringSide)});
+        AudioManager.play('touchdown');
+      }
       if(setup.feedback && setup.feedback.kind === 'play'){
         const {offenseSide, context, tactical} = setup.feedback;
         applyEventFeedback(offenseSide, context, tactical);
@@ -2362,6 +2374,135 @@ const PlayAnimationController = {
 function runPlayAnimation(cfg, onComplete){
   PlayAnimationController._onComplete = onComplete || null;
   PlayAnimationController.run(cfg);
+}
+
+const PUNT_TIMELINE = {snap:0.08, receivedSnap:0.18, kick:0.25, catch:0.55, finish:0.92, whistle:1};
+
+function buildPuntAnimation(cfg){
+  const {punt, preSnapSpot, offenseSide} = cfg;
+  const dir = offenseSide === 'player' ? 1 : -1;
+  const finalX = punt.touchdown ? punt.newPos - dir * 4 : punt.newPos;
+  const actors = ['offense', 'defense'].flatMap(team => formationDots[team].map((dot, index) => ({
+    id:(team === 'offense' ? 'O' : 'D') + index, team, role:dot.role,
+    element:dot.el, x:dot.formX, y:dot.y
+  })));
+  const punter = actors.find(actor => actor.team === 'offense' && actor.role === 'P');
+  const returner = actors.find(actor => actor.team === 'defense' && actor.role === 'PR');
+  if(!punter || !returner || actors.length !== 22) throw new Error('Formation de punt incomplète.');
+  const coverage = actors.filter(actor => actor.team === 'offense' && actor !== punter);
+  const blockers = actors.filter(actor => actor.team === 'defense' && actor !== returner);
+  const landingX = punt.touchback ? clamp(punt.landing, 2, 98) : punt.landing;
+  const ballLandingX = punt.touchback ? (dir === 1 ? 104 : -4) : punt.landing;
+  const endX = punt.touchback ? landingX : finalX;
+  const stop = PUNT_TIMELINE.finish;
+  const point = (t, x, y) => ({t, x:clamp(x, -9, 109), y:clamp(y, 3, 97)});
+  punter.path = [point(0, punter.x, punter.y), point(0.25, punter.x + dir*2, 50),
+    point(stop, punter.x + dir*10, 50), point(1, punter.x + dir*10, 50)];
+  const returnerY = punt.touchback ? 65 : 50;
+  returner.path = [point(0, returner.x, returner.y), point(PUNT_TIMELINE.catch, landingX, returnerY),
+    point(stop, endX, returnerY), point(1, endX, returnerY)];
+  coverage.forEach((actor, index) => {
+    const lane = 8 + index * 84 / 9;
+    const pursuitX = landingX - dir * (index === 4 ? 8 : 13 + (index % 3)*4);
+    const lastX = index === 4 && !punt.touchback && !punt.touchdown
+      ? endX - dir*1.5 : endX - dir*(5 + (index % 3)*3);
+    const lastY = index === 4 && !punt.touchback && !punt.touchdown ? 50 : lane;
+    actor.path = [point(0, actor.x, actor.y), point(0.18, actor.x + dir*2, actor.y),
+      point(PUNT_TIMELINE.catch, pursuitX, lane), point(stop, lastX, lastY), point(1, lastX, lastY)];
+  });
+  blockers.forEach((actor, index) => {
+    const opponent = coverage[index];
+    const catchPoint = opponent.path[2], finalPoint = opponent.path[3];
+    actor.path = [point(0, actor.x, actor.y), point(0.18, actor.x + dir*2, actor.y),
+      point(PUNT_TIMELINE.catch, catchPoint.x + dir*4, catchPoint.y),
+      point(stop, finalPoint.x + dir*4, finalPoint.y + (index === 4 ? 7 : 0)),
+      point(1, finalPoint.x + dir*4, finalPoint.y + (index === 4 ? 7 : 0))];
+  });
+  const timelineEvents = [{type:'snap', time:PUNT_TIMELINE.snap}, {type:'kick', time:PUNT_TIMELINE.kick}];
+  if(!punt.touchback){
+    timelineEvents.push({type:'catch', time:PUNT_TIMELINE.catch});
+    if(!punt.touchdown) timelineEvents.push({type:'puntTackle', time:stop});
+  }
+  timelineEvents.push({type:'whistle', time:PUNT_TIMELINE.whistle});
+  return {type:'punt', offenseSide, preSnapSpot, punt, actors, punter, returner, ballLandingX, timelineEvents};
+}
+
+function runPuntAnimation(cfg, onComplete){
+  const ctrl = PlayAnimationController;
+  ctrl._token++;
+  const token = ctrl._token;
+  ctrl._finished = false;
+  ctrl._onComplete = onComplete || null;
+  ctrl._firedEvents = new Set();
+  ctrl._nextTimelineEventIndex = 0;
+  game.skipAnimRequested = false;
+  const setup = buildPuntAnimation(cfg);
+  ctrl._setup = setup;
+  setPlayPhase(t('animation.phaseLabels.puntFormation'));
+  const field = document.getElementById('field');
+  const ballEl = document.createElement('div');
+  ballEl.className = 'ball-flight temp-player';
+  field.appendChild(ballEl);
+  field.classList.add('ball-in-play');
+  ballState = {x:cfg.preSnapSpot, y:50, mode:'held', carrierId:null, visible:true, element:ballEl, arcOffset:0, angle:0};
+  const baseMs = cfg.punt.touchdown ? 6000 : 4000;
+  const totalMs = Math.max(500, Math.round(baseMs * BALANCE.animation.globalSlowdown / (game.animSpeed || 1)));
+  let startTs = null;
+  const step = timestamp => {
+    if(token !== ctrl._token) return;
+    if(startTs === null) startTs = timestamp;
+    let progress = clamp01((timestamp - startTs) / totalMs);
+    if(game.skipAnimRequested) progress = 1;
+    setup.frameProgress = progress;
+    setup.actors.forEach(actor => {
+      const position = evalPath(actor.path, progress);
+      actor.x = position.x; actor.y = position.y;
+      renderActor(actor);
+    });
+    const kf = PUNT_TIMELINE;
+    ballState.arcOffset = 0;
+    ballState.carrierId = null;
+    if(progress < kf.snap){
+      ballState.mode = 'held'; ballState.x = cfg.preSnapSpot; ballState.y = 50;
+    } else if(progress < kf.receivedSnap){
+      const fraction = (progress - kf.snap) / (kf.receivedSnap - kf.snap);
+      ballState.mode = 'snap'; ballState.x = lerp(cfg.preSnapSpot, setup.punter.x, fraction); ballState.y = 50;
+    } else if(progress < kf.kick){
+      ballState.mode = 'carried'; ballState.carrierId = setup.punter.id;
+      ballState.x = setup.punter.x; ballState.y = setup.punter.y;
+    } else if(progress < kf.catch){
+      const fraction = (progress - kf.kick) / (kf.catch - kf.kick);
+      const kickPosition = evalPath(setup.punter.path, kf.kick);
+      ballState.mode = 'inflight'; ballState.x = lerp(kickPosition.x, setup.ballLandingX, fraction);
+      ballState.y = 50; ballState.arcOffset = -11 * Math.sin(Math.PI * fraction);
+    } else if(cfg.punt.touchback){
+      ballState.mode = 'loose'; ballState.x = setup.ballLandingX; ballState.y = 50;
+    } else {
+      ballState.mode = 'carried'; ballState.carrierId = setup.returner.id;
+      ballState.x = setup.returner.x; ballState.y = setup.returner.y;
+    }
+    renderBall();
+    refreshTacticalCanvas();
+    ctrl._fireEvents(progress);
+    if(progress >= 1){
+      ctrl._finished = true;
+      ctrl._raf = null;
+      ctrl._setup = null;
+      ballState.visible = false;
+      ballEl.remove();
+      field.classList.remove('ball-in-play');
+      retainPlayersAfterPlay({offenseSide:cfg.offenseSide, visualBallX:cfg.punt.newPos, actors:setup.actors});
+      setPlayPhase(t('animation.phaseLabels.result'));
+      game.playLocked = false;
+      renderControls();
+      if(typeof ctrl._onComplete === 'function'){
+        const cb = ctrl._onComplete; ctrl._onComplete = null; cb();
+      }
+      return;
+    }
+    ctrl._raf = requestAnimationFrame(step);
+  };
+  ctrl._raf = requestAnimationFrame(step);
 }
 
 // ---- Famille "specialTeams" : field goal / punt ----
@@ -2869,8 +3010,28 @@ function resolvePunt(fieldPosition, punterSide){
   const landing = fieldPosition + dir*puntYards;
   const touchback = punterSide === 'player' ? landing >= 100 : landing <= 0;
   // Touchback : le receveur repart de SES 20 yards.
-  const newPos = touchback ? (punterSide === 'player' ? 80 : 20) : clamp(landing, 1, 99);
-  return {puntYards, landing: clamp(landing, 0, 100), touchback, newPos};
+  if(touchback){
+    return {puntYards, landing:clamp(landing, 0, 100), touchback:true,
+      returnYards:0, touchdown:false, newPos:punterSide === 'player' ? 80 : 20};
+  }
+  const distanceToGoal = dir === 1 ? landing : 100 - landing;
+  const touchdown = Math.random() < BALANCE.punt.returnTouchdownChance;
+  const returnYards = touchdown ? distanceToGoal
+    : Math.min(distanceToGoal - 1, randInt(BALANCE.punt.returnMin, BALANCE.punt.returnMax));
+  const newPos = landing - dir * returnYards;
+  return {puntYards, landing, touchback:false, returnYards, touchdown, newPos};
+}
+
+function applyPuntResult(punt, punter){
+  const receiving = punter === 'player' ? 'ai' : 'player';
+  switchPossession(punt.newPos);
+  if(punt.touchdown){
+    score(receiving, 6);
+    if(game.quarter < 5){
+      game.pendingConversion = {team:receiving};
+      game.fieldPosition = receiving === 'player' ? BALANCE.conversion.twoPointBallOn : 100 - BALANCE.conversion.twoPointBallOn;
+    }
+  }
 }
 
 // Décision de 4e tentative de l'IA (pure) : 'fieldGoal' | 'punt' | 'goForIt'.
@@ -2972,24 +3133,28 @@ function attemptPunt(){
   game.playLocked = true;
   if(!preSnapGate(game.possession, game.possession === 'player' ? 'normal' : aiTempo('ai'))) return;
   const side = game.possession;
-  beginPreSnap({name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, side === 'player', executePunt);
+  const punt = resolvePunt(game.fieldPosition, side);
+  beginPreSnap({name:'Punt Formation', type:'punt', landing:punt.landing}, {name:'Base 4-3'},
+    side === 'player', () => executePunt(punt));
 }
-function executePunt(){
+function executePunt(punt){
   const punter = game.possession;
   const preSnapSpot = game.fieldPosition;
-  const punt = resolvePunt(game.fieldPosition, punter);
   recordDrivePlay(punter, 0, `Punt (${punt.puntYards}y)`);
-  setResult(punt.touchback ? t('game.results.puntTouchbackHeadline') : t('game.results.puntHeadline'),
-    punt.touchback
-      ? t('game.results.puntTouchbackExplain', {yards:punt.puntYards, team:teamLabel(punter === 'player' ? 'ai' : 'player')})
-      : t('game.results.puntExplain', {yards:punt.puntYards}), '');
-  switchPossession(punt.newPos);
+  applyPuntResult(punt, punter);
   const clockEvents = endSnapClock(randInt(BALANCE.clock.kick[0], BALANCE.clock.kick[1]), true);
 
   game.playLocked = true;
   renderControls();
 
-  runKickPlayAnimation({type:'punt', preSnapSpot, offenseSide: punter, newPos: punt.landing}, () => {
+  runPuntAnimation({preSnapSpot, offenseSide:punter, punt}, () => {
+    const receiving = punter === 'player' ? 'ai' : 'player';
+    setResult(t(punt.touchback ? 'game.results.puntTouchbackHeadline'
+      : punt.touchdown ? 'game.results.puntReturnTouchdownHeadline' : 'game.results.puntHeadline'),
+      punt.touchback
+        ? t('game.results.puntTouchbackExplain', {yards:punt.puntYards, team:teamLabel(receiving)})
+        : t('game.results.puntReturnExplain', {yards:punt.puntYards, returnYards:punt.returnYards, team:teamLabel(receiving)}),
+      punt.touchdown ? pickCommentary('touchdown') : '');
     syncFieldVisualsNow();
     handleClockEvents(clockEvents);
     showDriveSummaryPanel(game.lastFinishedDrive, 'punt');

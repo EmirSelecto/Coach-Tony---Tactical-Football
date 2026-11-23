@@ -91,7 +91,8 @@ Après chaque action animée, les joueurs restent en place deux secondes puis
 chaque équipe forme un huddle. Les commandes restent disponibles : un choix
 immédiat interrompt l'attente ou le huddle et les joueurs rejoignent leur
 nouvelle formation avant le snap. En mode mouvement réduit, les déplacements
-sont instantanés après l'attente.
+sont instantanés après l'attente. Après un changement de possession, les postes
+affichés dans les huddles correspondent aux nouvelles équipes d'attaque et de défense.
 Le panneau des tendances tactiques est accessible depuis la rangée de gestion
 du play, à côté du temps mort et du tempo.
 Sur les écrans peu hauts en paysage, le Playbook affiche un en-tête compact ;
@@ -149,8 +150,12 @@ fumble, etc.). Le contrôleur d’animation construit ensuite une chronologie
 normalisée de 0 à 100 % à partir de cette issue. Elle déclenche les événements
 visuels et sonores dans l’ordre prévu : snap, remise ou passe, réception ou
 incomplétude, turnover, plaquage et coup de sifflet. Les fumbles distinguent la
-perte du ballon de sa récupération ; les field goals et punts utilisent aussi
-les événements snap, kick et sifflet.
+perte du ballon de sa récupération ; les field goals utilisent aussi les
+événements snap, kick et sifflet. Les punts ont leur propre formation et
+animent le snap au punter, le coup de pied, la réception et le retour. Le
+résultat est calculé avant le snap : un punt reçu (hors touchback) a 1 % de
+chances d'être retourné pour un touchdown, suivi d'une transformation en temps
+réglementaire.
 
 Cette chronologie ne recalcule ni ne modifie le résultat sportif. Le panneau
 **Mode debug (animation)** affiche les événements prévus, leur progression et

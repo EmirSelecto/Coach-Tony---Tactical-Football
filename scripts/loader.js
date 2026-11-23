@@ -1,8 +1,8 @@
 (async function loadGame(){
   const celebrationVersion = '?v=match-finish-1';
   const playbookVersion = '?v=mobile-landscape-1';
-  const modalVersion = '?v=manga-modal-3';
   const huddleVersion = '?v=post-play-huddle-1';
+  const puntVersion = '?v=punt-return-3';
   const catalogs = [
     'ui',
     'game',
@@ -32,7 +32,7 @@
 
   try{
     const loadedCatalogs = await Promise.all(catalogs.map(async name => {
-      const response = await fetch(`json/${name}.json${name === 'ui' ? playbookVersion : name === 'game' ? modalVersion : ''}`);
+      const response = await fetch(`json/${name}.json${name === 'ui' ? playbookVersion : name === 'game' ? puntVersion : ''}`);
       if(!response.ok) throw new Error(`Impossible de charger json/${name}.json (${response.status}).`);
       const catalog = await response.json();
       if(!catalog || typeof catalog !== 'object' || Array.isArray(catalog)){
@@ -68,9 +68,10 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/game/plays.js'].includes(src) ? huddleVersion :
+        script.src = src + (['scripts/game/rules.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/interface.js'].includes(src) ? puntVersion :
+          src === 'scripts/game/plays.js' ? huddleVersion :
           ['scripts/game/engine.js', 'scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
-          ['scripts/services/save.js', 'scripts/ui/playDiagrams.js', 'scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
+          ['scripts/services/save.js', 'scripts/ui/playDiagrams.js', 'scripts/app.js'].includes(src) ? playbookVersion :
           '');
         script.async = false;
         script.onload = resolve;

@@ -42,6 +42,7 @@ const BALANCE = {
   conversion: { patChance: 0.94, twoPointBallOn: 98, aiTwoPointDiffs: [-2, -5, -10, 1, 5] },
   kickoff: { touchbackChance: 0.62, touchbackSpot: 25, returnMin: 16, returnMax: 40, freeKickBonus: 5,
              onsideRecovery: 0.12, onsideSpot: 45 },
+  punt: { returnTouchdownChance: 0.01, returnMin: 0, returnMax: 18 },
   tempo: { hurryAdvantage: -2, hurryAdaptationMalus: 0.12 },
   // NB (suite au journal de tests) : le plafond ne doit pas porter seulement sur la
   // "chance d'essayer de s'adapter" mais sur le TAUX RÉEL de bon contre. Comme le top3
