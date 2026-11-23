@@ -185,19 +185,20 @@ const DEFENSE_FORMATION_POSITIONS = {
   'Edge Contain': {0:[2.5,31], 1:[2.5,42], 2:[2.5,58], 3:[2.5,69]},
   'Outside Run Stop': {4:[4.5,29], 6:[4.5,71]},
   'Press Coverage': {9:[4.5,25], 10:[4.5,75]},
-  'Cover 1': {9:[11,50], 10:[4,74]},
+  'Cover 1': {7:[3.5,50,'LB'], 9:[11,50], 10:[4,74]},
   'Nickel Blitz': {7:[7,50], 10:[5,72]},
-  'Cover 3': {8:[16,50], 9:[5,76]},
-  'Dime Defense': {7:[3.5,25], 8:[12,40], 9:[20,62], 10:[3.5,75]},
+  'Cover 3': {8:[16,50], 9:[5,76,'CB']},
+  'Dime Defense': {7:[3.5,25,'CB'], 8:[12,40], 9:[20,62], 10:[3.5,75,'CB']},
   'Prevent Defense': {3:[10,40], 4:[10,60], 8:[21,38], 9:[21,62]},
   'Goal-Line Defense': {0:[2.5,34], 1:[2.5,42], 2:[2.5,58], 3:[2.5,66], 4:[2.5,26], 5:[2.5,50], 6:[2.5,74]}
 };
 function adjustDefenseFormation(formation, playName){
   const positions = DEFENSE_FORMATION_POSITIONS[playName];
   if(positions){
-    Object.entries(positions).forEach(([index, [dx, y]]) => {
+    Object.entries(positions).forEach(([index, [dx, y, role]]) => {
       formation[index].dx = dx;
       formation[index].y = y;
+      if(role) formation[index].role = role;
     });
   }
   return formation;

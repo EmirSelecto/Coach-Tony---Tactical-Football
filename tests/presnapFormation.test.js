@@ -155,15 +155,33 @@ test('choice formations draw 22 distinct players around the scrimmage for both p
   }
 });
 
-test('Press Coverage labels the central defender LB while other nickel formations keep a CB', () => {
+test('Press Coverage and Cover 1 use a central LB while Nickel Blitz keeps a CB', () => {
   const h = createHarness();
-  for(const [name, centralRole] of [['Press Coverage', 'LB'], ['Cover 1', 'CB'], ['Nickel Blitz', 'CB']]){
+  for(const [name, centralRole] of [['Press Coverage', 'LB'], ['Cover 1', 'LB'], ['Nickel Blitz', 'CB']]){
     const formation = h.sandbox.formationForPlay(
       {name:'Power Run', type:'run'}, {name}, 50, 'player').defense;
     assert.equal(formation.length, 11);
     assert.equal(formation[7].y, 50);
     assert.equal(formation[7].role, centralRole);
-    assert.equal(formation.filter(player => player.role === 'CB').length, name === 'Press Coverage' ? 2 : 3);
+    assert.equal(formation.filter(player => player.role === 'CB').length, name === 'Nickel Blitz' ? 3 : 2);
+  }
+});
+
+test('Cover 3 and Dime Defense use cornerbacks at the indicated shallow positions', () => {
+  const h = createHarness();
+  for(const side of ['player', 'ai']){
+    const direction = side === 'player' ? 1 : -1;
+    for(const [name, shallowSpots, safetyCount] of [
+      ['Cover 3', [[5,76]], 3], ['Dime Defense', [[3.5,25], [3.5,75]], 2]
+    ]){
+      const formation = h.sandbox.formationForPlay(
+        {name:'Power Run', type:'run'}, {name}, 50, side).defense;
+      for(const [dx, y] of shallowSpots){
+        assert.ok(formation.some(player => player.role === 'CB' && player.formX === 50 + dx * direction && player.y === y), name);
+      }
+      assert.equal(formation.filter(player => player.role === 'S').length, safetyCount);
+      assert.equal(formation.length, 11);
+    }
   }
 });
 
@@ -192,7 +210,9 @@ test('annotated defensive alignments move the indicated players in both directio
         {name:'Power Run', type:'run'}, {name}, 50, side).defense;
       assert.equal(formation.length, 11, name);
       const player = formation[index];
-      assert.equal(player.role, original.role, name);
+      if(!(name === 'Cover 3' && index === 9) && !(name === 'Dime Defense' && [7,10].includes(index))){
+        assert.equal(player.role, original.role, name);
+      }
       const value = dimension === 'dx'
         ? (player.formX - 50) * (side === 'player' ? 1 : -1) : player.y;
       assert.equal(Math.sign(value - original[dimension]), direction, `${name}: ${index} ${dimension}`);
