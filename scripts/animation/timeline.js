@@ -2335,8 +2335,9 @@ const PlayAnimationController = {
 
     this._setup = null;
     ballState.visible = false;
-    clearTempPlayers();
-    formationDots = { offense: [], defense: [] };
+    if(ballState.element) ballState.element.remove();
+    document.getElementById('field').classList.remove('ball-in-play');
+    retainPlayersAfterPlay(setup);
     setPlayPhase(t('animation.phaseLabels.result'));
     game.playLocked = false;
     renderControls();
@@ -2364,8 +2365,7 @@ function runPlayAnimation(cfg, onComplete){
 }
 
 // ---- Famille "specialTeams" : field goal / punt ----
-// Volontairement plus légère que le reste (pas de formation à 22 joueurs),
-// mais construite sur la MÊME discipline : une seule horloge rAF, le ballon
+// Construite sur la MÊME discipline : une seule horloge rAF, le ballon
 // suit le holder/kicker pendant la préparation puis vole en arc interpolé,
 // skip et annulation partagent le même contrôleur (token/_raf/_finished).
 const KICK_TIMELINE = { snap: 0.15, kick: 0.30, whistle: 1.0 };
@@ -2386,16 +2386,12 @@ function runKickPlayAnimation(cfg, onComplete){
   ctrl._lastHaloCarrierId = null;
   game.skipAnimRequested = false;
   setPlayPhase(t(cfg.type === 'fieldGoal' ? 'animation.phaseLabels.fieldGoalFormation' : 'animation.phaseLabels.puntFormation'));
-  clearTempPlayers();
-  formationDots = { offense: [], defense: [] };
 
   const field = document.getElementById('field');
   const offenseDir = cfg.offenseSide === 'player' ? 1 : -1;
-  const kickerEl = makeDot('offense mini qb', 'K', cfg.offenseSide);
-  const holderEl = makeDot('offense mini', cfg.type === 'fieldGoal' ? 'H' : '', cfg.offenseSide);
-  field.appendChild(kickerEl); field.appendChild(holderEl);
-  placeEl(kickerEl, clamp(cfg.preSnapSpot - offenseDir*3, 0, 100), 50);
-  placeEl(holderEl, clamp(cfg.preSnapSpot - offenseDir*1, 0, 100), 50);
+  if(formationDots.offense.length !== 11 || formationDots.defense.length !== 11){
+    renderFormation({name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, cfg.preSnapSpot, cfg.offenseSide);
+  }
 
   const ballEl = document.createElement('div');
   ballEl.className = 'ball-flight temp-player';
@@ -2421,8 +2417,14 @@ function runKickPlayAnimation(cfg, onComplete){
     ctrl._raf = null;
     ctrl._setup = null;
     ballState.visible = false;
-    renderBall();
-    clearTempPlayers();
+    ballEl.remove();
+    field.classList.remove('ball-in-play');
+    retainPlayersAfterPlay({
+      offenseSide:cfg.offenseSide, visualBallX:cfg.newPos,
+      actors:['offense', 'defense'].flatMap(team => formationDots[team].map(actor => ({
+        team, role:actor.role, element:actor.el, x:actor.formX, y:actor.y
+      })))
+    });
     setPlayPhase(t('animation.phaseLabels.result'));
     game.playLocked = false;
     renderControls();
@@ -2928,6 +2930,10 @@ function computeKickDistance(context){
 function attemptFieldGoal(){
   game.playLocked = true;
   if(!preSnapGate(game.possession, game.possession === 'player' ? 'normal' : aiTempo('ai'))) return;
+  const side = game.possession;
+  beginPreSnap({name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, side === 'player', executeFieldGoal);
+}
+function executeFieldGoal(){
   const context = buildContext(game.possession);
   const kickDistance = computeKickDistance(context);
   const successProb = getFieldGoalSuccessChance(kickDistance);
@@ -2965,6 +2971,10 @@ function attemptFieldGoal(){
 function attemptPunt(){
   game.playLocked = true;
   if(!preSnapGate(game.possession, game.possession === 'player' ? 'normal' : aiTempo('ai'))) return;
+  const side = game.possession;
+  beginPreSnap({name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, side === 'player', executePunt);
+}
+function executePunt(){
   const punter = game.possession;
   const preSnapSpot = game.fieldPosition;
   const punt = resolvePunt(game.fieldPosition, punter);
@@ -3015,7 +3025,7 @@ function attemptFakeFieldGoal(){
     ? {name:t('game.results.fakeFieldGoalRunName'), type:'run', depth:'short', direction:'middle'}
     : {name:t('game.results.fakeFieldGoalPassName'), type:'pass', depth:'short', direction:'middle'};
 
-  scheduleForGame(()=>{
+  beginPreSnap({name:'Kick Formation', type:'run'}, {name:'Défense', type:'balanced'}, isPlayerOffense, ()=>{
     const success = Math.random() < successChance;
     const dir = isPlayerOffense ? 1 : -1;
     const preSnapSpot = game.fieldPosition;
@@ -3062,7 +3072,7 @@ function attemptFakeFieldGoal(){
         afterPlayResolved();
       }
     );
-  }, preSnapDelayMs());
+  });
 }
 
 function endGame(){

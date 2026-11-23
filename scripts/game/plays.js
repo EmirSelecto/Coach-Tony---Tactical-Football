@@ -191,13 +191,13 @@ function finishConversion(team, choice, offPlay, defPlay){
   if(res.kind === 'pat'){
     // Snap sur la ligne des 15 yards : coup de pied d'environ 33 yards.
     setResult(t('game.conversion.title'), t('game.conversion.patAttempt', {team:teamNameOf(team)}), '');
-    runKickPlayAnimation({
-      type:'fieldGoal',
-      preSnapSpot:goalX - dir*15,
-      offenseSide:team,
-      made:res.success,
-      suppressFieldGoalFeedback:true
-    }, done);
+    const preSnapSpot = goalX - dir*15;
+    preparePlayFormation({name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, preSnapSpot, team, 1000, () => {
+      runKickPlayAnimation({
+        type:'fieldGoal', preSnapSpot, offenseSide:team, made:res.success,
+        suppressFieldGoalFeedback:true
+      }, done);
+    });
     return;
   }
   // Conversion à 2 points : l'action est jouée depuis les 2 yards.
@@ -212,7 +212,7 @@ function finishConversion(team, choice, offPlay, defPlay){
   setPlayPhase(t('game.conversion.aiChoiceTitle'));
   const animCfg = {offPlay, defPlay, preSnapSpot, offenseSide: team, outcome, finalX,
     yards: res.success ? Math.max(2, r.yards) : r.yards, visualBallX: preSnapSpot, visualMarkerX: goalX};
-  runPlayAnimation(animCfg, done);
+  preparePlayFormation(offPlay, defPlay, preSnapSpot, team, 1000, () => runPlayAnimation(animCfg, done));
 }
 function showChoice(title, bodyHtml, options, {conversionTeam} = {}){
   const overlay = document.getElementById('choiceOverlay');

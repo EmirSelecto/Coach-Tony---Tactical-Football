@@ -6,6 +6,30 @@ const vm = require('node:vm');
 
 function createHarness(){
   const labels = [], strokes = [], gradients = [], linearGradients = [];
+  const timers = new Map(), frames = new Map();
+  let nextId = 1, now = 0;
+  const setTimer = (callback, delay = 0) => {
+    const id = nextId++;
+    timers.set(id, {callback, at:now + delay});
+    return id;
+  };
+  const advance = ms => {
+    const end = now + ms;
+    for(;;){
+      const due = [...timers.entries()].filter(([, timer]) => timer.at <= end)
+        .sort((a, b) => a[1].at - b[1].at)[0];
+      if(!due) break;
+      now = due[1].at;
+      timers.delete(due[0]);
+      due[1].callback();
+    }
+    now = end;
+  };
+  const frame = timestamp => {
+    const callbacks = [...frames.values()];
+    frames.clear();
+    callbacks.forEach(callback => callback(timestamp));
+  };
   let arc, line;
   const context = {
     setTransform(){}, clearRect(){}, save(){}, restore(){}, beginPath(){ arc = null; line = false; }, rect(){},
@@ -44,7 +68,11 @@ function createHarness(){
     documentElement:{dataset:{}}, fonts:{ready:{then(){}}},
     createElement(){
       const el = {className:'', style:{}, dataset:{}};
-      el.classList = {contains:name => el.className.split(' ').includes(name)};
+      el.classList = {
+        contains:name => el.className.split(' ').includes(name),
+        add(...names){ el.className = [...new Set([...el.className.split(' '), ...names])].join(' '); },
+        remove(...names){ el.className = el.className.split(' ').filter(name => !names.includes(name)).join(' '); }
+      };
       return el;
     },
     getElementById(id){
@@ -67,10 +95,13 @@ function createHarness(){
     ballState:{visible:false}, performance:{now:() => 0},
     fx:x => (x + 10) / 120 * 100, clamp:(x, min, max) => Math.max(min, Math.min(max, x)),
     coverageSchemeFor:() => 'zone',
-    requestAnimationFrame:() => 1, setTimeout(){}
+    requestAnimationFrame(callback){ const id = nextId++; frames.set(id, callback); return id; },
+    cancelAnimationFrame:id => frames.delete(id), setTimeout:setTimer, clearTimeout:id => timers.delete(id),
+    preSnapDelayMs:() => 3000, setPlayPhase(){}, t:key => key,
+    scheduleForGame:setTimer
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'players.js'), 'utf8'), sandbox);
-  return {sandbox, game, children, labels, strokes, gradients, linearGradients, field};
+  return {sandbox, game, children, labels, strokes, gradients, linearGradients, field, advance, frame};
 }
 
 test('team names keep multiword cities and mascots when split for display', () => {
@@ -186,4 +217,124 @@ test('clearing an animation restores the stationary ball', () => {
   h.field.classList.add('ball-in-play');
   h.sandbox.clearTempPlayers();
   assert.equal(h.field.classList.contains('ball-in-play'), false);
+});
+
+function finishPlay(h, nextPossession = 'player'){
+  h.sandbox.ensureChoiceFormation();
+  const previous = vm.runInContext('formationDots', h.sandbox);
+  const actors = ['offense', 'defense'].flatMap((team, group) =>
+    previous[team].map((actor, index) => ({
+      team, role:actor.role, element:actor.el,
+      x:30 + group * 20 + index * 0.1, y:20 + index * 3
+    })));
+  h.game.possession = nextPossession;
+  h.game.phase = 'playing';
+  h.sandbox.retainPlayersAfterPlay({actors, offenseSide:'player'});
+  return actors;
+}
+
+test('final positions stay for two seconds, then both teams move to huddles without rebuilding', () => {
+  const h = createHarness();
+  const actors = finishPlay(h, 'ai');
+  const first = actors[0];
+  h.sandbox.ensureChoiceFormation();
+  assert.equal(h.children.length, 22);
+  assert.equal(vm.runInContext('formationDots.defense[0].el', h.sandbox), first.element);
+  h.advance(1999);
+  h.frame(0);
+  assert.equal(vm.runInContext('formationDots.defense[0].formX', h.sandbox), first.x);
+  h.advance(1);
+  h.frame(100);
+  h.frame(600);
+  assert.notEqual(vm.runInContext('formationDots.defense[0].formX', h.sandbox), first.x);
+  h.frame(1100);
+  const groups = vm.runInContext('formationDots', h.sandbox);
+  assert.ok(groups.offense.every(p => p.el.classList.contains('team-ai')));
+  assert.ok(groups.defense.every(p => p.el.classList.contains('team-player')));
+  assert.equal(h.children.length, 22);
+});
+
+test('a kickoff changing possession and field position does not replace the players during the pause', () => {
+  const h = createHarness();
+  const actors = finishPlay(h);
+  h.game.possession = 'ai';
+  h.game.fieldPosition = 75;
+  h.sandbox.ensureChoiceFormation();
+  assert.equal(h.children.length, 22);
+  assert.ok(h.children.includes(actors[0].element));
+  assert.equal(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+  h.advance(2000);
+  h.frame(0);
+  h.frame(1000);
+  const groups = vm.runInContext('formationDots', h.sandbox);
+  assert.ok(groups.offense.every(p => p.el.classList.contains('team-ai')));
+  assert.ok(groups.defense.every(p => p.el.classList.contains('team-player')));
+});
+
+test('a quick choice cancels the huddle and moves continuously to the selected formation before the snap', () => {
+  const h = createHarness();
+  const actors = finishPlay(h);
+  let snapped = 0;
+  h.game.playLocked = true;
+  h.sandbox.beginPreSnap({name:'Sweep', type:'run', direction:'right'}, {name:'Cover 3'}, true, () => snapped++);
+  h.frame(0);
+  assert.equal(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+  h.frame(675);
+  assert.notEqual(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+  h.advance(3000);
+  assert.equal(snapped, 0);
+  h.frame(1350);
+  assert.equal(snapped, 1);
+  assert.equal(h.children.length, 22);
+  assert.equal(vm.runInContext("formationDots.offense.find(p => p.role === 'FB').formX", h.sandbox), 18);
+  h.advance(3000);
+  assert.equal(snapped, 1);
+});
+
+test('a choice during the huddle starts from the current positions and cleanup cancels movement', () => {
+  const h = createHarness();
+  finishPlay(h);
+  h.advance(2000);
+  h.frame(0);
+  h.frame(500);
+  const position = vm.runInContext('formationDots.offense[0].formX', h.sandbox);
+  h.game.playLocked = true;
+  h.sandbox.beginPreSnap({name:'Sweep', type:'run', direction:'left'}, {name:'Cover 3'}, true, () => {});
+  h.frame(500);
+  assert.equal(vm.runInContext('formationDots.offense[0].formX', h.sandbox), position);
+  h.sandbox.clearTempPlayers();
+  h.frame(2000);
+  assert.equal(h.children.length, 0);
+});
+
+test('reduced motion keeps the two-second pause but places the huddles without movement', () => {
+  const h = createHarness();
+  h.sandbox.window.matchMedia = () => ({matches:true});
+  const actors = finishPlay(h);
+  h.advance(1999);
+  h.frame(0);
+  assert.equal(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+  h.advance(1);
+  h.frame(100);
+  assert.notEqual(vm.runInContext('formationDots.offense[0].formX', h.sandbox), actors[0].x);
+});
+
+test('a conversion after a defensive touchdown changes formation without changing team identities', () => {
+  const h = createHarness();
+  finishPlay(h);
+  h.game.pendingConversion = {team:'ai'};
+  h.game.phase = 'conversion';
+  h.game.playLocked = true;
+  h.advance(2000);
+  h.frame(0);
+  h.frame(500);
+  let ready = false;
+  h.sandbox.preparePlayFormation({name:'Power Run', type:'run'}, {name:'Cover 1'}, 2, 'ai', 1000, () => { ready = true; });
+  h.frame(500);
+  h.frame(1500);
+  const groups = vm.runInContext('formationDots', h.sandbox);
+  assert.equal(ready, true);
+  assert.ok(groups.offense.every(p => p.el.classList.contains('team-ai')));
+  assert.ok(groups.defense.every(p => p.el.classList.contains('team-player')));
+  assert.equal(groups.offense.find(p => p.role === 'QB').formX, 5.5);
 });

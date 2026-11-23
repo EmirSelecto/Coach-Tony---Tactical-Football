@@ -1706,6 +1706,7 @@
     border-radius:0;
     filter:drop-shadow(0 0 6px rgba(56,189,248,0.5));
   }
+  .commentator-portrait:not([src]){ visibility:hidden; }
   .result-box .headline{ color:#fde047; font:italic 800 clamp(1.05rem,1.15vw,1.35rem)/1.15 'Chakra Petch','Rajdhani',sans-serif; }
   .result-box .explain,.result-box .commentary{ color:#fff; font-size:clamp(0.78rem,0.85vw,1.05rem); line-height:1.4; }
   .overlay-drawer{

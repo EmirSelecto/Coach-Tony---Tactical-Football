@@ -2,6 +2,7 @@
   const celebrationVersion = '?v=stadium-crowd-1';
   const playbookVersion = '?v=hud-cleanup-1';
   const modalVersion = '?v=manga-modal-3';
+  const huddleVersion = '?v=post-play-huddle-1';
   const catalogs = [
     'ui',
     'game',
@@ -67,8 +68,8 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/game/engine.js', 'scripts/animation/animeVFX.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
-          src === 'scripts/game/plays.js' ? modalVersion :
+        script.src = src + (['scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/game/plays.js'].includes(src) ? huddleVersion :
+          ['scripts/game/engine.js', 'scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
           ['scripts/services/save.js', 'scripts/ui/playDiagrams.js', 'scripts/ui/interface.js', 'scripts/app.js'].includes(src) ? playbookVersion :
           '');
         script.async = false;

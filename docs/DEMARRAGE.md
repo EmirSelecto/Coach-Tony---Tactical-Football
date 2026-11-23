@@ -66,8 +66,8 @@ portrait agrandi passe devant le bord des commentaires, tandis que le Playbook
 reste aligné à droite en bas de l'écran.
 Les tests ciblés du cut-in se lancent avec `node --test tests/animeCutin.test.js`.
 Les pictogrammes vectoriels réutilisables sont dans
-`assets/images/ui-icons.svg` ; l’illustration `assets/images/commentator-manga.svg`
-est une création originale destinée à accompagner les commentaires.
+`assets/images/ui-icons.svg` ; le portrait du commentateur est généré au
+chargement du jeu.
 En cas d'échec de sauvegarde, un avertissement apparaît sous les commandes en
 haut à droite.
 
@@ -84,6 +84,11 @@ asymétriques, ailes en perspective, logos débordants, scores aux couleurs des
 écrans très étroits, les noms longs peuvent être tronqués visuellement ; leur
 nom complet reste disponible aux lecteurs d’écran.
 Les marqueurs des joueurs sont agrandis pour rester lisibles à cette échelle.
+Après chaque action animée, les joueurs restent en place deux secondes puis
+chaque équipe forme un huddle. Les commandes restent disponibles : un choix
+immédiat interrompt l'attente ou le huddle et les joueurs rejoignent leur
+nouvelle formation avant le snap. En mode mouvement réduit, les déplacements
+sont instantanés après l'attente.
 Le panneau des tendances tactiques est accessible depuis la rangée de gestion
 du play, à côté du temps mort et du tempo.
 Les lignes de scrimmage et de 1st Down sont distinguées par leur couleur et

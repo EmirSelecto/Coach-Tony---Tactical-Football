@@ -1,4 +1,6 @@
 function clearTempPlayers(){
+  cancelFormationMotion();
+  postPlayHuddleActive = false;
   const field = document.getElementById('field');
   if(!field) return;
   field.querySelectorAll('.temp-player').forEach(el => el.remove());
@@ -28,6 +30,7 @@ function makeDot(cls, label, teamSide){
    visuel : n'influence jamais le résultat, déjà résolu par le moteur.
    ========================================================================= */
 const OFFENSE_FORMATION_CATEGORY = {
+  'Kick Formation':'kick',
   'Inside Zone':'iform', 'Power Run':'iform', 'Dive':'iform', 'QB Sneak':'iform',
   'Outside Zone':'outsideZone', 'Sweep':'iform', 'Toss':'toss', 'Counter Run':'counter',
   'QB Keeper':'outside', 'Read Option':'readOption',
@@ -50,6 +53,13 @@ function genOffenseFormation(category, direction){
   // dx=-1.5 : la ligne offensive se tient clairement en retrait de la ligne de
   // scrimmage (côté attaque), pour ne jamais se superposer à la ligne défensive.
   const OL = [34,42,50,58,66].map(y => ({dx:-1.5, y, role:'OL'}));
+  if(category === 'kick'){
+    return [...OL,
+      {dx:-7, y:50, role:'QB', qb:true}, {dx:-3, y:50, role:'RB'},
+      {dx:-1.5, y:24, role:'TE'}, {dx:-1.5, y:76, role:'TE'},
+      {dx:-1.5, y:10, role:'WR'}, {dx:-1.5, y:90, role:'WR'}
+    ];
+  }
   if(category === 'iform' || category === 'playaction'){
     return [...OL,
       {dx:-3.5, y:50, role:'QB', qb:true},
@@ -159,7 +169,17 @@ function genDefenseFormation(category){
 let formationDots = { offense: [], defense: [] };
 let choiceFormationKey = null;
 let tacticalCanvasFrame = 0;
+let formationMotionFrame = 0;
+let huddleTimer = null;
+let postPlayHuddleActive = false;
 const ENDZONE_WIDTH_RATIO = 1 / 11.6;
+
+function cancelFormationMotion(){
+  clearTimeout(huddleTimer);
+  huddleTimer = null;
+  if(formationMotionFrame) cancelAnimationFrame(formationMotionFrame);
+  formationMotionFrame = 0;
+}
 
 function playerPalette(color){
   if(!/^#[0-9a-f]{6}$/i.test(color)) throw new Error(`Couleur de joueur invalide : "${color}".`);
@@ -566,51 +586,146 @@ function selectManCoverageDefenders(defenders, offPlay, defPlay, receiverCount){
   return selected;
 }
 
-function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
-  const field = document.getElementById('field');
-  if(!field) return;
-  clearTempPlayers();
+function formationForPlay(offPlay, defPlay, preSnapSpot, offenseSide){
   const offenseDir = offenseSide === 'player' ? 1 : -1;
-  const defenseSide = offenseSide === 'player' ? 'ai' : 'player';
-
   const offCategory = OFFENSE_FORMATION_CATEGORY[offPlay.name] || 'iform';
-  const offList = [];
-  genOffenseFormation(offCategory, offPlay.direction).forEach(p => {
-    const dot = makeDot('offense mini' + (p.qb ? ' qb' : ''), p.qb ? 'QB' : '', offenseSide);
-    field.appendChild(dot);
-    const formX = clamp(preSnapSpot + p.dx*offenseDir, -9, 109);
-    placeEl(dot, formX, p.y);
-    offList.push({el: dot, role: p.qb ? 'QB' : p.role, y: p.y, formX});
-  });
-  formationDots.offense = offList;
-
+  const offense = genOffenseFormation(offCategory, offPlay.direction)
+    .map(p => ({role:p.qb ? 'QB' : p.role, y:p.y, formX:clamp(preSnapSpot + p.dx*offenseDir, -9, 109)}));
+  let defense = [];
   if(defPlay){
     const defCategory = DEFENSE_FORMATION_CATEGORY[defPlay.name] || 'balanced';
-    const defList = [];
     const defenseFormation = genDefenseFormation(defCategory);
     if(offPlay.type === 'pass' && coverageSchemeFor(defPlay) === 'man'){
-      const receivers = offList.filter(actor => actor.role === 'WR' || actor.role === 'TE');
+      const receivers = offense.filter(actor => actor.role === 'WR' || actor.role === 'TE');
       defenseFormation.forEach((actor, index) => { actor.id = 'D' + index; });
       const defenders = selectManCoverageDefenders(defenseFormation, offPlay, defPlay, receivers.length);
       matchManCoverage(defenders, receivers).forEach((receiver, defender) => {
         defender.y = receiver.y;
       });
     }
-    defenseFormation.forEach(p => {
-      const dot = makeDot('defense mini', '', defenseSide);
-      field.appendChild(dot);
-      const formX = clamp(preSnapSpot + p.dx*offenseDir, -9, 109);
-      placeEl(dot, formX, p.y);
-      defList.push({el: dot, role: p.role, y: p.y, formX});
-    });
-    formationDots.defense = defList;
-  } else {
-    formationDots.defense = [];
+    defense = defenseFormation.map(p => ({role:p.role, y:p.y, formX:clamp(preSnapSpot + p.dx*offenseDir, -9, 109)}));
   }
+  return {offense, defense};
+}
+
+function renderFormation(offPlay, defPlay, preSnapSpot, offenseSide){
+  const field = document.getElementById('field');
+  if(!field) return;
+  clearTempPlayers();
+  const targets = formationForPlay(offPlay, defPlay, preSnapSpot, offenseSide);
+  ['offense', 'defense'].forEach(group => {
+    const side = group === 'offense' ? offenseSide : (offenseSide === 'player' ? 'ai' : 'player');
+    formationDots[group] = targets[group].map(p => {
+      const dot = makeDot(group + ' mini' + (p.role === 'QB' ? ' qb' : ''), p.role === 'QB' ? 'QB' : '', side);
+      field.appendChild(dot);
+      placeEl(dot, p.formX, p.y);
+      return {...p, el:dot};
+    });
+  });
   refreshTacticalCanvas();
 }
 
+function moveFormation(targets, duration, onComplete){
+  cancelFormationMotion();
+  const moves = [];
+  ['offense', 'defense'].forEach(group => {
+    const available = formationDots[group].slice();
+    const assignments = targets[group].map(target => {
+      let index = available.findIndex(actor => actor.role === target.role);
+      if(index < 0) index = 0;
+      const actor = available.splice(index, 1)[0];
+      return {actor, target, x:actor.formX, y:actor.y};
+    });
+    formationDots[group] = assignments.map(move => move.actor);
+    assignments.forEach(move => {
+      move.actor.role = move.target.role;
+      move.actor.el.classList.remove('offense', 'defense', 'qb', 'carrier', 'breakaway');
+      move.actor.el.classList.add(group);
+      if(move.target.role === 'QB') move.actor.el.classList.add('qb');
+      move.actor.el.textContent = move.target.role === 'QB' ? 'QB' : '';
+      moves.push(move);
+    });
+  });
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const currentGame = game;
+  let start = null;
+  const step = timestamp => {
+    if(game !== currentGame) return;
+    if(start === null) start = timestamp;
+    const progress = reduced ? 1 : clamp((timestamp - start) / duration, 0, 1);
+    const eased = progress * progress * (3 - 2 * progress);
+    moves.forEach(({actor, target, x, y}) => {
+      actor.formX = x + (target.formX - x) * eased;
+      actor.y = y + (target.y - y) * eased;
+      actor.el.style.left = fx(actor.formX) + '%';
+      actor.el.style.top = actor.y + '%';
+    });
+    refreshTacticalCanvas();
+    if(progress < 1) formationMotionFrame = requestAnimationFrame(step);
+    else {
+      formationMotionFrame = 0;
+      if(onComplete) onComplete();
+    }
+  };
+  formationMotionFrame = requestAnimationFrame(step);
+}
+
+function retainPlayersAfterPlay(setup){
+  cancelFormationMotion();
+  postPlayHuddleActive = true;
+  const samePossession = setup.offenseSide === game.possession;
+  const players = group => setup.actors.filter(actor => actor.team === group).map(actor => {
+    actor.element.classList.remove('carrier', 'breakaway');
+    delete actor.element.dataset.direction;
+    return {el:actor.element, role:actor.role, formX:actor.x, y:actor.y};
+  });
+  formationDots = {
+    offense:players(samePossession ? 'offense' : 'defense'),
+    defense:players(samePossession ? 'defense' : 'offense')
+  };
+  choiceFormationKey = `${game.possession}:${game.fieldPosition}`;
+  const currentGame = game;
+  huddleTimer = setTimeout(() => {
+    huddleTimer = null;
+    if(game !== currentGame || game.gameOver || !postPlayHuddleActive) return;
+    const allPlayers = [...formationDots.offense, ...formationDots.defense];
+    formationDots = {
+      offense:allPlayers.filter(actor => actor.el.classList.contains('team-' + game.possession)),
+      defense:allPlayers.filter(actor => !actor.el.classList.contains('team-' + game.possession))
+    };
+    choiceFormationKey = `${game.possession}:${game.fieldPosition}`;
+    const direction = game.possession === 'player' ? 1 : -1;
+    const targets = {};
+    ['offense', 'defense'].forEach(group => {
+      const spot = game.pendingConversion && Number.isFinite(setup.visualBallX) ? setup.visualBallX : game.fieldPosition;
+      const center = clamp(spot + (group === 'offense' ? -13 : 13) * direction, -2, 102);
+      targets[group] = formationDots[group].map((actor, index) => {
+        const angle = 2 * Math.PI * index / formationDots[group].length;
+        return {role:actor.role, formX:center + 6.5 * Math.cos(angle), y:50 + 15 * Math.sin(angle)};
+      });
+    });
+    moveFormation(targets, 1000);
+  }, 2000);
+}
+
+function preparePlayFormation(offPlay, defPlay, spot, offenseSide, duration, onComplete){
+  postPlayHuddleActive = false;
+  const targets = formationForPlay(offPlay, defPlay, spot, offenseSide);
+  const allPlayers = [...formationDots.offense, ...formationDots.defense];
+  const offense = allPlayers.filter(actor => actor.el.classList.contains('team-' + offenseSide));
+  const defense = allPlayers.filter(actor => !actor.el.classList.contains('team-' + offenseSide));
+  if(offense.length === 11 && defense.length === 11){
+    formationDots = {offense, defense};
+    choiceFormationKey = null;
+    moveFormation(targets, duration, onComplete);
+  } else {
+    renderFormation(offPlay, defPlay, spot, offenseSide);
+    onComplete();
+  }
+}
+
 function ensureChoiceFormation(){
+  if(postPlayHuddleActive) return;
   const key = `${game.possession}:${game.fieldPosition}`;
   if(choiceFormationKey === key && formationDots.offense.length === 11 && formationDots.defense.length === 11) return;
   renderFormation({name:'Quick Slant', type:'pass', direction:'middle'},
@@ -623,10 +738,14 @@ function beginPreSnap(offPlay, defPlay, isPlayerOffense, resolveFn){
   const offenseSide = isPlayerOffense ? 'player' : 'ai';
   const totalDelay = preSnapDelayMs();
   setPlayPhase(t(isPlayerOffense ? 'animation.phaseLabels.offenseFormation' : 'animation.phaseLabels.aiOffenseFormation'));
-  renderFormation(offPlay, null, preSnapSpot, offenseSide);
+  let ready = false, formationReady = false;
+  const startWhenReady = () => { if(ready && formationReady) resolveFn(); };
+  preparePlayFormation(offPlay, defPlay, preSnapSpot, offenseSide, Math.min(1500, Math.round(totalDelay * 0.45)), () => {
+    formationReady = true;
+    startWhenReady();
+  });
   scheduleForGame(() => {
     setPlayPhase(t('animation.phaseLabels.defenseFormation'));
-    renderFormation(offPlay, defPlay, preSnapSpot, offenseSide);
   }, Math.round(totalDelay * 0.45));
-  scheduleForGame(resolveFn, totalDelay);
+  scheduleForGame(() => { ready = true; startWhenReady(); }, totalDelay);
 }
