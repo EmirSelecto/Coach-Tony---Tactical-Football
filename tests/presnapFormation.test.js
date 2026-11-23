@@ -190,9 +190,9 @@ test('field goals use dedicated protection and block formations in both directio
 test('screen pass places three receivers on the selected side and balances the middle', () => {
   const h = createHarness();
   const expected = {
-    left:[4,20,38,96],
-    middle:[4,28,72,96],
-    right:[4,62,80,96]
+    left:[4,14,26,96],
+    middle:[4,22,78,96],
+    right:[4,74,86,96]
   };
   for(const [direction, lanes] of Object.entries(expected)){
     const formation = h.sandbox.formationForPlay(
@@ -200,6 +200,8 @@ test('screen pass places three receivers on the selected side and balances the m
     const receivers = Array.from(formation.filter(player => player.role === 'WR'), player => player.y)
       .sort((a,b) => a-b);
     assert.deepEqual(receivers, lanes);
+    assert.ok(receivers.every(lane => lane < 34 || lane > 66),
+      `un receveur est placé parmi les OL: ${direction}`);
     const backfield = formation.find(player => player.role === 'RB');
     assert.equal(backfield.y, direction === 'left' ? 32 : direction === 'right' ? 68 : 50);
   }

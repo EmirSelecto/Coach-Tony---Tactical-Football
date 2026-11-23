@@ -112,9 +112,9 @@ function genOffenseFormation(category, direction){
     ];
   }
   if(category === 'screen'){
-    const receiverLanes = direction === 'right' ? [62, 80, 96, 4]
-      : direction === 'left' ? [38, 20, 4, 96]
-      : [4, 28, 72, 96];
+    const receiverLanes = direction === 'right' ? [4, 74, 86, 96]
+      : direction === 'left' ? [4, 14, 26, 96]
+      : [4, 22, 78, 96];
     const backfieldLane = direction === 'right' ? 68 : direction === 'left' ? 32 : 50;
     return [...OL,
       {dx:-6, y:50, role:'QB', qb:true},
