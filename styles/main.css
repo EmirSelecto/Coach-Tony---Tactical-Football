@@ -1307,14 +1307,12 @@
     z-index:2;
     pointer-events:none;
   }
+  .stadium-mask{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .stadium-crowd-tint,.stadium-crowd-glow{
     --crowd-gradient:linear-gradient(90deg,var(--home-primary) 0%,var(--home-primary) 46%,transparent 50%,var(--away-primary) 54%,var(--away-primary) 100%);
-    --crowd-mask:radial-gradient(ellipse 46% 38% at 50% 52%,transparent 82%,black 100%);
-    /* The inner contour protects the turf in stadium_base.jpg, including its corners. */
-    clip-path:polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,12% 29%,13% 21%,16% 16%,35% 14.5%,65% 14.5%,84% 16%,87% 21%,88% 29%,88% 77%,87% 82%,84% 86%,65% 89%,35% 89%,16% 86%,13% 82%,12% 77%,12% 29%);
     background:var(--crowd-gradient);
-    -webkit-mask-image:var(--crowd-mask);
-    mask-image:var(--crowd-mask);
+    -webkit-mask-image:url(#stadium-crowd-mask);
+    mask-image:url(#stadium-crowd-mask);
   }
   .stadium-crowd-tint{
     opacity:0.78;
@@ -1342,27 +1340,20 @@
       radial-gradient(circle at 10% 86%,rgba(255,242,208,0.85),transparent 1.2%),
       radial-gradient(circle at 89% 84%,rgba(200,236,255,0.9),transparent 1.4%);
   }
-  .stadium-flashes::after{
-    content:"";
+  .crowd-flash{
     position:absolute;
-    inset:0;
-    background:
-      radial-gradient(circle at 8% 30%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 19% 11%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 31% 8%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 70% 8%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 83% 12%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 93% 30%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 7% 72%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 22% 93%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 77% 94%,#fff 0 1px,transparent 3px),
-      radial-gradient(circle at 93% 72%,#fff 0 1px,transparent 3px);
-    animation:crowdFlash 4s infinite;
+    width:4px;
+    height:4px;
+    border-radius:50%;
+    background:var(--flash-color);
+    box-shadow:0 0 7px 2px var(--flash-color);
+    opacity:0;
+    animation:crowdFlash var(--flash-duration) var(--flash-delay) infinite;
   }
-  .stadium-flashes.crowd-celebrating::after{ animation-duration:0.55s; }
+  .stadium-flashes.crowd-celebrating .crowd-flash{ animation-duration:1.2s; }
   @keyframes crowdFlash{
-    0%,15%,32%,49%,72%,100%{ opacity:0; }
-    5%,38%,78%{ opacity:0.85; }
+    0%,3%,100%{ opacity:0; }
+    1.5%{ opacity:1; }
   }
   .field-outer.action-flash .stadium-flashes::before,
   .stadium-flashes.anime-vfx-flash::before{ animation:stadiumFlash 700ms ease-out; }
@@ -1810,8 +1801,7 @@
   @media (prefers-reduced-motion:reduce){
     .field-outer.action-flash .stadium-flashes::before,
     .stadium-flashes.anime-vfx-flash::before,
-    .stadium-flashes::after{ animation:none; }
-    .stadium-flashes::after{ opacity:0; }
+    .stadium-flashes .crowd-flash{ animation:none; opacity:0; }
   }
 
   /* Manga broadcast scoreboard */
@@ -1871,6 +1861,8 @@
     overflow:visible;
     perspective:800px;
     transform-style:preserve-3d;
+    transform:translateX(-50%) scale(1.18);
+    transform-origin:top center;
   }
   .team-score{
     --team-panel:var(--player-accent);
@@ -2129,7 +2121,7 @@
     white-space:nowrap;
   }
   .situation{
-    top:calc(2.2% + clamp(36px,6.8vw,74px) + clamp(6px,1vw,15px));
+    top:calc(2.2% + clamp(42.48px,8.024vw,87.32px) + clamp(6px,1vw,15px));
     width:max-content;
     max-width:76%;
     min-height:clamp(22px,2.4vw,26px);
@@ -2146,7 +2138,8 @@
     clip-path:none;
     box-shadow:4px 4px 0 #090d16;
     backdrop-filter:none;
-    transform:translateX(-50%) rotate(-0.5deg);
+    transform:translateX(-50%) scale(1.18) rotate(-0.5deg);
+    transform-origin:top center;
     font-size:clamp(0.52rem,0.9vw,0.84rem);
     line-height:1.1;
   }
@@ -2194,7 +2187,7 @@
   .situation .spot-separator,.situation .spot-caption{ display:inline; white-space:nowrap; }
   .situation #situationExtra{ color:#fff; font-size:0.9em; white-space:nowrap; }
   .phase-indicator{
-    top:calc(2.2% + clamp(36px,6.8vw,74px) + clamp(22px,2.4vw,26px) + clamp(16px,2vw,27px));
+    top:calc(2.2% + clamp(42.48px,8.024vw,87.32px) + clamp(25.96px,2.832vw,30.68px) + clamp(24px,2.8vw,35px));
     border-bottom:2px solid #00f0ff;
     clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
   }
@@ -2644,13 +2637,26 @@
     box-shadow:2px 2px 0 #090d16,0 0 8px #c4b5fd;
   }
   .playbook-toolbar .trends-control{
-    width:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    width:auto;
     height:34px;
-    color:#e7faff;
-    background:#152c43;
-    border-color:#68cde7;
+    padding:4px 12px;
+    color:#090d16;
+    background:linear-gradient(135deg,#0284c7,#38bdf8);
+    border:2px solid #090d16;
+    border-radius:0;
+    box-shadow:2px 2px 0 #090d16;
+    font:900 0.8rem/1 'Rajdhani',sans-serif;
+    white-space:nowrap;
+    transform:skewX(15deg);
   }
-  .playbook-toolbar .trends-control svg{ width:20px; height:20px; }
+  .playbook-toolbar .trends-control svg{ width:20px; height:20px; flex:none; }
+  .playbook-toolbar .trends-control:hover{ color:#090d16; background:linear-gradient(135deg,#38bdf8,#7dd3fc); border-color:#090d16; }
+  .playbook-toolbar .trends-control:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .playbook-toolbar .trends-control:active{ transform:skewX(15deg) scale(0.96); }
   .controls-panel #controlsBody{
     flex:1 1 0;
     min-height:0;
@@ -2730,6 +2736,11 @@
     text-shadow:none;
   }
   .controls-panel .offense-categories .choice-category{ flex-basis:calc((100% - 10px) / 2); min-width:0; }
+  .controls-panel .defense-categories{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .controls-panel .defense-categories .choice-category{ min-width:0; }
   .controls-panel .fourth-down-categories .choice-category{ flex-basis:calc((100% - 20px) / 3); min-width:120px; }
   .controls-panel .fourth-down-categories.has-field-goal .choice-category{ flex-basis:calc((100% - 40px) / 5); }
   .controls-panel .choice-category[data-category="run"],

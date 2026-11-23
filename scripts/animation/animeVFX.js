@@ -1,6 +1,20 @@
 (function(){
   const canvas = document.getElementById('animeVfxCanvas');
   const flashes = document.querySelector('.stadium-flashes');
+  const flashColors = ['#ffffff', '#baf7ff', '#ffe69a'];
+  for(let i = 0; i < 50; i++){
+    const flash = document.createElement('span');
+    flash.className = 'crowd-flash';
+    const side = i % 4;
+    const x = side === 2 ? Math.random() * 15 : side === 3 ? 85 + Math.random() * 15 : 5 + Math.random() * 90;
+    const y = side === 0 ? 2 + Math.random() * 16 : side === 1 ? 82 + Math.random() * 16 : 20 + Math.random() * 60;
+    flash.style.left = x + '%';
+    flash.style.top = y + '%';
+    flash.style.setProperty('--flash-color', flashColors[i % flashColors.length]);
+    flash.style.setProperty('--flash-delay', (Math.random() * -5) + 's');
+    flash.style.setProperty('--flash-duration', (4 + Math.random()) + 's');
+    flashes.appendChild(flash);
+  }
   const effects = [];
   const scoreTypes = ['TOUCHDOWN', 'FIELD GOAL'];
   const impactTypes = ['FUMBLE', 'INTERCEPTION', 'SACK'];

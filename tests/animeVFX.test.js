@@ -21,7 +21,8 @@ function createHarness(reduced = false){
     getContext:() => context,
     getBoundingClientRect:() => ({left:10, top:20, width:1000, height:600})
   };
-  const flashes = {offsetWidth:100, classList:{
+  const flashElements = [];
+  const flashes = {offsetWidth:100, appendChild(element){ flashElements.push(element); }, classList:{
     add(...names){ names.forEach(name => classes.add(name)); },
     remove(...names){ names.forEach(name => classes.delete(name)); }
   }};
@@ -29,13 +30,16 @@ function createHarness(reduced = false){
   const timers = new Map();
   const window = {devicePixelRatio:2, matchMedia:() => ({matches:reduced})};
   const sandbox = vm.createContext({
-    window, document:{getElementById:() => canvas, querySelector:() => flashes},
+    window, document:{
+      getElementById:() => canvas, querySelector:() => flashes,
+      createElement:() => ({style:{setProperty(name, value){ this[name] = value; }}})
+    },
     performance:{now:() => now}, refreshTacticalCanvas:() => { refreshes++; },
     setTimeout(callback, delay){ const id = nextTimer++; timers.set(id, {at:now + delay, callback}); return id; },
     clearTimeout(id){ timers.delete(id); }
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'animeVFX.js'), 'utf8'), sandbox);
-  return {window, paths, classes, canvas, advance(ms){
+  return {window, paths, classes, canvas, flashElements, advance(ms){
     const target = now + ms;
     while(true){
       const next = [...timers.entries()].sort((a,b) => a[1].at - b[1].at)[0];
@@ -51,6 +55,19 @@ function createHarness(reduced = false){
 }
 
 const colors = {primary:'#123456', secondary:'#abcdef'};
+
+test('fifty independently timed flashes stay in the four stands', () => {
+  const h = createHarness();
+  assert.equal(h.flashElements.length, 50);
+  const positions = h.flashElements.map(element => ({
+    x:parseFloat(element.style.left), y:parseFloat(element.style.top),
+    delay:element.style['--flash-delay']
+  }));
+  assert.ok(positions.every(({x, y}) => x < 16.5 || x > 83.5 || y < 20.5 || y > 78.5));
+  assert.ok(positions.some(({x}) => x < 15) && positions.some(({x}) => x > 85));
+  assert.ok(positions.some(({y}) => y < 18) && positions.some(({y}) => y > 82));
+  assert.ok(new Set(positions.map(position => position.delay)).size > 1);
+});
 
 test('crowd celebration lasts two seconds, restarts on a new event and respects reduced motion', () => {
   const h = createHarness();

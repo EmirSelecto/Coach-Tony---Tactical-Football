@@ -193,9 +193,12 @@ function buildClockControls(onOffense){
   const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   icon.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-  use.setAttribute('href', 'assets/images/ui-icons.svg#trends');
+  use.setAttribute('href', 'assets/images/ui-icons.svg?v=match-finish-1#trends');
   icon.appendChild(use);
   trends.appendChild(icon);
+  const trendsLabel = document.createElement('span');
+  trendsLabel.textContent = t('ui.static.tendenciesLabel');
+  trends.appendChild(trendsLabel);
   const late = isHalfEndQuarter(game.quarter) && game.clock <= 180;
   if(onOffense){
     const seg = document.createElement('div');
@@ -279,9 +282,9 @@ function renderOffenseButtons(container, onPick, fieldGoalDistance){
 
 function renderDefenseButtons(container, onPick){
   const groups = [
-    {key:'pressure', label:t('ui.playControls.pressureCategory'), icon:'pressure'},
+    {key:'run', label:t('ui.playControls.runDefenseCategory'), icon:'run-defense'},
     {key:'coverage', label:t('ui.playControls.coverageCategory'), icon:'coverage'},
-    {key:'run', label:t('ui.playControls.runDefenseCategory'), icon:'run-defense'}
+    {key:'pressure', label:t('ui.playControls.pressureCategory'), icon:'pressure'}
   ];
   const chooser = document.createElement('div');
   chooser.className = 'play-chooser';

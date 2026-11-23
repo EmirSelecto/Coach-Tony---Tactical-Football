@@ -26,6 +26,7 @@
     "offensiveCall": "Appel offensif",
     "tacticalPlaybook": "TACTICAL PLAYBOOK",
     "tendenciesTitle": "Tendances tactiques",
+    "tendenciesLabel": "TENDANCES",
     "playerOffenseTendency": "Votre attaque (tout le match)",
     "aiOffenseTendency": "Attaque IA (tout le match)",
     "predictabilityScore": "Score de prévisibilité",

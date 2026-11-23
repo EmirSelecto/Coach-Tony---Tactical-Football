@@ -78,6 +78,8 @@ surimpression ; les réglages et les tendances s’ouvrent dans des panneaux.
 Les tribunes et les projecteurs prennent les couleurs primaires des deux équipes
 sans teinter la pelouse. Les flashs du public accélèrent pendant deux secondes
 lors des touchdowns et des gros jeux, sauf si les animations sont réduites.
+Le masque des tribunes suit une ouverture rectangulaire arrondie autour du terrain ;
+cinquante flashs indépendants animent les quatre côtés du stade.
 Le tableau de score adopte un style manga angulaire : bordures polygonales
 asymétriques, ailes en perspective, logos débordants, scores aux couleurs des
 équipes, horloge ambrée sombre et bandeau de situation contrasté. Sur les
@@ -108,8 +110,8 @@ directionnelles affichent leur tracé correspondant.
 En 4e tentative, le field goal (si sa distance le permet), son pourcentage de
 réussite, puis le punt précèdent les deux catégories offensives ; le fake field
 goal, disponible à la même distance que le field goal, vient en dernier.
-En défense, les appels sont regroupés par pression, couverture ou défense contre
-la course. Les cartes défilent horizontalement ; la molette permet de parcourir
+En défense, les catégories sont affichées dans l'ordre défense contre la course,
+couverture puis pression. Les cartes de jeux défilent horizontalement ; la molette permet de parcourir
 la rangée. Les commandes de l'en-tête passent à la ligne lorsque nécessaire,
 notamment en 4e tentative.
 

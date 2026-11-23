@@ -254,3 +254,10 @@ test('defensive cards retain their category and selected play', () => {
     assert.equal(selected.name, expectedName);
   }
 });
+
+test('defensive categories are ordered run defense, coverage, then pressure', () => {
+  const {context, chooser} = createHarness();
+  context.renderDefenseButtons(chooser, () => {});
+  assert.deepEqual(chooser.querySelectorAll('.choice-category').map(button => button.dataset.category),
+    ['run-defense', 'coverage', 'pressure']);
+});

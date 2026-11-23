@@ -1,6 +1,6 @@
 (async function loadGame(){
-  const celebrationVersion = '?v=stadium-crowd-1';
-  const playbookVersion = '?v=hud-cleanup-1';
+  const celebrationVersion = '?v=match-finish-1';
+  const playbookVersion = '?v=match-finish-1';
   const modalVersion = '?v=manga-modal-3';
   const huddleVersion = '?v=post-play-huddle-1';
   const catalogs = [
