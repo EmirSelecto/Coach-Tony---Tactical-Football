@@ -73,7 +73,7 @@ function createHarness(){
     }
     now = target;
   };
-  return {window, overlay, stadium, title, portrait, advance, context, vfx, flagCelebrations,
+  return {window, overlay, stadium, panel, title, portrait, advance, context, vfx, flagCelebrations,
     get crowdCelebrations(){ return crowdCelebrations; }};
 }
 
@@ -100,14 +100,17 @@ test('queued events retain their full duration and reset the portrait afterwards
   h.window.showAnimeCutin('touchdown', 'TOUCHDOWN', '', 'Team',
     {queue:true, onStart:() => h.window.setCommentatorExpression('hyped')});
   assert.equal(h.portrait.src, 'shocked');
+  assert.equal(h.panel.classList.contains('announcement-suppressed'), true);
   h.advance(1599);
   assert.equal(h.title.textContent, 'FUMBLE');
   h.advance(1);
   assert.equal(h.title.textContent, 'TOUCHDOWN');
   assert.equal(h.portrait.src, 'hyped');
+  assert.equal(h.panel.classList.contains('announcement-suppressed'), true);
   h.advance(3000);
   assert.equal(h.portrait.src, 'neutral');
   assert.equal(h.overlay.classList.contains('is-active'), false);
+  assert.equal(h.panel.classList.contains('announcement-suppressed'), false);
 });
 
 test('completion waits for the entire queue, runs immediately when idle, and is cancelled on reset', () => {
@@ -169,6 +172,7 @@ test('cancelling prevents queued events from appearing during the next play', ()
   h.advance(5000);
   assert.equal(h.overlay.classList.contains('is-active'), false);
   assert.equal(h.stadium.classList.contains('screen-shake'), false);
+  assert.equal(h.panel.classList.contains('announcement-suppressed'), false);
   assert.equal(h.title.textContent, 'SACK');
 });
 

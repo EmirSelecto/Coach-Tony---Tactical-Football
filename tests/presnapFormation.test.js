@@ -167,6 +167,63 @@ test('Press Coverage and Cover 1 use a central LB while Nickel Blitz keeps a CB'
   }
 });
 
+test('field goals use dedicated protection and block formations in both directions', () => {
+  const h = createHarness();
+  for(const side of ['player', 'ai']){
+    const direction = side === 'player' ? 1 : -1;
+    const formation = h.sandbox.formationForPlay(
+      {name:'Kick Formation', type:'run'}, {name:'Base 4-3'}, 50, side);
+    assert.equal(formation.offense.length, 11);
+    assert.equal(formation.defense.length, 11);
+    assert.equal(formation.offense.filter(player => player.role === 'OL').length, 7);
+    assert.ok(formation.offense.filter(player => player.role === 'OL')
+      .every(player => player.formX === 50 - 0.8 * direction));
+    assert.equal(formation.offense.find(player => player.role === 'QB').formX, 50 - 7.5 * direction);
+    assert.equal(formation.offense.find(player => player.role === 'K').formX, 50 - 14 * direction);
+    assert.equal(formation.defense.filter(player => player.role === 'DL').length, 7);
+    assert.equal(formation.defense.filter(player => player.role === 'LB').length, 2);
+    assert.equal(formation.defense.filter(player => player.role === 'S').length, 2);
+    assert.ok(formation.defense.every(player => player.formX >= 50) === (side === 'player'));
+  }
+});
+
+test('screen pass places three receivers on the selected side and balances the middle', () => {
+  const h = createHarness();
+  const expected = {
+    left:[4,20,38,96],
+    middle:[4,28,72,96],
+    right:[4,62,80,96]
+  };
+  for(const [direction, lanes] of Object.entries(expected)){
+    const formation = h.sandbox.formationForPlay(
+      {name:'Screen Pass', type:'pass', direction}, {name:'Base 4-3'}, 50, 'player').offense;
+    const receivers = Array.from(formation.filter(player => player.role === 'WR'), player => player.y)
+      .sort((a,b) => a-b);
+    assert.deepEqual(receivers, lanes);
+    const backfield = formation.find(player => player.role === 'RB');
+    assert.equal(backfield.y, direction === 'left' ? 32 : direction === 'right' ? 68 : 50);
+  }
+});
+
+test('Nickel Blitz keeps its cornerbacks outside and assigns coverage to linebackers and safeties', () => {
+  const h = createHarness();
+  const offense = h.sandbox.formationForPlay(
+    {name:'Screen Pass', type:'pass', direction:'right'},
+    {name:'Nickel Blitz'}, 50, 'player').offense;
+  const formation = h.sandbox.formationForPlay(
+    {name:'Screen Pass', type:'pass', direction:'right'},
+    {name:'Nickel Blitz'}, 50, 'player').defense;
+  assert.deepEqual(Array.from(formation.filter(player => player.role === 'CB'), player => player.y)
+    .sort((a,b) => a-b),
+    [8,50,92]);
+  const receivers = offense.filter(player => player.role === 'WR' || player.role === 'TE');
+  const coverage = h.sandbox.selectManCoverageDefenders(
+    formation, {type:'pass'}, {name:'Nickel Blitz'}, receivers.length);
+  assert.equal(coverage.filter(player => player.role === 'LB').length, 2);
+  assert.equal(coverage.filter(player => player.role === 'S').length, 2);
+  assert.equal(coverage.some(player => player.role === 'CB'), false);
+});
+
 test('Cover 3 and Dime Defense use cornerbacks at the indicated shallow positions', () => {
   const h = createHarness();
   for(const side of ['player', 'ai']){

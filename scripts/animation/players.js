@@ -62,10 +62,12 @@ function genOffenseFormation(category, direction){
     ];
   }
   if(category === 'kick'){
-    return [...OL,
-      {dx:-7, y:50, role:'QB', qb:true}, {dx:-3, y:50, role:'RB'},
-      {dx:-1.5, y:24, role:'TE'}, {dx:-1.5, y:76, role:'TE'},
-      {dx:-1.5, y:10, role:'WR'}, {dx:-1.5, y:90, role:'WR'}
+    return [
+      ...[22,31.5,40.5,50,59.5,68.5,78].map(y => ({dx:-0.8, y, role:'OL'})),
+      {dx:-3.2, y:38, role:'RB'},
+      {dx:-3.2, y:62, role:'RB'},
+      {dx:-7.5, y:50, role:'QB', qb:true},
+      {dx:-14, y:50, role:'K'}
     ];
   }
   if(category === 'iform' || category === 'playaction'){
@@ -110,11 +112,13 @@ function genOffenseFormation(category, direction){
     ];
   }
   if(category === 'screen'){
-    const right = direction === 'right';
-    const receiverLanes = right ? [62, 80, 96, 4] : [38, 20, 4, 96];
+    const receiverLanes = direction === 'right' ? [62, 80, 96, 4]
+      : direction === 'left' ? [38, 20, 4, 96]
+      : [4, 28, 72, 96];
+    const backfieldLane = direction === 'right' ? 68 : direction === 'left' ? 32 : 50;
     return [...OL,
       {dx:-6, y:50, role:'QB', qb:true},
-      {dx:-8.5, y:right ? 62 : 38, role:'RB'},
+      {dx:-8.5, y:backfieldLane, role:'RB'},
       ...receiverLanes.map(y => ({dx:-1.5, y, role:'WR'}))
     ];
   }
@@ -132,6 +136,13 @@ function genDefenseFormation(category){
   // dx=2.5 : la ligne défensive fait face à la ligne offensive avec un écart net
   // (environ 4 yards visibles entre les deux lignes), jamais superposée.
   const DL4 = [36,45,55,64].map(y => ({dx:2.5, y, role:'DL'}));
+  if(category === 'fieldGoalBlock'){
+    return [
+      ...[27,34.5,42,50,58,65.5,73].map(y => ({dx:1.8, y, role:'DL'})),
+      {dx:4, y:12, role:'LB'}, {dx:4, y:88, role:'LB'},
+      {dx:11, y:35, role:'S'}, {dx:11, y:65, role:'S'}
+    ];
+  }
   if(category === 'box'){
     return [...DL4,
       {dx:5.5, y:33, role:'LB'}, {dx:5.5, y:50, role:'LB'}, {dx:5.5, y:67, role:'LB'},
@@ -618,6 +629,9 @@ function matchManCoverage(defenders, receivers){
 }
 
 function selectManCoverageDefenders(defenders, offPlay, defPlay, receiverCount){
+  if(defPlay && defPlay.name === 'Nickel Blitz'){
+    return defenders.filter(actor => actor.role === 'LB' || actor.role === 'S');
+  }
   const deepSafety = defPlay.name === 'Cover 1' ? defenders.find(actor => actor.role === 'S') : null;
   const selected = defenders.filter(actor => (actor.role === 'CB' || actor.role === 'S') && actor !== deepSafety);
   if(selected.length >= receiverCount) return selected;
@@ -645,7 +659,9 @@ function formationForPlay(offPlay, defPlay, preSnapSpot, offenseSide){
     return {offense, defense};
   }
   if(defPlay){
-    const defCategory = DEFENSE_FORMATION_CATEGORY[defPlay.name] || 'balanced';
+    const defCategory = offCategory === 'kick'
+      ? 'fieldGoalBlock'
+      : DEFENSE_FORMATION_CATEGORY[defPlay.name] || 'balanced';
     const defenseFormation = adjustDefenseFormation(genDefenseFormation(defCategory), defPlay.name);
     if(offPlay.type === 'pass' && coverageSchemeFor(defPlay) === 'man'){
       const receivers = offense.filter(actor => actor.role === 'WR' || actor.role === 'TE');

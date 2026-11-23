@@ -413,6 +413,7 @@ function renderPlayCategory(chooser, label, plays, renderButtons, options = {}){
     if(category) category.focus();
   });
   const title = document.createElement('h3');
+  title.className = 'playbook-a11y-label';
   title.textContent = label;
   header.append(back, title);
   const group = document.createElement('div');

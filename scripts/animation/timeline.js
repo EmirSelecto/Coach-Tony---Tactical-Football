@@ -246,7 +246,8 @@ function pickDefenseReactorNear(defenseActors, targetLane, targetX){
 function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
   const offense = new Map(), defense = new Map();
   if(variant !== 'screen' && variant !== 'outsideLead') return {offense, defense};
-  const {kf, lane, offenseDir, throwX, finalX, preSnapSpot, outcome, excludeIds, offPlay} = o;
+  const {kf, lane, offenseDir, throwX, finalX, preSnapSpot, outcome, excludeIds, offPlay,
+    reservedCoverageIds = new Set()} = o;
   const byLane = (a,b) => Math.abs(a.y-lane) - Math.abs(b.y-lane);
   let chosen = [];
   if(variant === 'screen'){
@@ -278,7 +279,8 @@ function planEscorts(variant, offenseSrc, defenseSrc, blockPairs, o){
       ? {t: endT, x: clamp(finalX + offenseDir*(1.2 + k*0.6), -8, 108), y: clamp(lane + offs[k]*0.7, 4, 96)}
       : {t: endT, x: mid.x, y};
     offense.set(a.id, {mid, end});
-    const def = defenseSrc.filter(d => (d.role === 'LB' || d.role === 'CB' || d.role === 'S') && !excludeIds.has(d.id) && !usedDef.has(d.id))
+    const def = defenseSrc.filter(d => (d.role === 'LB' || d.role === 'CB' || d.role === 'S')
+      && !excludeIds.has(d.id) && !reservedCoverageIds.has(d.id) && !usedDef.has(d.id))
       .sort((d1,d2) => (Math.abs(d1.y-end.y) + Math.abs(d1.x-end.x)) - (Math.abs(d2.y-end.y) + Math.abs(d2.x-end.x)))[0];
     if(def){
       usedDef.add(def.id);
@@ -837,6 +839,9 @@ function coverageSchemeFor(defPlay){
 function selectBlitzers(defPlay, offPlay, defenseActors){
   const profile = defPlay && DEFENSE_PROFILES[defPlay.name];
   if(!profile || !profile.tags.includes('blitz')) return new Set();
+  if(defPlay.name === 'Nickel Blitz'){
+    return new Set(defenseActors.filter(actor => actor.role === 'CB').map(actor => actor.id));
+  }
   const runBlitz = profile.tags.includes('runBlitz');
   let count = 0;
   if(runBlitz){
@@ -1249,14 +1254,15 @@ function actorAssignment(actor, ctx){
       task = duel ? 'rushOrEngage' : 'rushTheBackfield';
       pathType = duel ? duel.battleType : 'gapRush';
       targetId = duel ? duel.blockerId : (family === 'sack' ? ctx.qbId : ctx.carrierId);
-    } else if(actor.role === 'LB' && !(offPlay.type === 'pass' && ctx.coverageScheme === 'man'
-      && ctx.coverageTargets.has(actor.id))){
+    } else if(actor.role === 'LB' && !(ctx.coverageTargets.has(actor.id)
+      && (offPlay.type === 'pass' || ctx.defPlay.name === 'Nickel Blitz'))){
       task = family === 'sack' ? 'blitzOrRead' : 'readAndFill';
       pathType = family === 'sack' ? 'linebackerBlitz' : 'runPassRead';
       targetId = family === 'sack' ? ctx.qbId : ctx.carrierId;
     } else {
       const coverageTarget = ctx.coverageTargets && ctx.coverageTargets.get(actor.id);
-      const passPlay = offPlay.type === 'pass';
+      const passPlay = offPlay.type === 'pass' || (ctx.defPlay.name === 'Nickel Blitz'
+        && ctx.coverageTargets.has(actor.id));
       const manCoverage = passPlay && ctx.coverageScheme === 'man' && !!coverageTarget;
       task = passPlay ? (manCoverage ? 'manCoverReceiver'
         : actor.role === 'S' ? 'protectDeepZone' : 'coverZone')
@@ -1654,11 +1660,16 @@ function buildPlaySetup(cfg){
   const coverageScheme = coverageSchemeFor(defPlay);
   const blitzerIds = selectBlitzers(defPlay, offPlay, defenseSrc);
   const coverageReceivers = offenseSrc.filter(actor => actor.role === 'WR' || actor.role === 'TE');
-  const coverageDefenders = defenseSrc.filter(actor => actor.role === 'CB' || actor.role === 'S');
+  const nickelBlitz = defPlay.name === 'Nickel Blitz';
+  const coverageDefenders = defenseSrc.filter(actor => nickelBlitz
+    ? actor.role === 'LB' || actor.role === 'S'
+    : actor.role === 'CB' || actor.role === 'S');
   const coverageTargets = new Map();
   const availableReceivers = [...coverageReceivers];
   if(coverageScheme === 'man'){
-    const assignedDefenders = selectManCoverageDefenders(defenseSrc, offPlay, defPlay, coverageReceivers.length);
+    const assignedDefenders = nickelBlitz
+      ? defenseSrc.filter(actor => actor.role === 'LB' || actor.role === 'S')
+      : selectManCoverageDefenders(defenseSrc, offPlay, defPlay, coverageReceivers.length);
     matchManCoverage(assignedDefenders, coverageReceivers)
       .forEach((receiver, defender) => coverageTargets.set(defender.id, receiver.id));
   } else {
@@ -1674,6 +1685,16 @@ function buildPlaySetup(cfg){
   }
   let tackler = ['interception','fumble','incomplete'].includes(outcome) ? null
     : pickTackler(defenseSrc, family, offPlay.type === 'pass' && family !== 'sack' ? throwLane : lane, defPlay, finalX);
+  if(tackler && nickelBlitz){
+    const tacklers = defenseSrc.filter(actor => offPlay.type === 'run'
+      ? blitzerIds.has(actor.id)
+      : family === 'sack'
+        ? blitzerIds.has(actor.id)
+        : !blitzerIds.has(actor.id));
+    const replacement = pickTackler(tacklers, family,
+      offPlay.type === 'pass' && family !== 'sack' ? throwLane : lane, defPlay, finalX);
+    if(replacement) tackler = replacement;
+  }
   const interceptor = outcome === 'interception'
     ? (pickDefenseReactorNear(defenseSrc, throwLane, throwX) || defenseSrc[0]) : null;
   const fumbleRecoverer = outcome === 'fumble'
@@ -1706,7 +1727,8 @@ function buildPlaySetup(cfg){
   const animFinalX = outcome === 'touchdown' ? finalX + offenseDir*4 : finalX;
   const escort = planEscorts(animVariant, offenseSrc, defenseSrc, blockPairs, {
     kf, lane, offenseDir, throwX, finalX: animFinalX, preSnapSpot, outcome, offPlay,
-    excludeIds: new Set([carrier.id, tackler && tackler.id, interceptor && interceptor.id, ...blitzerIds].filter(Boolean))
+    excludeIds: new Set([carrier.id, tackler && tackler.id, interceptor && interceptor.id, ...blitzerIds].filter(Boolean)),
+    reservedCoverageIds: new Set(nickelBlitz ? coverageTargets.keys() : [])
   });
   const duels = buildBlockDuels(blockPairs, offenseSrc, family, outcome, lane, cfg.yards || 0, offPlay, offenseDir);
   const duelByActor = new Map();
@@ -1719,7 +1741,8 @@ function buildPlaySetup(cfg){
   });
 
   const ctx = {
-    kf, family, outcome, finalX: animFinalX, lane, throwLane, offenseDir, throwX, offPlay, animVariant, preSnapSpot,
+    kf, family, outcome, finalX: animFinalX, lane, throwLane, offenseDir, throwX, offPlay, defPlay,
+    animVariant, preSnapSpot,
     coverageScheme,
     escortPlan: escort.offense, escortDefenders: escort.defense,
     duelByActor, duelsByDefender,

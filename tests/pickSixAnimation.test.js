@@ -6,7 +6,10 @@ const vm = require('node:vm');
 
 function createHarness(side, spot, speed = 1){
   const dir = side === 'player' ? 1 : -1;
-  const dot = (role, x, y) => ({role, formX:x, y, el:{classList:{contains:() => false}}});
+  const dot = (role, x, y) => ({
+    role, formX:x, y,
+    el:{classList:{contains:() => false}, getBoundingClientRect:() => ({width:16})}
+  });
   const formationDots = {
     offense:[
       ...[38,44,50,56,62].map(y => dot('OL', spot, y)),
@@ -22,8 +25,13 @@ function createHarness(side, spot, speed = 1){
   };
   const context = vm.createContext({
     BALANCE:{animation:{globalSlowdown:2}, eventThresholds:{bigPlay:{minYards:15}}}, game:{animSpeed:speed}, formationDots,
-    DEFENSE_PROFILES:{}, laneForDirection:direction => ({left:22,middle:50,right:78})[direction],
-    clamp:(n,min,max) => Math.max(min, Math.min(max,n))
+    DEFENSE_PROFILES:{'Nickel Blitz':{tags:['blitz','man']}},
+    laneForDirection:direction => ({left:22,middle:50,right:78})[direction],
+    clamp:(n,min,max) => Math.max(min, Math.min(max, n)),
+    document:{getElementById:() => ({clientWidth:800, clientHeight:400})},
+    matchManCoverage(defenders, receivers){
+      return new Map(defenders.map((defender, index) => [defender, receivers[index % receivers.length]]));
+    }
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'scripts', 'animation', 'timeline.js'), 'utf8'), context);
   return context;
@@ -72,6 +80,38 @@ test('ordinary interceptions retain their timing and animation speed still scale
   const slow = setupReturn(createHarness('ai', 20, 1), 'ai', 20, true);
   const fast = setupReturn(createHarness('ai', 20, 2), 'ai', 20, true);
   assert.ok(Math.abs(slow.totalMs / 2 - fast.totalMs) <= 1);
+});
+
+test('Nickel Blitz sends corners and gives linebacker coverage with a corner tackling runs', () => {
+  for(const [offPlay, outcome] of [
+    [{name:'Inside Zone', type:'run', direction:'right', depth:'short'}, 'gain'],
+    [{name:'Screen Pass', type:'pass', direction:'right', depth:'short'}, 'gain']
+  ]){
+    const context = createHarness('player', 40);
+    context.formationDots.offense = [
+      ...[38,44,50,56,62].map(y => ({role:'OL',formX:40,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}})),
+      {role:'QB',formX:34,y:50,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}},
+      {role:'RB',formX:31.5,y:68,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}},
+      ...[4,62,80,96].map(y => ({role:'WR',formX:38.5,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}}))
+    ];
+    context.formationDots.defense = [
+      ...[38,46,54,62].map(y => ({role:'DL',formX:42.5,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}})),
+      ...[43,57].map(y => ({role:'LB',formX:46,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}})),
+      ...[8,50,92].map(y => ({role:'CB',formX:44,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}})),
+      ...[33,72].map(y => ({role:'S',formX:51,y,el:{classList:{contains:() => false},getBoundingClientRect:() => ({width:16})}}))
+    ];
+    const setup = context.buildPlaySetup({
+      offPlay, defPlay:{name:'Nickel Blitz'}, preSnapSpot:40, offenseSide:'player',
+      outcome, finalX:45, yards:5
+    });
+    const corners = setup.actors.filter(actor => actor.role === 'CB');
+    const linebackers = setup.actors.filter(actor => actor.role === 'LB');
+    assert.equal(corners.length, 3);
+    assert.ok(corners.every(actor => actor.assignment.task.startsWith('blitz')));
+    assert.ok(linebackers.every(actor => actor.assignment.pathType === 'manCoverage'),
+      `${offPlay.type}: ${JSON.stringify(linebackers.map(actor => actor.assignment))}`);
+    assert.equal(setup.actorsById[setup.tacklerId].role === 'CB', offPlay.type === 'run');
+  }
 });
 
 test('big gains ignite on acceleration but short gains and incomplete passes do not', () => {

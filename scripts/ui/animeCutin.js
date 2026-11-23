@@ -4,6 +4,7 @@
   const logo = overlay.querySelector('.cutin-logo');
   const titleElement = overlay.querySelector('.cutin-title');
   const subtitleElement = overlay.querySelector('.cutin-subtitle');
+  const controlsPanel = document.getElementById('controlsPanel');
   const themes = {
     touchdown:{duration:3000, shake:true},
     fieldgoal:{duration:1800, shake:true},
@@ -15,6 +16,12 @@
   const queue = [];
   const completionCallbacks = [];
   let exitTimer, hideTimer, shakeTimer;
+
+  function suppressPlayChoices(suppressed){
+    if(!controlsPanel) return;
+    if(suppressed) controlsPanel.classList.add('announcement-suppressed');
+    else controlsPanel.classList.remove('announcement-suppressed');
+  }
 
   window.setCommentatorExpression = function(expression){
     const portrait = document.querySelector('.commentator-portrait');
@@ -40,6 +47,7 @@
     clearTimeout(shakeTimer);
     overlay.classList.remove('is-active', 'is-exiting', 'cutin-bigplay', ...Object.keys(themes).map(theme => `cutin-${theme}`));
     stadium.classList.remove('screen-shake');
+    suppressPlayChoices(false);
   };
 
   window.afterAnimeCutins = function(callback){
@@ -49,6 +57,7 @@
 
   function displayCutin(cutin){
     const {type, title, subtitle, team, logoUrl, duration, shake, bigPlay, onStart} = cutin;
+    suppressPlayChoices(true);
     overlay.classList.remove('is-active', 'is-exiting', 'cutin-bigplay', ...Object.keys(themes).map(theme => `cutin-${theme}`));
     stadium.classList.remove('screen-shake');
     clearTimeout(shakeTimer);
@@ -72,6 +81,7 @@
       overlay.classList.remove('is-active', 'is-exiting');
       if(queue.length) displayCutin(queue.shift());
       else {
+        suppressPlayChoices(false);
         window.resetCommentatorForChoice();
         completionCallbacks.splice(0).forEach(callback => callback());
       }

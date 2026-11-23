@@ -3312,6 +3312,8 @@
     background:radial-gradient(circle,transparent 30%,rgba(5,8,17,0.65) 100%);
   }
   #anime-cutin-overlay.is-active{ display:flex; }
+  #anime-cutin-overlay.is-active ~ .game-overlay #controlsPanel,
+  #controlsPanel.announcement-suppressed{ display:none !important; }
   .game-overlay{ z-index:51; }
   .cutin-banner{
     position:relative;
@@ -3418,4 +3420,19 @@
     .cutin-banner,.cutin-banner::before,.cutin-content,
     #anime-cutin-overlay.is-exiting,#anime-cutin-overlay.is-exiting .cutin-banner,
     .field-outer.screen-shake{ animation:none; }
+  }
+
+  .controls-panel .playbook-a11y-label{
+    position:absolute !important;
+    width:1px !important;
+    height:1px !important;
+    min-width:0 !important;
+    margin:-1px !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    clip:rect(0 0 0 0);
+    clip-path:inset(50%);
+    border:0 !important;
+    white-space:nowrap !important;
+    transform:none !important;
   }
