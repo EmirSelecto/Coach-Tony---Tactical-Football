@@ -2,7 +2,7 @@
   const celebrationVersion = '?v=match-finish-1';
   const playbookVersion = '?v=mobile-landscape-1';
   const huddleVersion = '?v=post-play-huddle-1';
-  const puntVersion = '?v=punt-return-3';
+  const puntVersion = '?v=defense-formations-1';
   const catalogs = [
     'ui',
     'game',

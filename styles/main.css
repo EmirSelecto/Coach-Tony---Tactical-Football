@@ -353,9 +353,9 @@
   }
   .field-outer.big-play-pulse{ animation: bigPlayPulse 480ms ease-out; }
   @keyframes bigPlayPulse{
-    0%{ transform:scale(1); }
-    35%{ transform:scale(1.012); }
-    100%{ transform:scale(1); }
+    0%{ transform:translate(-50%,-50%) scale(1); }
+    35%{ transform:translate(-50%,-50%) scale(1.012); }
+    100%{ transform:translate(-50%,-50%) scale(1); }
   }
   .field-outer.turnover-flash{ animation: turnoverFlash 780ms ease-out; }
   @keyframes turnoverFlash{
@@ -369,9 +369,9 @@
     20%{ box-shadow:0 0 22px 4px rgba(244,246,242,0.52); }
   }
   @keyframes touchdownFieldImpact{
-    0%,100%{ transform:scale(1); box-shadow:0 0 0 rgba(242,210,122,0); }
-    24%{ transform:scale(1.012); box-shadow:0 0 24px 6px rgba(242,210,122,0.72); }
-    58%{ transform:scale(1.004); box-shadow:0 0 14px 3px rgba(242,210,122,0.4); }
+    0%,100%{ transform:translate(-50%,-50%) scale(1); box-shadow:0 0 0 rgba(242,210,122,0); }
+    24%{ transform:translate(-50%,-50%) scale(1.012); box-shadow:0 0 24px 6px rgba(242,210,122,0.72); }
+    58%{ transform:translate(-50%,-50%) scale(1.004); box-shadow:0 0 14px 3px rgba(242,210,122,0.4); }
   }
   @keyframes endzoneGlow{
     0%{ opacity:0; }
@@ -3407,11 +3407,11 @@
   @keyframes cutinSpeedLines{ to{ transform:translateX(33.333%); } }
   @keyframes cutinZoom{ from{ transform:scale(1); } to{ transform:scale(1.04); } }
   @keyframes cutinShake{
-    0%,100%{ transform:translate(0,0); }
-    20%{ transform:translate(-4px,2px); }
-    40%{ transform:translate(4px,-2px); }
-    60%{ transform:translate(-3px,-1px); }
-    80%{ transform:translate(2px,1px); }
+    0%,100%{ transform:translate(-50%,-50%); }
+    20%{ transform:translate(-50%,-50%) translate(-4px,2px); }
+    40%{ transform:translate(-50%,-50%) translate(4px,-2px); }
+    60%{ transform:translate(-50%,-50%) translate(-3px,-1px); }
+    80%{ transform:translate(-50%,-50%) translate(2px,1px); }
   }
   @media (prefers-reduced-motion:reduce){
     .cutin-banner,.cutin-banner::before,.cutin-content,

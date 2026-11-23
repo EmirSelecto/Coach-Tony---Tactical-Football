@@ -163,7 +163,9 @@ ceux déjà déclenchés.
 
 Pendant le choix tactique, une formation neutre présente les 22 joueurs autour
 de la ligne de scrimmage, sans révéler les appels choisis. Elle est remplacée
-par les formations propres aux jeux au début de la séquence pré-snap.
+par les formations propres aux jeux au début de la séquence pré-snap. Les
+alignements défensifs varient selon la tactique ; les couvertures individuelles
+s'adaptent aussi aux receveurs adverses, en laissant un safety profond en Cover 1.
 Les pions et leurs trajectoires lumineuses reprennent la couleur principale de
 leur équipe, que celle-ci soit en attaque ou en défense.
 

@@ -155,14 +155,81 @@ test('choice formations draw 22 distinct players around the scrimmage for both p
   }
 });
 
-test('Press Coverage labels the central defender LB without changing other nickel formations', () => {
+test('Press Coverage labels the central defender LB while other nickel formations keep a CB', () => {
   const h = createHarness();
   for(const [name, centralRole] of [['Press Coverage', 'LB'], ['Cover 1', 'CB'], ['Nickel Blitz', 'CB']]){
     const formation = h.sandbox.formationForPlay(
       {name:'Power Run', type:'run'}, {name}, 50, 'player').defense;
     assert.equal(formation.length, 11);
-    assert.equal(formation.find(player => player.formX === 53.5 && player.y === 50).role, centralRole);
+    assert.equal(formation[7].y, 50);
+    assert.equal(formation[7].role, centralRole);
     assert.equal(formation.filter(player => player.role === 'CB').length, name === 'Press Coverage' ? 2 : 3);
+  }
+});
+
+test('annotated defensive alignments move the indicated players in both directions', () => {
+  const h = createHarness();
+  const checks = [
+    ['Eight-Man Box', 'box', 0, 'y', 1], ['Eight-Man Box', 'box', 6, 'y', -1],
+    ['Bear Front', 'box', 1, 'y', 1], ['Bear Front', 'box', 6, 'y', -1],
+    ['Inside Run Blitz', 'box', 4, 'dx', -1], ['Inside Run Blitz', 'box', 6, 'y', -1],
+    ['Edge Contain', 'edge', 0, 'y', -1], ['Edge Contain', 'edge', 3, 'y', 1],
+    ['Outside Run Stop', 'edge', 4, 'dx', -1], ['Outside Run Stop', 'edge', 6, 'dx', -1],
+    ['Press Coverage', 'press', 9, 'dx', -1], ['Press Coverage', 'press', 10, 'y', 1],
+    ['Cover 1', 'nickelShort', 9, 'y', 1], ['Cover 1', 'nickelShort', 10, 'dx', -1],
+    ['Nickel Blitz', 'nickelShort', 7, 'dx', 1], ['Nickel Blitz', 'nickelShort', 10, 'dx', -1],
+    ['Cover 3', 'deepShell', 8, 'y', 1], ['Cover 3', 'deepShell', 9, 'dx', -1],
+    ['Dime Defense', 'deepShell', 7, 'dx', -1], ['Dime Defense', 'deepShell', 8, 'dx', -1],
+    ['Dime Defense', 'deepShell', 9, 'dx', 1], ['Dime Defense', 'deepShell', 10, 'dx', -1],
+    ['Prevent Defense', 'deepShell', 3, 'dx', 1], ['Prevent Defense', 'deepShell', 8, 'dx', 1],
+    ['Goal-Line Defense', 'box', 4, 'dx', -1], ['Goal-Line Defense', 'box', 5, 'dx', -1],
+    ['Goal-Line Defense', 'box', 6, 'dx', -1]
+  ];
+  for(const [name, category, index, dimension, direction] of checks){
+    const original = h.sandbox.genDefenseFormation(category)[index];
+    for(const side of ['player', 'ai']){
+      const formation = h.sandbox.formationForPlay(
+        {name:'Power Run', type:'run'}, {name}, 50, side).defense;
+      assert.equal(formation.length, 11, name);
+      const player = formation[index];
+      assert.equal(player.role, original.role, name);
+      const value = dimension === 'dx'
+        ? (player.formX - 50) * (side === 'player' ? 1 : -1) : player.y;
+      assert.equal(Math.sign(value - original[dimension]), direction, `${name}: ${index} ${dimension}`);
+    }
+  }
+});
+
+test('Base 3-4 has three linemen and four linebackers while unannotated formations stay unchanged', () => {
+  const h = createHarness();
+  const offPlay = {name:'Power Run', type:'run'};
+  const defense = name => h.sandbox.formationForPlay(offPlay, {name}, 50, 'player').defense;
+  assert.equal(defense('Base 3-4').filter(p => p.role === 'DL').length, 3);
+  assert.equal(defense('Base 3-4').filter(p => p.role === 'LB').length, 4);
+  assert.equal(defense('Base 4-3').filter(p => p.role === 'DL').length, 4);
+  assert.equal(defense('Base 4-3').filter(p => p.role === 'LB').length, 3);
+  const cover4 = defense('Cover 4');
+  const original = h.sandbox.genDefenseFormation('deepShell');
+  cover4.forEach((p, index) => {
+    assert.equal(p.role, original[index].role);
+    assert.equal(p.y, original[index].y);
+    assert.equal(p.formX, 50 + original[index].dx);
+  });
+});
+
+test('Cover 1 keeps its deep safety centered against passing formations', () => {
+  const h = createHarness();
+  h.sandbox.coverageSchemeFor = () => 'man';
+  h.sandbox.selectBlitzers = () => new Set();
+  for(const side of ['player', 'ai']){
+    const formation = h.sandbox.formationForPlay(
+      {name:'Quick Slant', type:'pass', direction:'middle'}, {name:'Cover 1'}, 50, side).defense;
+    const safeties = formation.filter(p => p.role === 'S');
+    assert.equal(safeties[0].y, 50);
+    assert.equal(safeties[0].formX, side === 'player' ? 61 : 39);
+    const assignments = h.sandbox.selectManCoverageDefenders(formation, {type:'pass'}, {name:'Cover 1'}, 4);
+    assert.equal(assignments.includes(safeties[0]), false);
+    assert.equal(assignments.length, 4);
   }
 });
 

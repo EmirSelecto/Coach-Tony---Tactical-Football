@@ -45,7 +45,7 @@ const DEFENSE_FORMATION_CATEGORY = {
   'Edge Contain':'edge', 'Outside Run Stop':'edge',
   'Press Coverage':'press', 'Cover 1':'nickelShort', 'Nickel Blitz':'nickelShort',
   'Cover 3':'deepShell', 'Cover 4':'deepShell', 'Dime Defense':'deepShell', 'Prevent Defense':'deepShell',
-  'Base 4-3':'balanced', 'Base 3-4':'balanced'
+  'Base 4-3':'balanced', 'Base 3-4':'base34'
 };
 
 // dx = décalage en yards par rapport à la ligne de scrimmage (sera multiplié par
@@ -135,7 +135,7 @@ function genDefenseFormation(category){
   if(category === 'box'){
     return [...DL4,
       {dx:5.5, y:33, role:'LB'}, {dx:5.5, y:50, role:'LB'}, {dx:5.5, y:67, role:'LB'},
-      {dx:7.5, y:50, role:'S'},
+      {dx:10, y:50, role:'S'},
       {dx:7.5, y:75, role:'S'},
       {dx:3.5, y:8,  role:'CB'}, {dx:3.5, y:92, role:'CB'}
     ];
@@ -162,12 +162,45 @@ function genDefenseFormation(category){
       {dx:16,y:16, role:'S'}, {dx:16,y:38, role:'S'}, {dx:16,y:62, role:'S'}, {dx:16,y:84, role:'S'}
     ];
   }
-  // balanced (Base 4-3 / 3-4)
+  if(category === 'base34'){
+    return [
+      ...[36,50,64].map(y => ({dx:2.5, y, role:'DL'})),
+      ...[33,42,58,67].map(y => ({dx:6, y, role:'LB'})),
+      {dx:4, y:8, role:'CB'}, {dx:4, y:92, role:'CB'},
+      {dx:11, y:33, role:'S'}, {dx:11, y:67, role:'S'}
+    ];
+  }
+  // balanced (Base 4-3)
   return [...DL4,
     {dx:6, y:33, role:'LB'}, {dx:6, y:50, role:'LB'}, {dx:6, y:67, role:'LB'},
     {dx:4, y:8,  role:'CB'}, {dx:4, y:92, role:'CB'},
     {dx:11,y:33, role:'S'},  {dx:11,y:67, role:'S'}
   ];
+}
+
+const DEFENSE_FORMATION_POSITIONS = {
+  'Eight-Man Box': {0:[2.5,38], 1:[2.5,46], 2:[2.5,54], 3:[2.5,62], 4:[6.5,39], 5:[6.5,50], 6:[6.5,61], 7:[11,50]},
+  'Bear Front': {0:[2.5,38], 1:[2.5,46], 2:[2.5,54], 3:[2.5,62], 4:[7,42], 5:[7,50], 6:[7,58], 7:[11,50]},
+  'Inside Run Blitz': {0:[2.5,32], 3:[2.5,68], 4:[4.6,39], 6:[4.6,61]},
+  'Edge Contain': {0:[2.5,31], 1:[2.5,42], 2:[2.5,58], 3:[2.5,69]},
+  'Outside Run Stop': {4:[4.5,29], 6:[4.5,71]},
+  'Press Coverage': {9:[4.5,25], 10:[4.5,75]},
+  'Cover 1': {9:[11,50], 10:[4,74]},
+  'Nickel Blitz': {7:[7,50], 10:[5,72]},
+  'Cover 3': {8:[16,50], 9:[5,76]},
+  'Dime Defense': {7:[3.5,25], 8:[12,40], 9:[20,62], 10:[3.5,75]},
+  'Prevent Defense': {3:[10,40], 4:[10,60], 8:[21,38], 9:[21,62]},
+  'Goal-Line Defense': {0:[2.5,34], 1:[2.5,42], 2:[2.5,58], 3:[2.5,66], 4:[2.5,26], 5:[2.5,50], 6:[2.5,74]}
+};
+function adjustDefenseFormation(formation, playName){
+  const positions = DEFENSE_FORMATION_POSITIONS[playName];
+  if(positions){
+    Object.entries(positions).forEach(([index, [dx, y]]) => {
+      formation[index].dx = dx;
+      formation[index].y = y;
+    });
+  }
+  return formation;
 }
 
 // Mémoire des joueurs actuellement affichés sur le terrain (éléments DOM + rôle +
@@ -584,7 +617,8 @@ function matchManCoverage(defenders, receivers){
 }
 
 function selectManCoverageDefenders(defenders, offPlay, defPlay, receiverCount){
-  const selected = defenders.filter(actor => actor.role === 'CB' || actor.role === 'S');
+  const deepSafety = defPlay.name === 'Cover 1' ? defenders.find(actor => actor.role === 'S') : null;
+  const selected = defenders.filter(actor => (actor.role === 'CB' || actor.role === 'S') && actor !== deepSafety);
   if(selected.length >= receiverCount) return selected;
 
   const blitzers = selectBlitzers(defPlay, offPlay, defenders);
@@ -611,7 +645,7 @@ function formationForPlay(offPlay, defPlay, preSnapSpot, offenseSide){
   }
   if(defPlay){
     const defCategory = DEFENSE_FORMATION_CATEGORY[defPlay.name] || 'balanced';
-    const defenseFormation = genDefenseFormation(defCategory);
+    const defenseFormation = adjustDefenseFormation(genDefenseFormation(defCategory), defPlay.name);
     if(offPlay.type === 'pass' && coverageSchemeFor(defPlay) === 'man'){
       const receivers = offense.filter(actor => actor.role === 'WR' || actor.role === 'TE');
       defenseFormation.forEach((actor, index) => { actor.id = 'D' + index; });
