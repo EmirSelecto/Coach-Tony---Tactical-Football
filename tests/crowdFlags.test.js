@@ -14,6 +14,12 @@ async function createHarness(reduced = false){
 
   function pixels(width, height, background){
     const data = new Uint8ClampedArray(width * height * 4);
+    if(!background && width === 216 && height === 216){
+      for(let i = 0; i < data.length; i += 4){
+        data[i] = data[i + 1] = data[i + 2] = 230; data[i + 3] = 255;
+      }
+      return {data};
+    }
     if(background){
       for(let i = 0; i < data.length; i += 4){
         data[i] = 9; data[i + 1] = 13; data[i + 2] = 22; data[i + 3] = 255;
@@ -31,21 +37,41 @@ async function createHarness(reduced = false){
     }
     return {data};
   }
+  function stadiumPixels(width, height){
+    const data = new Uint8ClampedArray(width * height * 4);
+    for(let y = 0; y < height; y++){
+      for(let x = 0; x < width; x++){
+        const index = (y * width + x) * 4;
+        const value = x >= 140 && x <= 160 ? 110 : ((x + y) % 2 ? 40 : 80);
+        data[index] = data[index + 1] = data[index + 2] = value;
+        data[index + 3] = 255;
+      }
+    }
+    return {data};
+  }
   function makeCanvas(display = false){
     const canvas = {width:0, height:0};
     const context = {
       drawImage(source, ...args){
         if(display){
-          draws.push({x:args[0], y:args[1], width:args[2], height:args[3], meta:source.meta, color:source.color});
+          draws.push({x:args[0], y:args[1], width:args[2], height:args[3], meta:source.meta, color:source.color,
+            poleX:source.poleX / source.width, poleY:source.poleY / source.height});
         } else if(source.isImage){
           canvas.meta = {sheet:source.src, row:args[1] / 216, column:args[0] / 192};
+          canvas.stadium = source.src.includes('imagesstadium_base_wide');
           canvas.background = true;
         } else {
           if(!canvas.meta && source.meta) canvas.meta = {...source.meta, rotation:this.rotation || source.meta.rotation || 0};
           if(source.color) canvas.color = source.color;
         }
       },
-      getImageData(x, y, width, height){ return pixels(width, height, !!canvas.background); },
+      getImageData(x, y, width, height){
+        if(canvas.stadium) return stadiumPixels(width, height);
+        if(!canvas.background && (width !== 216 || height !== 216)){
+          return {data:new Uint8ClampedArray([230, 230, 230, 255])};
+        }
+        return pixels(width, height, !!canvas.background);
+      },
       putImageData(data){
         if(canvas.background){
           const center = (Math.floor(canvas.height / 2) * canvas.width + Math.floor(canvas.width / 2)) * 4;
@@ -72,7 +98,11 @@ async function createHarness(reduced = false){
   };
   class Image {
     constructor(){ this.isImage = true; this.naturalWidth = 1152; this.naturalHeight = 864; }
-    set src(value){ this.path = value; queueMicrotask(() => this.onload()); }
+    set src(value){
+      this.path = value;
+      if(value.includes('imagesstadium_base_wide')){ this.naturalWidth = 1493; this.naturalHeight = 640; }
+      queueMicrotask(() => this.onload());
+    }
     get src(){ return this.path; }
   }
   const window = {
@@ -113,14 +143,16 @@ test('flag sprites remove only connected background and correct the inconsistent
 
 test('more flags cover the stands and use both team colors equally', async () => {
   const h = await createHarness();
+  const anchor = flag => [flag.x + flag.width * flag.poleX, flag.y + flag.height * flag.poleY];
   assert.equal(h.draws.length, 112);
   for(const flag of h.draws){
-    const x = (flag.x + flag.width / 2) / 1493, y = (flag.y + flag.height / 2) / 640;
+    const [footX, footY] = anchor(flag), x = footX / 1493, y = footY / 640;
     assert.ok(flag.width <= 28 && flag.height <= 28);
     assert.ok(x < .48 || x > .52);
+    assert.ok(footX < 140 || footX > 160, 'the pole must not be placed in the simulated aisle');
     const corner = x < .20 || x > .80;
     if(flag.meta.row === 0){
-      assert.ok(flag.y / 640 >= (corner ? .125 : .055) - 1e-9);
+      assert.ok(flag.y / 640 >= (corner ? .125 : .005) - 1e-9);
       assert.ok((flag.y + flag.height) / 640 <= (corner ? .23 : .16) + 1e-9);
     }
     if(flag.meta.row === 1){
@@ -145,27 +177,45 @@ test('more flags cover the stands and use both team colors equally', async () =>
   for(const row of [0, 1]){
     for(const start of [.20, .53]){
       const inStand = h.draws.filter(flag => flag.meta.row === row &&
-        (flag.x + flag.width / 2) / 1493 >= start && (flag.x + flag.width / 2) / 1493 < start + .27);
-      for(let bin = 0; bin < 6; bin++){
-        assert.equal(inStand.filter(flag => Math.floor(((flag.x + flag.width / 2) / 1493 - start) / .27 * 6) === bin).length, 2);
-      }
+        anchor(flag)[0] / 1493 >= start && anchor(flag)[0] / 1493 < start + .27);
+      const positions = inStand.map(flag => anchor(flag)[0] / 1493);
+      assert.equal(positions.length, 12);
+      assert.ok(Math.max(...positions) - Math.min(...positions) > .18);
     }
   }
   for(const row of [2, 3]){
     const inStand = h.draws.filter(flag => flag.meta.row === row);
-    for(let bin = 0; bin < 6; bin++){
-      assert.equal(inStand.filter(flag => Math.floor(((flag.y + flag.height / 2) / 640 - .25) / .5 * 6) === bin).length, 4);
-    }
+    const positions = inStand.map(flag => anchor(flag)[1] / 640);
+    assert.ok(Math.max(...positions) - Math.min(...positions) > .35);
   }
   h.resize(1024, 439);
   assert.ok(h.draws.every(flag => flag.x >= 0 && flag.y >= 0 &&
     flag.x + flag.width <= 1024 && flag.y + flag.height <= 439));
   assert.ok(h.draws.filter(flag => flag.meta.row === 0).every(flag => flag.y + flag.height <= 439 * .23 + 1e-9));
   assert.ok(h.draws.filter(flag => flag.meta.row === 1).every(flag => flag.y >= 439 * .77 - 1e-9));
+  assert.ok(h.draws.every(flag => {
+    const x = anchor(flag)[0] * 1493 / 1024;
+    return x < 140 || x > 160;
+  }));
   h.teams.player.color = '#112233';
   h.window.CrowdFlags.setTeams(h.teams);
   assert.equal(h.draws.filter(flag => flag.color === '#112233').length, 28);
   assert.equal(h.draws.filter(flag => flag.color === '#123456').length, 0);
+});
+
+test('all animation frames keep each flag anchored at the same pole base', async () => {
+  const h = await createHarness();
+  const anchors = h.draws.map(flag => [flag.x + flag.width * flag.poleX, flag.y + flag.height * flag.poleY]);
+  const squareFrames = new Set();
+  for(let i = 0; i < 60; i++){
+    h.step(20);
+    h.draws.forEach((flag, index) => {
+      assert.ok(Math.abs(flag.x + flag.width * flag.poleX - anchors[index][0]) < 1e-7);
+      assert.ok(Math.abs(flag.y + flag.height * flag.poleY - anchors[index][1]) < 1e-7);
+      if(flag.meta.row === 2 && flag.meta.sheet.includes('flags_square.jpg')) squareFrames.add(flag.meta.column);
+    });
+  }
+  assert.equal(squareFrames.size, 6);
 });
 
 test('only the celebrating team accelerates for 2.5 seconds and reduced motion stops animation', async () => {

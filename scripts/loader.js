@@ -3,7 +3,7 @@
   const playbookVersion = '?v=mobile-landscape-1';
   const huddleVersion = '?v=post-play-huddle-1';
   const puntVersion = '?v=defense-formations-2';
-  const flagsVersion = '?v=crowd-flags-2';
+  const flagsVersion = '?v=crowd-flags-3';
   const catalogs = [
     'ui',
     'game',

@@ -84,7 +84,8 @@ cinquante flashs indépendants animent les quatre côtés du stade.
 Cent douze drapeaux répartis dans les tribunes utilisent à parts égales les deux
 couleurs de chaque équipe. Ils accélèrent pendant 2,5 secondes dans le camp
 concerné par un touchdown ou un gros jeu ; ils restent immobiles si les
-animations sont réduites.
+animations sont réduites. Le pied du mât reste fixe et les emplacements privilégient
+le public plutôt que les escaliers et couloirs.
 Leurs planches sont `assets/images/flags_pennant.jpg` et
 `assets/images/flags_square.jpg`.
 Le tableau de score adopte un style manga angulaire : bordures polygonales
