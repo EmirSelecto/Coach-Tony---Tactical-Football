@@ -124,6 +124,7 @@ function restoreGame(data){
   hideChoice();
   window.cancelAnimeCutins();
   window.clearAnimeVFX();
+  window.CrowdFlags.clearCelebrations();
   document.getElementById('celebrationLayer').innerHTML = '';
   buildFieldMarkings();
   applyTeamColorsToCSS(game.teams);

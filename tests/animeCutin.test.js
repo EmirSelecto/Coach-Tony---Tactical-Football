@@ -56,8 +56,10 @@ function createHarness(){
   context.ENDZONE_WIDTH_RATIO = 1 / 11.6;
   context.BALANCE = {eventBanner:{durationMs:1400}};
   const vfx = [];
+  const flagCelebrations = [];
   let crowdCelebrations = 0;
   window.triggerCrowdCelebration = () => { crowdCelebrations++; };
+  window.CrowdFlags = {celebrate:side => flagCelebrations.push(side)};
   window.triggerAnimeVFX = (...args) => vfx.push(args);
   vm.runInContext(engine.slice(engine.indexOf('function showMatchCutin('), engine.indexOf('function triggerScoreCelebration(')), context);
   const advance = ms => {
@@ -71,7 +73,7 @@ function createHarness(){
     }
     now = target;
   };
-  return {window, overlay, stadium, title, portrait, advance, context, vfx,
+  return {window, overlay, stadium, title, portrait, advance, context, vfx, flagCelebrations,
     get crowdCelebrations(){ return crowdCelebrations; }};
 }
 
@@ -178,12 +180,14 @@ test('queued cut-ins start effects with captured coordinates only when displayed
   h.context.showMatchCutin('touchdown', 'TOUCHDOWN', 'ai', '', 'hyped', {vfx:score});
   assert.equal(h.vfx.length, 1);
   assert.equal(h.crowdCelebrations, 0);
+  assert.deepEqual(h.flagCelebrations, []);
   assert.deepEqual(h.vfx[0].slice(0, 3), ['FUMBLE', 30, 40]);
   assert.equal(score.x, 50 / 11.6);
   assert.equal(h.context.scoringVFX('FIELD GOAL', 'player').x, 100 - 50 / 11.6);
   h.advance(1600);
   assert.equal(h.vfx.length, 2);
   assert.equal(h.crowdCelebrations, 1);
+  assert.deepEqual(h.flagCelebrations, ['ai']);
   assert.deepEqual(h.vfx[1].slice(0, 3), ['TOUCHDOWN', score.x, 50]);
 
   h.context.showMatchCutin('turnover', 'INTERCEPTION', 'player', '', 'shocked',
@@ -197,6 +201,7 @@ test('big play size follows queued announcements and does not leak to other even
   const h = createHarness();
   h.context.showEventBanner('BIG PLAY', 'bigPlay');
   assert.equal(h.crowdCelebrations, 1);
+  assert.deepEqual(h.flagCelebrations, ['player']);
   h.window.showAnimeCutin('impact', 'SACK', '', 'Team', {queue:true});
   assert.equal(h.overlay.classList.contains('cutin-bigplay'), true);
   h.advance(1400);
@@ -207,6 +212,13 @@ test('big play size follows queued announcements and does not leak to other even
   h.advance(1400);
   assert.equal(h.overlay.classList.contains('cutin-bigplay'), true);
   assert.equal(h.crowdCelebrations, 2);
+  assert.deepEqual(h.flagCelebrations, ['player', 'player']);
   h.window.cancelAnimeCutins();
   assert.equal(h.overlay.classList.contains('cutin-bigplay'), false);
+});
+
+test('a defensive big play celebrates the specified team rather than the offense', () => {
+  const h = createHarness();
+  h.context.showMatchCutin('impact', 'BIG PLAY', 'player', '', null, {bigPlay:true, flagsSide:'ai'});
+  assert.deepEqual(h.flagCelebrations, ['ai']);
 });

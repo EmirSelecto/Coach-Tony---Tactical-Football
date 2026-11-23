@@ -749,6 +749,7 @@ let game = null;
 function newGame(){
   window.cancelAnimeCutins();
   window.clearAnimeVFX();
+  window.CrowdFlags.clearCelebrations();
   const teams = generateMatchTeams();
   game = {
     phase: 'pregame', // 'pregame' | 'coinToss' | 'flipping' | 'tossResult' | 'deferChoice' | 'kickoff' | 'playing'
@@ -856,6 +857,7 @@ function applyTeamNamesToUI(teams){
   window.setCommentatorExpression('neutral');
   document.documentElement.style.setProperty('--player-secondary', teams.player.secondaryColor);
   document.documentElement.style.setProperty('--ai-secondary', teams.ai.secondaryColor);
+  window.CrowdFlags.setTeams(teams);
   if(typeof refreshTacticalCanvas === 'function') refreshTacticalCanvas();
 }
 
@@ -1379,14 +1381,17 @@ function pickTacticalMessage(ctx){
 
 // ---- 2/3/5. Feedback visuel (bannières, pulsations, flash, marqueur) ----
 function showMatchCutin(type, text, side, subtitle = '', expression = null, options = {}){
-  const {vfx, crowdCelebration, ...cutinOptions} = options;
+  const {vfx, crowdCelebration, flagsSide, ...cutinOptions} = options;
   const team = vfx ? window.TeamArt.getTeamConfig(teamNameOf(side)) : null;
   window.showAnimeCutin(type, text, subtitle, teamNameOf(side), {
     ...cutinOptions,
     queue:true,
     onStart:() => {
       if(expression) window.setCommentatorExpression(expression);
-      if(crowdCelebration || cutinOptions.bigPlay || (vfx && vfx.type === 'TOUCHDOWN')) window.triggerCrowdCelebration();
+      if(crowdCelebration || cutinOptions.bigPlay || (vfx && vfx.type === 'TOUCHDOWN')){
+        window.triggerCrowdCelebration();
+        window.CrowdFlags.celebrate(flagsSide || side);
+      }
       if(vfx) window.triggerAnimeVFX(vfx.type, vfx.x, vfx.y,
         {primary:team.primary, secondary:team.secondary});
     }
@@ -1542,7 +1547,8 @@ function applyEventFeedback(offenseSide, context, tactical){
     if(result.outcome !== 'sack'){
       showMatchCutin('impact', t('game.banners.bigPlay'), offenseSide, '',
         result.yards >= BALANCE.eventThresholds.bigPlay.minYards ? 'smirking' : null,
-        {durationMs:BALANCE.eventBanner.durationMs, shake:false, bigPlay:true});
+        {durationMs:BALANCE.eventBanner.durationMs, shake:false, bigPlay:true,
+          flagsSide:result.yards < 0 ? (offenseSide === 'player' ? 'ai' : 'player') : offenseSide});
     }
     celebrate('bigPlay', offenseSide, game.visualBallX);
     AudioManager.play('bigPlay');

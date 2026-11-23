@@ -3,6 +3,7 @@
   const playbookVersion = '?v=mobile-landscape-1';
   const huddleVersion = '?v=post-play-huddle-1';
   const puntVersion = '?v=defense-formations-2';
+  const flagsVersion = '?v=crowd-flags-1';
   const catalogs = [
     'ui',
     'game',
@@ -20,6 +21,7 @@
     'scripts/services/audio.js',
     'scripts/game/runtime.js',
     'scripts/animation/animeVFX.js',
+    'scripts/animation/crowdFlags.js',
     'scripts/animation/players.js',
     'scripts/animation/timeline.js',
     'scripts/game/plays.js',
@@ -68,10 +70,11 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/game/rules.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/interface.js'].includes(src) ? puntVersion :
+        script.src = src + (['scripts/animation/crowdFlags.js', 'scripts/game/engine.js', 'scripts/services/save.js'].includes(src) ? flagsVersion :
+          ['scripts/game/rules.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/interface.js'].includes(src) ? puntVersion :
           src === 'scripts/game/plays.js' ? huddleVersion :
-          ['scripts/game/engine.js', 'scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
-          ['scripts/services/save.js', 'scripts/ui/playDiagrams.js', 'scripts/app.js'].includes(src) ? playbookVersion :
+          ['scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
+          ['scripts/ui/playDiagrams.js', 'scripts/app.js'].includes(src) ? playbookVersion :
           '');
         script.async = false;
         script.onload = resolve;
@@ -86,6 +89,7 @@
           throw new Error('La configuration des logos doit correspondre aux 40 équipes de json/teams.json.');
         }
       }
+      if(src === 'scripts/animation/crowdFlags.js') await window.CrowdFlags.ready;
     }
   } catch(error){
     console.error('Échec du chargement des textes ou des scripts du jeu.', error);
