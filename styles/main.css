@@ -1315,7 +1315,7 @@
   }
   .stadium-crowd-tint,.stadium-crowd-glow{
     --crowd-gradient:linear-gradient(90deg,var(--home-primary) 0%,var(--home-primary) 46%,transparent 50%,var(--away-primary) 54%,var(--away-primary) 100%);
-    --crowd-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1493 640' preserveAspectRatio='none'%3E%3Cpath fill='white' fill-rule='evenodd' d='M0 0H1493V640H0Z M324 301V181 L340 142 L378 116 L506 97 Q529 93 563 93 H729 V81 H763 V93 H930 Q964 93 987 97 L1114 116 L1153 142 L1169 181 V301 H1198 V340 H1169 V487 L1157 513 L1201 540 L1179 567 L1135 533 L1114 543 L987 568 Q964 572 930 572 H763 V599 H729 V572 H563 Q529 572 506 568 L378 543 L357 533 L314 567 L292 540 L335 513 L324 487 V340 H295 V301 Z'/%3E%3C/svg%3E");
+    --crowd-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1493 640' preserveAspectRatio='none'%3E%3Cpath fill='white' fill-rule='evenodd' d='M0 0H1493V640H0Z M324 304V181 L340 144 L378 120 L506 103 L585 94 H729 V81 H763 V94 H908 L987 103 L1114 120 L1153 144 L1169 181 V304 H1198 V336 H1169 V487 L1157 513 L1201 540 L1179 565 L1135 531 L1114 542 L987 561 L908 570 H762 V599 H730 V570 H585 L506 561 L378 542 L357 531 L314 565 L292 540 L335 513 L324 487 V336 H295 V304 Z'/%3E%3C/svg%3E");
     background:var(--crowd-gradient);
     -webkit-mask-image:var(--crowd-mask);
     mask-image:var(--crowd-mask);
