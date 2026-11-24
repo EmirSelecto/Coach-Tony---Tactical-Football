@@ -1,9 +1,9 @@
 {
   "touchdown": [
-    "Et c'est le TOUCHDOWN ! Le stade est debout !",
+    "TOUCHDOWN {team} ! LA DÉFENSE EST EN VACANCES !",
     "Personne ne pouvait l'arrêter, TOUCHDOWN !",
-    "Quelle séquence... SIX POINTS au tableau !",
-    "Il fallait le voir pour le croire : TOUCHDOWN !"
+    "LA END ZONE EST SERVIE !",
+    "SIX POINTS, ET BONNE NUIT !"
   ],
   "pickSix": [
     "INTERCEPTÉ... ET RAMENÉ JUSQU'AU BOUT ! Quel cauchemar pour l'attaque !",
@@ -20,32 +20,41 @@
   "bigLoss": [
     "Quel sack monumental, la ligne offensive craque !",
     "Il n'a jamais eu le temps de réagir, plaqué net derrière la ligne !",
-    "Et le plaqueur qui est venu souffler quelques mots à l'oreille du QB !"
+    "Et le plaqueur qui est venu souffler quelques mots à l'oreille du QB !",
+    "LIVRAISON EXPRESS AU SOL !",
+    "LE QUARTERBACK VIENT DE SE FAIRE EMBALLER !"
   ],
   "interception": [
     "Interceptée ! Le ballon change de mains dans la douleur !",
-    "Mauvaise lecture, et la défense s'en empare !",
+    "MERCI POUR LE CADEAU ! PICK-SIX !",
     "Et le quarterback qui voit son ballon disparaître dans les mains adverses !",
-    "La défense a parfaitement lu le jeu et s'empare du ballon !",
-    "Quelle lecture parfaite de la défense, interception décisive !"
+    "INTERCEPTION ! IL FALLAIT VISER SES RECEVEURS !",
+    "LE QUARTERBACK JOUE POUR L'AUTRE ÉQUIPE !"
   ],
   "fumble": [
     "Le ballon tombe au sol... et c'est récupéré par l'autre équipe !",
-    "Fumble ! Chaos total sur le terrain !"
+    "Fumble confirmé ! Chaos total sur le terrain !",
+    "LE BALLON EST LIBRE, ET LUI AUSSI VA LE DEVENIR SUR LE BANC !"
   ],
   "fieldGoalGood": [
     "Le ballon passe entre les poteaux, trois points de plus !",
-    "Précis et sans trembler, le botteur ne rate rien !"
+    "Précis et sans trembler, le kicker ne rate rien !"
   ],
   "fieldGoalMiss": [
-    "Ça part à côté ! Occasion manquée pour l'attaque !",
-    "Le poteau dit non ! Quelle déception !"
+    "IL A DÉVISSÉ !",
+    "Le poteau dit non ! Quelle déception !",
+    "Malgré ce raté, l'équipe vient consoler le kicker",
+    "Le kicker garde la tête haute malgré l'échec !"
   ],
   "safety": [
-    "Plaqué dans sa propre zone d'en-but : sécurité inattendue !"
+    "Plaqué dans sa propre zone d'en-but : Safety inattendu !",
+    "La défense marque deux points cruciaux avec ce Safety !",
+    "Un retournement de situation spectaculaire avec ce Safety !"
   ],
   "turnoverOnDowns": [
-    "L'attaque échoue sur la ligne de mêlée, le ballon change de mains !",
-    "Quatrième tentative manquée, tournant du match !"
+    "L'attaque échoue sur la ligne de scrimmage, le ballon change de mains !",
+    "Quatrième tentative manquée, tournant du match !",
+    "La défense récupère le ballon après l'échec de l'attaque sur la quatrième tentative !",
+    "Conversion manquée, échec cuisant et désespoir dans les yeux des coachs..."
   ]
 }
