@@ -71,11 +71,10 @@
     for(const src of scripts){
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src + (['scripts/animation/crowdFlags.js', 'scripts/game/engine.js', 'scripts/services/save.js'].includes(src) ? flagsVersion :
+        script.src = src + (['scripts/game/plays.js', 'scripts/services/save.js', 'scripts/services/audio.js', 'scripts/app.js'].includes(src) ? titleScreenVersion :
+          ['scripts/animation/crowdFlags.js', 'scripts/game/engine.js'].includes(src) ? flagsVersion :
           ['scripts/game/rules.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/interface.js'].includes(src) ? puntVersion :
-          src === 'scripts/game/plays.js' ? huddleVersion :
           ['scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
-          ['scripts/services/audio.js', 'scripts/app.js'].includes(src) ? titleScreenVersion :
           src === 'scripts/ui/playDiagrams.js' ? playbookVersion :
           '');
         script.async = false;

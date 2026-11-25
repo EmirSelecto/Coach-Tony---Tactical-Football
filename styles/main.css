@@ -779,7 +779,7 @@
     position:absolute;
     top:8%;
     left:50%;
-    width:min(520px,55vw);
+    width:min(650px,68.75vw);
     transform:translateX(-50%);
     animation:logoImpactIn .35s cubic-bezier(.2,1.32,.42,1) both;
   }
@@ -936,14 +936,14 @@
   .title-credits b{ color:#ff4ca0; }
   .title-about-frame .action-btn{ display:block; margin:16px auto 0; }
   @media (max-height:650px) and (orientation:landscape){
-    .title-logo-wrap{ top:4%; width:min(420px,43vw); }
+    .title-logo-wrap{ top:4%; width:min(525px,53.75vw); }
     .title-menu{ bottom:5%; }
     .title-enter-hint{ margin-top:14px; }
     .title-action-play{ padding:15px 38px; }
     .title-action:not(.title-action-play){ padding:12px 28px; }
   }
   @media (max-height:450px) and (orientation:landscape){
-    .title-logo-wrap{ top:1%; width:min(350px,38vw); }
+    .title-logo-wrap{ top:1%; width:min(438px,47.5vw); }
     .title-main-actions{ gap:16px; }
     .title-action-play{ padding:12px 30px; font-size:1.2rem; }
     .title-action:not(.title-action-play){ padding:10px 24px; font-size:.95rem; }
@@ -3298,6 +3298,198 @@
   }
   .pregame-frame{ width:min(100%,680px); }
   .choice-frame{ width:min(100%,560px); }
+  .save-resume-choice{ background:rgba(2,6,13,.9); }
+  .choice-frame.save-resume-modal{
+    width:min(94vw,790px);
+    max-height:calc(100dvh - 34px);
+    filter:drop-shadow(8px 8px 0 #090d16);
+  }
+  .save-resume-modal::before,
+  .save-resume-modal::after{
+    clip-path:polygon(2% 0%,98% 2%,100% 98%,0% 100%);
+  }
+  .save-resume-modal::before{
+    inset:0;
+    background:linear-gradient(135deg,#facc15 0 48%,#090d16 48% 52%,#00f0ff 52%);
+  }
+  .save-resume-modal::after{ inset:5px; background:#0b1222; }
+  .save-resume-modal .modal-texture{
+    inset:5px;
+    clip-path:polygon(2% 0%,98% 2%,100% 98%,0% 100%);
+    background:#0b1222;
+  }
+  .save-resume-modal .modal-texture::after{
+    background-image:
+      radial-gradient(rgba(0,240,255,.18) 1.3px,transparent 1.5px),
+      radial-gradient(rgba(250,204,21,.12) 1.2px,transparent 1.4px);
+    background-position:0 0,4px 4px;
+    background-size:8px 8px;
+    opacity:1;
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
+  .save-resume-modal .final-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:12px 34px 28px;
+    overflow:visible;
+  }
+  .save-resume-logo{
+    position:relative;
+    z-index:3;
+    display:block;
+    width:190px;
+    height:auto;
+    margin-top:-36px;
+    margin-bottom:-10px;
+    mix-blend-mode:lighten;
+    filter:drop-shadow(0 0 8px rgba(0,240,255,.35));
+  }
+  .save-resume-modal #choiceTitle{
+    display:block;
+    margin:0 0 18px;
+    padding:8px 26px;
+    color:#090d16;
+    background:#facc15;
+    border:3px solid #090d16;
+    box-shadow:4px 4px 0 #090d16;
+    font:italic 900 clamp(.82rem,1.6vw,1.25rem)/1.1 'Chakra Petch',sans-serif;
+    letter-spacing:.045em;
+    transform:skewX(-14deg);
+  }
+  .save-resume-modal #choiceBody{ width:100%; margin:0 0 18px !important; }
+  .resume-match-card{
+    position:relative;
+    isolation:isolate;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(160px,.8fr) minmax(0,1fr);
+    align-items:stretch;
+    min-height:150px;
+    overflow:hidden;
+    background:linear-gradient(115deg,rgba(24,43,67,.96),rgba(6,12,24,.98));
+    border:2px solid #00f0ff;
+    box-shadow:inset 0 0 0 2px #090d16,5px 5px 0 #090d16;
+    clip-path:polygon(1.5% 0,98.5% 2%,100% 97%,0 100%);
+  }
+  .resume-match-card::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    inset:0;
+    background:radial-gradient(rgba(255,255,255,.13) 1px,transparent 1.4px);
+    background-size:7px 7px;
+    opacity:.38;
+  }
+  .resume-team{
+    display:grid;
+    grid-template-columns:68px minmax(0,1fr) auto;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+    padding:20px 16px;
+  }
+  .resume-team-ai{ grid-template-columns:auto minmax(0,1fr) 68px; text-align:right; }
+  .resume-team img{
+    width:68px;
+    height:68px;
+    object-fit:contain;
+    filter:drop-shadow(3px 4px 0 #090d16);
+  }
+  .resume-team-copy{ display:flex; flex-direction:column; min-width:0; }
+  .resume-team-side{
+    color:#00f0ff;
+    font:italic 900 .58rem/1.2 'Chakra Petch',sans-serif;
+    letter-spacing:.14em;
+  }
+  .resume-team-ai .resume-team-side{ color:#ff4ca0; }
+  .resume-team-copy strong{
+    display:block;
+    margin-top:4px;
+    color:#fff;
+    font:italic 800 clamp(.7rem,1.25vw,1rem)/1.08 'Chakra Petch',sans-serif;
+    overflow-wrap:anywhere;
+    text-shadow:2px 2px 0 #090d16;
+  }
+  .resume-score{
+    color:#facc15;
+    font:italic 900 2.4rem/1 'Chakra Petch',sans-serif;
+    -webkit-text-stroke:2px #090d16;
+    paint-order:stroke fill;
+    filter:drop-shadow(3px 3px 0 #090d16);
+  }
+  .resume-team-ai .resume-score{ color:#67e8f9; }
+  .resume-live-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:12px 10px;
+    color:#fff;
+    background:linear-gradient(155deg,rgba(190,24,60,.96),rgba(126,34,24,.95));
+    border-right:2px solid #facc15;
+    border-left:2px solid #facc15;
+    text-align:center;
+    transform:skewX(-5deg);
+  }
+  .resume-live-card > *{ transform:skewX(5deg); }
+  .resume-live-badge{
+    padding:3px 9px;
+    color:#090d16;
+    background:#facc15;
+    font:italic 900 .66rem/1 'Chakra Petch',sans-serif;
+    letter-spacing:.1em;
+  }
+  .resume-live-card strong{ font:italic 900 .8rem/1.1 'Chakra Petch',sans-serif; }
+  .resume-clock{ font:900 1.35rem/1 'Chakra Petch',sans-serif; }
+  .resume-live-card span:last-child{
+    max-width:150px;
+    color:#fff7ed;
+    font:700 .7rem/1.25 'Chakra Petch',sans-serif;
+  }
+  .resume-saved-at{
+    margin:10px 0 0 !important;
+    color:#94a3b8;
+    font-size:.72rem;
+    text-align:center;
+  }
+  .save-resume-modal #choiceActions{
+    display:flex;
+    width:100%;
+    gap:14px;
+    flex-wrap:nowrap;
+  }
+  .save-resume-modal #choiceActions button.action-btn{
+    min-height:52px;
+    border:3px solid #090d16;
+    border-radius:0;
+    box-shadow:4px 4px 0 #090d16;
+    font:italic 900 clamp(.72rem,1.2vw,.95rem)/1.1 'Chakra Petch',sans-serif;
+    text-transform:uppercase;
+    transform:skewX(-14deg);
+  }
+  .save-resume-modal #choiceActions button.action-btn > span{ transform:skewX(14deg); }
+  .save-resume-modal #choiceActions button:first-child{
+    flex:1.35;
+    color:#090d16;
+    background:linear-gradient(135deg,#fde047,#f59e0b);
+  }
+  .save-resume-modal #choiceActions button:nth-child(2){
+    flex:1;
+    color:#090d16;
+    background:linear-gradient(135deg,#38bdf8,#0284c7);
+  }
+  @media (max-width:760px), (max-height:560px) and (orientation:landscape){
+    .save-resume-modal .final-card{ padding:10px 22px 22px; }
+    .save-resume-logo{ width:150px; margin-top:-28px; }
+    .resume-match-card{ grid-template-columns:minmax(0,1fr) 130px minmax(0,1fr); min-height:120px; }
+    .resume-team{ grid-template-columns:48px minmax(0,1fr); gap:7px; padding:14px 10px; }
+    .resume-team-ai{ grid-template-columns:minmax(0,1fr) 48px; }
+    .resume-team img{ width:48px; height:48px; }
+    .resume-team .resume-score{ grid-column:1 / -1; justify-self:center; font-size:1.8rem; }
+    .resume-live-card span:last-child{ font-size:.58rem; }
+  }
   .toss-frame{ width:min(100%,460px); }
   .modal-frame .final-card{
     position:relative;

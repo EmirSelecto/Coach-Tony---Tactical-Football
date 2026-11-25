@@ -214,11 +214,22 @@ function finishConversion(team, choice, offPlay, defPlay){
     yards: res.success ? Math.max(2, r.yards) : r.yards, visualBallX: preSnapSpot, visualMarkerX: goalX};
   preparePlayFormation(offPlay, defPlay, preSnapSpot, team, 1000, () => runPlayAnimation(animCfg, done));
 }
-function showChoice(title, bodyHtml, options, {conversionTeam} = {}){
+function showChoice(title, bodyHtml, options, {conversionTeam, resumeSave} = {}){
   const overlay = document.getElementById('choiceOverlay');
   const heading = document.getElementById('choiceTitle');
+  const frame = overlay.querySelector('.choice-frame');
   heading.textContent = title;
   overlay.classList.toggle('conversion-choice', Boolean(conversionTeam));
+  overlay.classList.toggle('save-resume-choice', Boolean(resumeSave));
+  frame.classList.toggle('save-resume-modal', Boolean(resumeSave));
+  frame.querySelector('.save-resume-logo')?.remove();
+  if(resumeSave){
+    const logo = document.createElement('img');
+    logo.className = 'save-resume-logo';
+    logo.src = 'assets/images/game_logo.jpg';
+    logo.alt = 'ENDZONE BREAKER — Tactical Football';
+    frame.querySelector('.final-card').insertBefore(logo, heading);
+  }
   if(conversionTeam){
     const team = game.teams[conversionTeam];
     const logo = document.createElement('img');
@@ -244,6 +255,10 @@ function showChoice(title, bodyHtml, options, {conversionTeam} = {}){
       diagram.setAttribute('aria-hidden', 'true');
       diagram.innerHTML = window.PlayDiagrams.forPlay(o.play.name, o.play.type, o.play.direction);
       b.append(label, diagram);
+    } else if(resumeSave){
+      const label = document.createElement('span');
+      label.textContent = o.label;
+      b.appendChild(label);
     } else {
       b.textContent = o.label;
     }
@@ -252,7 +267,15 @@ function showChoice(title, bodyHtml, options, {conversionTeam} = {}){
   });
   overlay.classList.remove('hidden');
 }
-function hideChoice(){ const el = document.getElementById('choiceOverlay'); if(el) el.classList.add('hidden'); }
+function hideChoice(){
+  const el = document.getElementById('choiceOverlay');
+  if(!el) return;
+  el.classList.add('hidden');
+  el.classList.remove('save-resume-choice');
+  const frame = el.querySelector('.choice-frame');
+  frame?.classList.remove('save-resume-modal');
+  frame?.querySelector('.save-resume-logo')?.remove();
+}
 
 /* Déclenchée une seule fois, juste après qu'un play ait amené l'IA en 4e tentative :
    décide punt / field goal / tentative normale (qui repasse alors par le flux standard,

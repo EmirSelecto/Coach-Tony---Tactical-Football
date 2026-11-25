@@ -110,6 +110,43 @@ function saveSummary(data){
     time:d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
   })}`;
 }
+
+function resumeSummaryMarkup(data){
+  const g = data.game;
+  const savedAt = new Date(data.savedAt);
+  const period = g.quarter >= 5 ? 'PROLONG.' : `${g.quarter}${g.quarter === 1 ? 'er' : 'e'} QT`;
+  const down = {1:'1st', 2:'2nd', 3:'3rd', 4:'4th'}[g.down] || '1st';
+  const ballSpot = g.fieldPosition <= 50 ? g.fieldPosition : 100 - g.fieldPosition;
+  const playerLogo = window.TeamArt.getTeamLogoCanvas(g.teams.player.name).toDataURL();
+  const aiLogo = window.TeamArt.getTeamLogoCanvas(g.teams.ai.name).toDataURL();
+  return `
+    <div class="resume-match-card">
+      <div class="resume-team resume-team-player">
+        <img src="${playerLogo}" alt="">
+        <div class="resume-team-copy">
+          <span class="resume-team-side">DOMICILE</span>
+          <strong>${g.teams.player.name}</strong>
+        </div>
+        <b class="resume-score">${g.scorePlayer}</b>
+      </div>
+      <div class="resume-live-card">
+        <span class="resume-live-badge">LIVE SAVE</span>
+        <strong>${period}</strong>
+        <b class="resume-clock">${fmtClock(g.clock)}</b>
+        <span>${down} &amp; ${g.distance} — Balle sur les ${ballSpot} yds</span>
+      </div>
+      <div class="resume-team resume-team-ai">
+        <b class="resume-score">${g.scoreAI}</b>
+        <div class="resume-team-copy">
+          <span class="resume-team-side">EXTÉRIEUR</span>
+          <strong>${g.teams.ai.name}</strong>
+        </div>
+        <img src="${aiLogo}" alt="">
+      </div>
+    </div>
+    <p class="resume-saved-at">Sauvegardée le ${savedAt.toLocaleDateString('fr-FR')} à ${savedAt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</p>
+  `;
+}
 // Reconstruit l'affichage complet à partir d'un instantané.
 function restoreGame(data){
   PlayAnimationController.cancelCurrent();
@@ -149,10 +186,10 @@ function restoreGame(data){
   else { maybeHandleAISpecial(); }
 }
 function showResumePrompt(data){
-  showChoice(t('game.match.resumeGameTitle'), `${t('game.match.resumeFound')}<br><br>${saveSummary(data)}`, [
-    {label:t('game.match.resume'), primary:true, onClick: () => { hideChoice(); restoreGame(data); }},
-    {label:t('ui.static.newGame'), onClick: () => { hideChoice(); SaveManager.clear(); newGame(); }}
-  ]);
+  showChoice('PARTIE SAUVEGARDÉE DÉTECTÉE', resumeSummaryMarkup(data), [
+    {label:'▶ REPRENDRE LE MATCH', primary:true, onClick: () => { hideChoice(); restoreGame(data); }},
+    {label:'✚ NOUVELLE PARTIE', onClick: () => { hideChoice(); SaveManager.clear(); newGame(); }}
+  ], {resumeSave:data});
 }
 function openSaveMenu(){
   const code = SaveManager.exportCode();
