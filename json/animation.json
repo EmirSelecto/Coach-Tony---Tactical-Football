@@ -33,7 +33,6 @@
     "advantage": "avantage",
     "tackled": "Tackled",
     "play": "Play",
-    "defense": "Défense",
     "animationError": "Erreur d’animation",
     "duel": "{blocker} vs {defender}: {type}, avantage {advantage}, {state}",
     "actorAssignment": "{id} {role}: {task} -> {target} [{path}] ({profile}, +{delay}ms)",

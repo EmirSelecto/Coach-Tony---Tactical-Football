@@ -4,6 +4,7 @@
   const huddleVersion = '?v=post-play-huddle-1';
   const puntVersion = '?v=screen-formation-trips-2';
   const flagsVersion = '?v=crowd-flags-3';
+  const titleScreenVersion = '?v=title-screen-1';
   const catalogs = [
     'ui',
     'game',
@@ -74,7 +75,8 @@
           ['scripts/game/rules.js', 'scripts/animation/players.js', 'scripts/animation/timeline.js', 'scripts/ui/interface.js'].includes(src) ? puntVersion :
           src === 'scripts/game/plays.js' ? huddleVersion :
           ['scripts/animation/animeVFX.js', 'scripts/ui/animeCutin.js'].includes(src) ? celebrationVersion :
-          ['scripts/ui/playDiagrams.js', 'scripts/app.js'].includes(src) ? playbookVersion :
+          ['scripts/services/audio.js', 'scripts/app.js'].includes(src) ? titleScreenVersion :
+          src === 'scripts/ui/playDiagrams.js' ? playbookVersion :
           '');
         script.async = false;
         script.onload = resolve;

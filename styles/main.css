@@ -668,6 +668,291 @@
   .final-card h2{ font-size:1.6rem; margin-bottom:10px; }
   .final-card .score{ font-size:2.2rem; color:var(--gold); margin-bottom:14px; }
   .hidden{ display:none !important; }
+  .visually-hidden{
+    position:absolute !important;
+    width:1px !important;
+    height:1px !important;
+    padding:0 !important;
+    margin:-1px !important;
+    overflow:hidden !important;
+    clip:rect(0,0,0,0) !important;
+    white-space:nowrap !important;
+    border:0 !important;
+  }
+
+  /* Title screen */
+  .title-screen-overlay{
+    position:fixed;
+    inset:0;
+    z-index:200;
+    display:grid;
+    place-items:center;
+    min-width:0;
+    overflow:hidden;
+    isolation:isolate;
+    background:#090d16 url("../assets/images/title_bg.jpg") center / cover no-repeat;
+    opacity:1;
+    transition:opacity .22s ease,visibility .22s ease;
+  }
+  .title-screen-overlay.is-leaving{ opacity:0; visibility:hidden; pointer-events:none; }
+  .title-screen-shade{
+    position:absolute;
+    z-index:-3;
+    inset:0;
+    background:
+      linear-gradient(180deg,rgba(3,8,17,.1) 0%,rgba(3,8,17,.2) 48%,rgba(3,8,17,.78) 100%),
+      radial-gradient(ellipse at center,rgba(9,13,22,.02) 22%,rgba(9,13,22,.56) 100%);
+  }
+  .title-screen-overlay::after{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    inset:0;
+    pointer-events:none;
+    background:
+      radial-gradient(circle,rgba(250,204,21,.18) 1px,transparent 1.8px) left / 7px 7px,
+      radial-gradient(circle,rgba(0,240,255,.13) 1px,transparent 1.8px) right / 7px 7px;
+    -webkit-mask-image:linear-gradient(90deg,#000 0%,transparent 18%,transparent 82%,#000 100%);
+    mask-image:linear-gradient(90deg,#000 0%,transparent 18%,transparent 82%,#000 100%);
+    opacity:.52;
+  }
+  .title-embers{ position:absolute; z-index:-2; inset:0; overflow:hidden; pointer-events:none; }
+  .title-embers span{
+    position:absolute;
+    left:var(--ember-x);
+    bottom:-24px;
+    width:4px;
+    height:12px;
+    border-radius:50%;
+    background:linear-gradient(#fff7c2,#facc15 42%,#f97316 72%,transparent);
+    box-shadow:0 0 7px #facc15,0 0 13px rgba(255,77,0,.66);
+    opacity:0;
+    animation:floatEmbers var(--ember-duration) linear var(--ember-delay) infinite;
+  }
+  .title-embers span:nth-child(3n){ width:2px; height:8px; }
+  .title-embers span:nth-child(2n){ filter:blur(.35px); }
+  @keyframes floatEmbers{
+    0%{ opacity:0; transform:translate3d(0,4vh,0) rotate(-12deg) scale(.7); }
+    12%{ opacity:.8; }
+    72%{ opacity:.54; }
+    100%{ opacity:0; transform:translate3d(44px,-112vh,0) rotate(28deg) scale(1.15); }
+  }
+  .title-utility-bar{
+    position:absolute;
+    z-index:3;
+    top:clamp(14px,2.2vh,24px);
+    right:clamp(14px,2.2vw,32px);
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .title-version{
+    padding:7px 11px;
+    color:#e9fbff;
+    background:rgba(4,11,20,.78);
+    border:1px solid rgba(0,240,255,.6);
+    box-shadow:3px 3px 0 #090d16;
+    font:italic 700 .74rem/1 'Chakra Petch',sans-serif;
+    letter-spacing:.08em;
+    transform:skewX(-10deg);
+    backdrop-filter:blur(8px);
+  }
+  .title-version b{ margin-left:5px; color:#6ee7b7; }
+  .title-icon-button{
+    display:grid;
+    place-items:center;
+    width:40px;
+    height:40px;
+    padding:0;
+    color:#e9fbff;
+    background:rgba(4,11,20,.82);
+    border:1px solid rgba(0,240,255,.62);
+    border-radius:3px;
+    box-shadow:3px 3px 0 #090d16;
+    cursor:pointer;
+    transition:color .15s ease,border-color .15s ease,transform .15s ease;
+  }
+  .title-icon-button svg{ width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.8; }
+  .title-icon-button:hover{ color:#fde047; border-color:#fde047; transform:translateY(-2px); }
+  .title-icon-button[aria-pressed="true"]{ color:#fde047; border-color:#fde047; }
+  .title-logo-wrap{
+    position:absolute;
+    top:8%;
+    left:50%;
+    width:min(520px,55vw);
+    transform:translateX(-50%);
+    animation:logoImpactIn .35s cubic-bezier(.2,1.32,.42,1) both;
+  }
+  .title-game-logo{
+    display:block;
+    width:100%;
+    height:auto;
+    opacity:0;
+    mix-blend-mode:screen;
+    filter:drop-shadow(0 0 8px rgba(0,240,255,.62)) drop-shadow(0 0 20px rgba(255,0,127,.34));
+    animation:overdriveGlow 2.8s ease-in-out .35s infinite;
+    transition:opacity .12s ease;
+  }
+  .title-game-logo.is-ready{ opacity:1; }
+  @keyframes logoImpactIn{
+    from{ opacity:0; transform:translateX(-50%) scale(1.18); }
+    to{ opacity:1; transform:translateX(-50%) scale(1); }
+  }
+  @keyframes overdriveGlow{
+    0%,100%{ filter:drop-shadow(0 0 7px rgba(0,240,255,.72)) drop-shadow(0 0 18px rgba(0,240,255,.24)); }
+    50%{ filter:drop-shadow(0 0 8px rgba(255,0,127,.78)) drop-shadow(0 0 24px rgba(255,0,127,.38)); }
+  }
+  .title-menu{
+    position:absolute;
+    z-index:2;
+    left:50%;
+    bottom:8%;
+    width:min(920px,94vw);
+    transform:translateX(-50%);
+    text-align:center;
+  }
+  .title-main-actions{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+  }
+  .title-action{
+    position:relative;
+    padding:14px 32px;
+    color:#090d16;
+    border:3px solid #090d16;
+    border-radius:0;
+    box-shadow:6px 6px 0 #090d16;
+    font:italic 900 1.15rem/1 'Chakra Petch',sans-serif;
+    text-transform:uppercase;
+    cursor:pointer;
+    transform:skewX(-16deg);
+    transition:transform .12s ease,filter .12s ease,box-shadow .12s ease;
+  }
+  .title-action::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background-image:radial-gradient(rgba(9,13,22,.3) 1px,transparent 1.3px);
+    background-size:6px 6px;
+    opacity:.32;
+  }
+  .title-action > span{ position:relative; display:block; transform:skewX(16deg); }
+  .title-action:hover,.title-action:focus-visible{
+    filter:brightness(1.08);
+    box-shadow:7px 9px 0 #090d16;
+    transform:skewX(-16deg) translateY(-4px) scale(1.04);
+  }
+  .title-action:active{ transform:skewX(-16deg) translateY(1px) scale(.99); }
+  .title-action-play{
+    padding:18px 46px;
+    background:linear-gradient(135deg,#fde047,#f59e0b);
+    font-size:1.5rem;
+  }
+  .title-action-settings{ background:linear-gradient(135deg,#38bdf8,#0284c7); }
+  .title-action-about{
+    color:#fff;
+    background:linear-gradient(135deg,#ff007f,#be185d);
+  }
+  .title-enter-hint{
+    margin:22px 0 0;
+    color:rgba(244,251,255,.78);
+    font:italic 700 .72rem/1.2 'Chakra Petch',sans-serif;
+    letter-spacing:.14em;
+    text-shadow:0 2px 4px #090d16;
+  }
+  .title-enter-hint kbd{
+    display:inline-block;
+    padding:3px 7px;
+    color:#fde047;
+    background:rgba(9,13,22,.8);
+    border:1px solid rgba(253,224,71,.65);
+    box-shadow:2px 2px 0 #090d16;
+    font:inherit;
+  }
+  #title-screen-overlay > .overlay-drawer{
+    position:fixed;
+    z-index:215;
+    top:9%;
+    right:2.2%;
+    width:min(380px,calc(100vw - 32px));
+    max-height:82%;
+  }
+  .title-about-overlay{
+    position:absolute;
+    z-index:220;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .title-about-backdrop{ position:absolute; inset:0; background:rgba(2,6,13,.82); backdrop-filter:blur(5px); }
+  .title-about-frame{ width:min(100%,620px); max-height:86vh; }
+  #title-screen-overlay .title-about-frame .final-card{
+    max-height:86vh;
+    padding:28px 34px 30px;
+    color:#edf8ff;
+    text-align:left;
+  }
+  #title-screen-overlay .title-about-close{
+    position:absolute;
+    z-index:3;
+    top:11px;
+    right:12px;
+    width:34px;
+    height:34px;
+    color:#fff;
+    background:#be185d;
+    border:2px solid #090d16;
+    box-shadow:3px 3px 0 #090d16;
+    font:900 1.35rem/1 'Chakra Petch',sans-serif;
+    cursor:pointer;
+  }
+  .title-about-game{
+    margin:8px 0 12px;
+    color:#fde047;
+    font:italic 900 clamp(1.2rem,2.4vw,1.85rem)/1.05 'Chakra Petch',sans-serif;
+    text-align:center;
+  }
+  .title-about-game span{ color:#00f0ff; font-size:.67em; letter-spacing:.18em; }
+  .title-about-frame p{ margin:8px 0; font-size:.9rem; line-height:1.55; }
+  .title-rules{
+    margin:16px 0;
+    padding:12px 16px;
+    background:rgba(3,10,22,.64);
+    border-left:4px solid #00f0ff;
+  }
+  .title-rules h3{
+    color:#fde047;
+    font:italic 900 .95rem/1.1 'Chakra Petch',sans-serif;
+    letter-spacing:.08em;
+  }
+  .title-rules ol{ margin:8px 0 0; padding-left:20px; }
+  .title-rules li{ margin:5px 0; padding-left:3px; font-size:.84rem; }
+  .title-credits{ padding-top:10px; border-top:1px solid rgba(0,240,255,.34); text-align:center; }
+  .title-credits b{ color:#ff4ca0; }
+  .title-about-frame .action-btn{ display:block; margin:16px auto 0; }
+  @media (max-height:650px) and (orientation:landscape){
+    .title-logo-wrap{ top:4%; width:min(420px,43vw); }
+    .title-menu{ bottom:5%; }
+    .title-enter-hint{ margin-top:14px; }
+    .title-action-play{ padding:15px 38px; }
+    .title-action:not(.title-action-play){ padding:12px 28px; }
+  }
+  @media (max-height:450px) and (orientation:landscape){
+    .title-logo-wrap{ top:1%; width:min(350px,38vw); }
+    .title-main-actions{ gap:16px; }
+    .title-action-play{ padding:12px 30px; font-size:1.2rem; }
+    .title-action:not(.title-action-play){ padding:10px 24px; font-size:.95rem; }
+    .title-enter-hint{ margin-top:10px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .title-embers span,.title-game-logo,.title-logo-wrap{ animation:none; }
+    .title-screen-overlay,.title-action{ transition:none; }
+  }
   @media (max-width: 560px){
     .scoreboard{ grid-template-columns: 1fr auto 1fr; padding:10px; }
     .team-score .val{ font-size:1.8rem; }

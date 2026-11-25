@@ -55,9 +55,9 @@
     "teamPickerHint": "« Vous » choisit votre équipe, « IA » celle de l'adversaire. Choisir la même équipe des deux côtés échange les rôles.",
     "choiceDefaultTitle": "Choix",
     "coinTossTitle": "Coin Toss",
-    "playerTeamName": "Comètes",
-    "aiTeamName": "Loups de Fer",
-    "finalTitle": "Fin du match",
+    "playerTeamName": "-",
+    "aiTeamName": "-",
+    "finalTitle": "Fin du match !",
     "replay": "Rejouer"
   },
   "status": {

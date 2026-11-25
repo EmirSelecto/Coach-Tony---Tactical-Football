@@ -167,7 +167,7 @@ const AudioManager = {
   },
   updateMusicButtons(){
     const label = t(this.musicEnabled ? 'ui.static.musicDisable' : 'ui.static.musicEnable');
-    ['musicToggle', 'musicToggleToss'].forEach(id => {
+    ['musicToggle', 'musicToggleToss', 'titleMusicToggle'].forEach(id => {
       const button = document.getElementById(id);
       if(!button) return;
       if(button.querySelector('svg')){

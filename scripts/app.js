@@ -5,7 +5,10 @@ document.getElementById('saveMenuBtn').onclick = openSaveMenu;
 let activeHudTriggerId = null;
 function closeHudPanels(restoreFocus = true){
   ['settingsPanel','trendsPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
-  document.getElementById('settingsToggle').setAttribute('aria-expanded', 'false');
+  ['settingsToggle','titleSettingsToggle','titleSettingsBtn'].forEach(id => {
+    const trigger = document.getElementById(id);
+    if(trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
   const trendsToggle = document.getElementById('trendsToggle');
   if(trendsToggle) trendsToggle.setAttribute('aria-expanded', 'false');
   const trigger = activeHudTriggerId && document.getElementById(activeHudTriggerId);
@@ -91,7 +94,7 @@ document.getElementById('audioVolumeSlider').addEventListener('input', (e)=>{
   AudioManager.setVolume(v);
   Storage.set('audioVolume', v);
 });
-['musicToggle', 'musicToggleToss'].forEach(id => {
+['musicToggle', 'musicToggleToss', 'titleMusicToggle'].forEach(id => {
   document.getElementById(id).addEventListener('click', ()=>{
     AudioManager.setMusicEnabled(!AudioManager.musicEnabled);
   });
@@ -103,6 +106,103 @@ document.getElementById('driveSummaryClose').onclick = ()=>{
   document.getElementById('driveSummaryPanel').classList.add('hidden');
   clearTimeout(window.__driveSummaryTimer);
 };
+
+const titleScreen = document.getElementById('title-screen-overlay');
+const titleAbout = document.getElementById('titleAboutOverlay');
+const titleSettingsPanel = document.getElementById('settingsPanel');
+const gameOverlay = document.querySelector('.game-overlay');
+const titleLogo = document.querySelector('.title-game-logo');
+
+function prepareTitleLogo(){
+  if(!titleLogo.naturalWidth){
+    titleLogo.classList.add('is-ready');
+    return;
+  }
+  try{
+    const canvas = document.createElement('canvas');
+    canvas.width = titleLogo.naturalWidth;
+    canvas.height = titleLogo.naturalHeight;
+    const context = canvas.getContext('2d', {willReadFrequently:true});
+    context.drawImage(titleLogo, 0, 0);
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    for(let index = 0; index < image.data.length; index += 4){
+      const distance = Math.max(
+        Math.abs(image.data[index] - 9),
+        Math.abs(image.data[index + 1] - 13),
+        Math.abs(image.data[index + 2] - 22)
+      );
+      const alpha = Math.max(0, Math.min(1, (distance - 10) / 20));
+      image.data[index + 3] = Math.round(image.data[index + 3] * alpha);
+    }
+    context.putImageData(image, 0, 0);
+    titleLogo.src = canvas.toDataURL('image/png');
+  } catch(error){
+    console.warn('Impossible de détourer automatiquement le logo du menu principal.', error);
+  }
+  titleLogo.classList.add('is-ready');
+}
+
+if(titleLogo.complete) prepareTitleLogo();
+else titleLogo.addEventListener('load', prepareTitleLogo, {once:true});
+
+function openTitleSettings(trigger){
+  titleScreen.appendChild(titleSettingsPanel);
+  titleSettingsPanel.classList.add('title-settings-panel');
+  toggleHudPanel('settingsPanel', trigger);
+}
+
+function closeTitleAbout(restoreFocus = true){
+  titleAbout.classList.add('hidden');
+  document.getElementById('titleAboutBtn').setAttribute('aria-expanded', 'false');
+  if(restoreFocus) document.getElementById('titleAboutBtn').focus();
+}
+
+function openTitleAbout(){
+  closeHudPanels(false);
+  titleAbout.classList.remove('hidden');
+  document.getElementById('titleAboutBtn').setAttribute('aria-expanded', 'true');
+  titleAbout.querySelector('[data-close-title-about].title-about-close').focus();
+}
+
+function startFromTitle(){
+  if(titleScreen.classList.contains('is-leaving')) return;
+  closeTitleAbout(false);
+  closeHudPanels(false);
+  gameOverlay.appendChild(titleSettingsPanel);
+  titleSettingsPanel.classList.remove('title-settings-panel');
+  titleScreen.classList.add('is-leaving');
+  window.setTimeout(() => {
+    titleScreen.classList.add('hidden');
+    const visibleOverlay = document.querySelector('#choiceOverlay:not(.hidden), #pregameOverlay:not(.hidden)');
+    if(visibleOverlay){
+      const action = visibleOverlay.querySelector('button');
+      if(action) action.focus();
+    }
+  }, 220);
+}
+
+document.getElementById('titlePlayBtn').addEventListener('click', startFromTitle);
+document.getElementById('titleSettingsBtn').addEventListener('click', event => openTitleSettings(event.currentTarget));
+document.getElementById('titleSettingsToggle').addEventListener('click', event => openTitleSettings(event.currentTarget));
+document.getElementById('titleAboutBtn').addEventListener('click', openTitleAbout);
+document.querySelectorAll('[data-close-title-about]').forEach(button => {
+  button.addEventListener('click', () => closeTitleAbout());
+});
+document.addEventListener('keydown', event => {
+  if(titleScreen.classList.contains('hidden')) return;
+  if(event.key === 'Escape' && !titleAbout.classList.contains('hidden')){
+    event.preventDefault();
+    closeTitleAbout();
+    return;
+  }
+  if(event.key === 'Enter' &&
+     titleAbout.classList.contains('hidden') &&
+     titleSettingsPanel.classList.contains('hidden') &&
+     !event.target.closest('button, input, select, textarea, a')){
+    event.preventDefault();
+    startFromTitle();
+  }
+});
 
 (function boot(){
   const saved = SaveManager.load();

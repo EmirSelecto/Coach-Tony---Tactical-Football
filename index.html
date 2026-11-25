@@ -6,11 +6,82 @@
 <title data-text="ui.static.documentTitle">Coach Tony - Tactical Football</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=playbook-announcements-1">
+  <link rel="stylesheet" href="styles/main.css?v=title-screen-1">
 </head>
 <body>
+<div class="title-screen-overlay" id="title-screen-overlay" role="region" aria-labelledby="titleScreenHeading">
+  <div class="title-screen-shade" aria-hidden="true"></div>
+  <div class="title-embers" aria-hidden="true">
+    <span style="--ember-x:7%;--ember-delay:-1s;--ember-duration:8s"></span>
+    <span style="--ember-x:16%;--ember-delay:-5s;--ember-duration:11s"></span>
+    <span style="--ember-x:25%;--ember-delay:-3s;--ember-duration:9s"></span>
+    <span style="--ember-x:34%;--ember-delay:-8s;--ember-duration:13s"></span>
+    <span style="--ember-x:43%;--ember-delay:-2s;--ember-duration:10s"></span>
+    <span style="--ember-x:52%;--ember-delay:-7s;--ember-duration:12s"></span>
+    <span style="--ember-x:61%;--ember-delay:-4s;--ember-duration:9s"></span>
+    <span style="--ember-x:70%;--ember-delay:-9s;--ember-duration:14s"></span>
+    <span style="--ember-x:79%;--ember-delay:-6s;--ember-duration:11s"></span>
+    <span style="--ember-x:88%;--ember-delay:-1.5s;--ember-duration:10s"></span>
+    <span style="--ember-x:94%;--ember-delay:-10s;--ember-duration:15s"></span>
+  </div>
+
+  <div class="title-utility-bar">
+    <span class="title-version">v1.0.4 <b>LIVE</b></span>
+    <button class="title-icon-button music-toggle" id="titleMusicToggle" type="button" aria-label="Activer la musique" title="Activer la musique" aria-pressed="false">
+      <svg aria-hidden="true"><use href="assets/images/ui-icons.svg#music"></use></svg>
+    </button>
+    <button class="title-icon-button" id="titleSettingsToggle" type="button" aria-label="Paramètres" title="Paramètres" aria-expanded="false" aria-controls="settingsPanel">
+      <svg aria-hidden="true"><use href="assets/images/ui-icons.svg#settings"></use></svg>
+    </button>
+  </div>
+
+  <h1 class="visually-hidden" id="titleScreenHeading">ENDZONE BREAKER — Tactical Football</h1>
+  <div class="title-logo-wrap" aria-hidden="true">
+    <img class="title-game-logo" src="assets/images/game_logo.jpg" alt="">
+  </div>
+
+  <div class="title-menu">
+    <div class="title-main-actions">
+      <button class="title-action title-action-play" id="titlePlayBtn" type="button">
+        <span>▶ JOUER</span>
+      </button>
+      <button class="title-action title-action-settings" id="titleSettingsBtn" type="button">
+        <span>⚙ SETTINGS</span>
+      </button>
+      <button class="title-action title-action-about" id="titleAboutBtn" type="button" aria-expanded="false" aria-controls="titleAboutOverlay">
+        <span>ℹ À PROPOS</span>
+      </button>
+    </div>
+    <p class="title-enter-hint">APPUYEZ SUR <kbd>ENTRÉE</kbd> POUR JOUER</p>
+  </div>
+
+  <section class="title-about-overlay hidden" id="titleAboutOverlay" role="dialog" aria-modal="true" aria-labelledby="titleAboutHeading">
+    <div class="title-about-backdrop" data-close-title-about></div>
+    <div class="modal-frame title-about-frame">
+      <span class="modal-texture" aria-hidden="true"></span>
+      <div class="final-card">
+        <button class="title-about-close" type="button" aria-label="Fermer la fenêtre À propos" data-close-title-about>×</button>
+        <h2 id="titleAboutHeading">À PROPOS</h2>
+        <p class="title-about-game">ENDZONE BREAKER<br><span>TACTICAL FOOTBALL</span></p>
+        <p>Une expérience de football tactique nerveuse, animée comme un duel de sport manga.</p>
+        <div class="title-rules">
+          <h3>RÈGLES RAPIDES</h3>
+          <ol>
+            <li>Choisissez vos équipes puis lancez le coin toss.</li>
+            <li>Lisez le down, la distance, la tendance adverse et appelez votre jeu.</li>
+            <li>Gagnez du terrain, protégez le ballon et faites battre le chrono pour l’adversaire.</li>
+            <li>À la fin du match, l’équipe avec le plus de points remporte le duel.</li>
+          </ol>
+        </div>
+        <p class="title-credits"><b>CRÉDITS</b><br>ENDZONE BREAKER — Tactical Football<br>Conception, interface et direction artistique : l’équipe du jeu</p>
+        <button class="action-btn" type="button" data-close-title-about>RETOUR AU MENU</button>
+      </div>
+    </div>
+  </section>
+</div>
+
 <div class="wrap game-shell">
   <div class="field-outer" id="fieldOuter">
     <div class="stadium-crowd-tint" aria-hidden="true"></div>
@@ -266,6 +337,6 @@
 </div>
 
 
-  <script src="scripts/loader.js?v=crowd-flags-3"></script>
+  <script src="scripts/loader.js?v=title-screen-1"></script>
 </body>
 </html>
