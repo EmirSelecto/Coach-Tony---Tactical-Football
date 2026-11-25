@@ -4,7 +4,7 @@
   const huddleVersion = '?v=post-play-huddle-1';
   const puntVersion = '?v=screen-formation-trips-2';
   const flagsVersion = '?v=crowd-flags-3';
-  const titleScreenVersion = '?v=title-screen-1';
+  const titleScreenVersion = '?v=title-screen-2';
   const catalogs = [
     'ui',
     'game',

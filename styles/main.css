@@ -3343,9 +3343,15 @@
     height:auto;
     margin-top:-36px;
     margin-bottom:-10px;
-    mix-blend-mode:lighten;
-    filter:drop-shadow(0 0 8px rgba(0,240,255,.35));
+    opacity:0;
+    mix-blend-mode:screen;
+    filter:
+      drop-shadow(-2px 0 3px rgba(0,240,255,.72))
+      drop-shadow(2px 0 3px rgba(255,0,127,.6))
+      drop-shadow(0 0 7px rgba(0,240,255,.28));
+    transition:opacity .12s ease;
   }
+  .save-resume-logo.is-ready{ opacity:1; }
   .save-resume-modal #choiceTitle{
     display:block;
     margin:0 0 18px;

@@ -113,37 +113,38 @@ const titleSettingsPanel = document.getElementById('settingsPanel');
 const gameOverlay = document.querySelector('.game-overlay');
 const titleLogo = document.querySelector('.title-game-logo');
 
-function prepareTitleLogo(){
-  if(!titleLogo.naturalWidth){
-    titleLogo.classList.add('is-ready');
+function prepareLogoCutout(image){
+  if(!image.naturalWidth){
+    image.classList.add('is-ready');
     return;
   }
   try{
     const canvas = document.createElement('canvas');
-    canvas.width = titleLogo.naturalWidth;
-    canvas.height = titleLogo.naturalHeight;
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
     const context = canvas.getContext('2d', {willReadFrequently:true});
-    context.drawImage(titleLogo, 0, 0);
-    const image = context.getImageData(0, 0, canvas.width, canvas.height);
-    for(let index = 0; index < image.data.length; index += 4){
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    for(let index = 0; index < pixels.data.length; index += 4){
       const distance = Math.max(
-        Math.abs(image.data[index] - 9),
-        Math.abs(image.data[index + 1] - 13),
-        Math.abs(image.data[index + 2] - 22)
+        Math.abs(pixels.data[index] - 9),
+        Math.abs(pixels.data[index + 1] - 13),
+        Math.abs(pixels.data[index + 2] - 22)
       );
       const alpha = Math.max(0, Math.min(1, (distance - 10) / 20));
-      image.data[index + 3] = Math.round(image.data[index + 3] * alpha);
+      pixels.data[index + 3] = Math.round(pixels.data[index + 3] * alpha);
     }
-    context.putImageData(image, 0, 0);
-    titleLogo.src = canvas.toDataURL('image/png');
+    context.putImageData(pixels, 0, 0);
+    image.src = canvas.toDataURL('image/png');
   } catch(error){
     console.warn('Impossible de détourer automatiquement le logo du menu principal.', error);
   }
-  titleLogo.classList.add('is-ready');
+  image.classList.add('is-ready');
 }
 
-if(titleLogo.complete) prepareTitleLogo();
-else titleLogo.addEventListener('load', prepareTitleLogo, {once:true});
+window.prepareLogoCutout = prepareLogoCutout;
+if(titleLogo.complete) prepareLogoCutout(titleLogo);
+else titleLogo.addEventListener('load', () => prepareLogoCutout(titleLogo), {once:true});
 
 function openTitleSettings(trigger){
   titleScreen.appendChild(titleSettingsPanel);

@@ -229,6 +229,8 @@ function showChoice(title, bodyHtml, options, {conversionTeam, resumeSave} = {})
     logo.src = 'assets/images/game_logo.jpg';
     logo.alt = 'ENDZONE BREAKER — Tactical Football';
     frame.querySelector('.final-card').insertBefore(logo, heading);
+    if(logo.complete) window.prepareLogoCutout?.(logo);
+    else logo.addEventListener('load', () => window.prepareLogoCutout?.(logo), {once:true});
   }
   if(conversionTeam){
     const team = game.teams[conversionTeam];
